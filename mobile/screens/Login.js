@@ -30,7 +30,7 @@ const Login = ({ navigation }) => {
     setError('');
     try {
       await auth.signInWithEmailAndPassword(email, password);
-      navigation.navigate('Dashboard');
+      // navigation.navigate('Dashboard'); // REMOVE: navigation is now handled by auth state
     } catch (error) {
       let errorMessage = 'An unexpected error occurred. Please try again.';
       if (error.code === 'auth/invalid-email') {

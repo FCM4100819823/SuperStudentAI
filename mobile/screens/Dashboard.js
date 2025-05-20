@@ -12,6 +12,7 @@ import {
 import { auth } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
 import { MaterialIcons } from '@expo/vector-icons';
+import { firestore } from '../firebaseConfig';
 
 const Dashboard = ({ navigation, route }) => {
   const [profileData, setProfileData] = useState(null);
@@ -22,33 +23,33 @@ const Dashboard = ({ navigation, route }) => {
   const fetchUserProfile = async () => {
     try {
       const user = auth.currentUser;
-      
       if (!user) {
-        navigation.replace('Login');
+        setError('You are not logged in. Please log in again.');
         return;
       }
-      
       const idToken = await user.getIdToken();
-        // Replace with your actual backend URL
-      const backendUrl = 'http://10.0.2.2:5000'; // Use emulator/LAN IP for backend
+      const backendUrl = 'http://172.20.10.4:5000';
       const response = await fetch(`${backendUrl}/auth/profile`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`
-        }
+        },
+        timeout: 10000 // 10 seconds
       });
-
       const data = await response.json();
-      
       if (!response.ok) {
         throw new Error(data.message || 'Error fetching profile');
       }
-      
       setProfileData(data.user);
     } catch (err) {
-      console.error('Error fetching user profile:', err);
-      setError(err.message || 'Failed to load profile data');
+      if (err.message && err.message.includes('Network request failed')) {
+        setError('Cannot connect to backend. Make sure your server is running and accessible from the emulator.');
+      } else if (err.message && err.message.includes('timeout')) {
+        setError('Network request timed out. Check your backend connection.');
+      } else {
+        setError(err.message || 'Failed to load profile data');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -70,18 +71,32 @@ const Dashboard = ({ navigation, route }) => {
   };
 
   useEffect(() => {
+    let unsubscribeFirestore;
+    const user = auth.currentUser;
+    if (user) {
+      // Listen to Firestore user document for real-time updates
+      unsubscribeFirestore = firestore.collection('users').doc(user.uid)
+        .onSnapshot(doc => {
+          if (doc.exists) {
+            setProfileData(doc.data());
+            setLoading(false);
+          }
+        }, err => {
+          setError('Failed to sync profile in real-time.');
+        });
+    }
     fetchUserProfile();
-    
     // Refresh profile when returning from profile edit screen
-    const unsubscribe = navigation.addListener('focus', () => {
+    const unsubscribeNav = navigation.addListener('focus', () => {
       if (route.params?.refreshProfile) {
         fetchUserProfile();
-        // Clear the param to prevent unnecessary refreshes
         navigation.setParams({ refreshProfile: undefined });
       }
     });
-
-    return unsubscribe;
+    return () => {
+      if (unsubscribeFirestore) unsubscribeFirestore();
+      unsubscribeNav();
+    };
   }, [navigation, route]);
 
   if (loading) {
@@ -207,6 +222,24 @@ const Dashboard = ({ navigation, route }) => {
           </Text>
         </View>
       </View>
+
+      {/* File Upload Button */}
+      <TouchableOpacity 
+        style={styles.uploadButton}
+        onPress={() => navigation.navigate('FileUpload')}
+      >
+        <MaterialIcons name="cloud-upload" size={22} color="#fff" />
+        <Text style={styles.uploadButtonText}>Upload File for AI Parsing</Text>
+      </TouchableOpacity>
+
+      {/* AI Assistant Button */}
+      <TouchableOpacity 
+        style={styles.aiButton}
+        onPress={() => navigation.navigate('AI')}
+      >
+        <MaterialIcons name="smart-toy" size={22} color="#fff" />
+        <Text style={styles.aiButtonText}>Ask SuperStudent AI</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -380,6 +413,40 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 10,
     lineHeight: 20,
+  },
+  aiButton: {
+    backgroundColor: '#4169E1',
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    margin: 20,
+    elevation: 3,
+  },
+  aiButtonText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  uploadButton: {
+    backgroundColor: '#4169E1',
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    margin: 20,
+    elevation: 3,
+  },
+  uploadButtonText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '600',
+    marginLeft: 10,
   }
 });
 

@@ -6,12 +6,15 @@ import { Request, Response } from 'express';
 // Initialize Firebase Admin (must be done before importing routes)
 import './firebase';
 import authRoutes from './routes/auth';
+import aiRoutes from './routes/ai';
+import fileRoutes from './routes/file';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
+const HOST = '0.0.0.0'; // Listen on all interfaces for LAN access
 
 // Middleware
 app.use(express.json());
@@ -44,8 +47,10 @@ mongoose
 
 // Use authentication routes
 app.use('/auth', authRoutes);
+app.use('/ai', aiRoutes);
+app.use('/file', fileRoutes);
 
 // Start the server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Server is running on http://${HOST}:${PORT}`);
 });

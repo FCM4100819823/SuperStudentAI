@@ -52,7 +52,7 @@ const Register = ({ navigation }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('http://10.0.2.2:5000/auth/signup', {
+      const response = await fetch('http://172.20.10.4:5000/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name, age, level, university, major, graduationYear })

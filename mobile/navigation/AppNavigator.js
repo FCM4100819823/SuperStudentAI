@@ -5,20 +5,31 @@ import Register from '../screens/Register';
 import Dashboard from '../screens/Dashboard';
 import ForgotPassword from '../screens/ForgotPassword';
 import ProfileEdit from '../screens/ProfileEdit';
+import AIScreen from '../screens/AIScreen';
+import FileUploadScreen from '../screens/FileUploadScreen';
 
 const Stack = createStackNavigator();
 
-const AppNavigator = () => {
+const AppNavigator = ({ user }) => {
   return (
     <Stack.Navigator 
-      initialRouteName="Login"
+      initialRouteName={user ? 'Dashboard' : 'Login'}
       screenOptions={{ headerShown: false }}
     >
-      <Stack.Screen name="Login" component={Login} />
-      <Stack.Screen name="Register" component={Register} />
-      <Stack.Screen name="Dashboard" component={Dashboard} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-      <Stack.Screen name="ProfileEdit" component={ProfileEdit} />
+      {!user ? (
+        <>
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="Register" component={Register} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="Dashboard" component={Dashboard} />
+          <Stack.Screen name="ProfileEdit" component={ProfileEdit} />
+          <Stack.Screen name="AI" component={AIScreen} />
+          <Stack.Screen name="FileUpload" component={FileUploadScreen} />
+        </>
+      )}
     </Stack.Navigator>
   );
 };

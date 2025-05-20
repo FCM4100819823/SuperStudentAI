@@ -71,7 +71,7 @@ const ProfileEdit = ({ route, navigation }) => {
       const idToken = await user.getIdToken();
       
       // Replace with your actual backend URL
-      const backendUrl = 'http://10.0.2.2:5000'; // Use emulator/LAN IP for backend
+      const backendUrl = 'http://172.20.10.4:5000'; // Use LAN IP for physical device
       const response = await fetch(`${backendUrl}/auth/profile`, {
         method: 'PUT',
         headers: {

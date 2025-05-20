@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import mongoose from 'mongoose';
-import admin from '../firebase'; // Import from our centralized Firebase init
+import admin, { firestore } from '../firebase'; // Import from our centralized Firebase init
 import { getAuth } from 'firebase-admin/auth';
 import User from '../models/User'; // Ensure the User model is imported
 import { Request as ExpressRequest, Response as ExpressResponse } from 'express';
@@ -56,6 +56,17 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
       graduationYear, // Added
     });
     await newUser.save();
+    // Sync to Firestore
+    await firestore.collection('users').doc(userRecord.uid).set({
+      email,
+      name,
+      age,
+      level,
+      university,
+      major,
+      graduationYear,
+      createdAt: new Date(),
+    });
 
     res.status(201).json({ message: 'Signup successful', user: { uid: userRecord.uid, email, name, age, level, university, major, graduationYear } });
   } catch (error) {
@@ -150,6 +161,17 @@ router.put('/profile', async (req: ExpressRequest, res: ExpressResponse) => {
       if (!updatedUser) {
         return res.status(404).json({ message: 'User not found' });
       }
+      // Sync to Firestore
+      await firestore.collection('users').doc(uid).set({
+        email: updatedUser.email,
+        name: updatedUser.name,
+        age: updatedUser.age,
+        level: updatedUser.level,
+        university: updatedUser.university,
+        major: updatedUser.major,
+        graduationYear: updatedUser.graduationYear,
+        updatedAt: new Date(),
+      }, { merge: true });
 
       return res.status(200).json({
         message: 'Profile updated successfully',
