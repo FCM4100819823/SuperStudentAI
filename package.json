@@ -1,0 +1,24 @@
+{
+  "name": "superstudentai",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "mobile"
+  ],
+  "scripts": {
+    "start": "echo 'Specify a workspace to start'",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/react": "~19.0.10",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@react-navigation/stack": "^7.3.2",
+    "react-native-vector-icons": "^10.2.0"
+  }
+}
