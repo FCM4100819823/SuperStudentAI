@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput,
 import * as DocumentPicker from 'expo-document-picker';
 import { auth } from '../firebaseConfig';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native'; // Import useNavigation
 
 const backendUrl = 'http://172.20.10.4:5000';
 
@@ -11,6 +12,7 @@ const FileUploadScreen = () => {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const navigation = useNavigation(); // Initialize navigation
 
   const pickFile = async () => {
     setError('');
@@ -57,6 +59,45 @@ const FileUploadScreen = () => {
     }
   };
 
+  const uploadSyllabus = async () => {
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    setResult(null);
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('You must be logged in.');
+      const formData = new FormData();
+      formData.append('file', {
+        uri: file.uri,
+        name: file.name,
+        type: file.mimeType || 'image/jpeg',
+      });
+      formData.append('userId', user.uid);
+      const response = await fetch(`${backendUrl}/file/syllabus-ocr`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Syllabus upload failed');
+      setResult(data);
+      // Navigate to CreateStudyPlanScreen on successful syllabus OCR
+      if (data.syllabusAnalysisId && data.syllabusTitle) {
+        navigation.navigate('CreateStudyPlan', { 
+          syllabusAnalysisId: data.syllabusAnalysisId,
+          syllabusTitle: data.syllabusTitle 
+        });
+      }
+    } catch (e) {
+      setError(e.message || 'Syllabus upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Upload a File</Text>
@@ -69,11 +110,27 @@ const FileUploadScreen = () => {
           {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.uploadButtonText}>Upload & Parse</Text>}
         </TouchableOpacity>
       )}
+      {/* Syllabus OCR upload button */}
+      {file && (
+        <TouchableOpacity style={[styles.uploadButton, { backgroundColor: '#007bff' }]} onPress={uploadSyllabus} disabled={uploading}>
+          {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.uploadButtonText}>Syllabus OCR & Extract</Text>}
+        </TouchableOpacity>
+      )}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {result && (
         <View style={styles.resultBox}>
           <Text style={styles.resultTitle}>AI Result:</Text>
           <Text style={styles.resultText}>{JSON.stringify(result.aiResult, null, 2)}</Text>
+          <Text style={styles.resultTitle}>File URL:</Text>
+          <Text style={styles.resultText}>{result.url}</Text>
+        </View>
+      )}
+      {result && result.ocrText && (
+        <View style={styles.resultBox}>
+          <Text style={styles.resultTitle}>OCR Text:</Text>
+          <Text style={styles.resultText}>{result.ocrText}</Text>
+          <Text style={styles.resultTitle}>NLP Extracted Data:</Text>
+          <Text style={styles.resultText}>{JSON.stringify(result.nlpResult, null, 2)}</Text>
           <Text style={styles.resultTitle}>File URL:</Text>
           <Text style={styles.resultText}>{result.url}</Text>
         </View>

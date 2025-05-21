@@ -75,6 +75,7 @@ const Dashboard = ({ navigation, route }) => {
     const user = auth.currentUser;
     if (user) {
       // Listen to Firestore user document for real-time updates
+      console.log('Dashboard.js: Imported firestore object:', firestore); // Added log
       unsubscribeFirestore = firestore.collection('users').doc(user.uid)
         .onSnapshot(doc => {
           if (doc.exists) {

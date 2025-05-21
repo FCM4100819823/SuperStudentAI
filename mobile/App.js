@@ -7,14 +7,26 @@ import { auth } from './firebaseConfig';
 
 export default function App() {
   const [initializing, setInitializing] = useState(true);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null); // Changed to null as initial state for clarity
 
   useEffect(() => {
+    console.log('App.js: useEffect for onAuthStateChanged, initializing:', initializing);
     const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      console.log('App.js: onAuthStateChanged triggered. User:', firebaseUser ? firebaseUser.uid : null);
       setUser(firebaseUser);
-      if (initializing) setInitializing(false);
+      if (initializing) {
+        console.log('App.js: Setting initializing to false.');
+        setInitializing(false);
+      }
     });
-    return unsubscribe;
+    return () => {
+      console.log('App.js: Unsubscribing from onAuthStateChanged.');
+      unsubscribe();
+    };
+    // The dependency array [initializing] is intentional here to re-subscribe 
+    // if initializing were to change, though it primarily serves to run after initial mount
+    // and when initializing becomes false. A simple [] might also work if setInitializing(false)
+    // is handled carefully after the first auth check.
   }, [initializing]);
 
   if (initializing) {
@@ -26,7 +38,7 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer key={user ? 'app-stack' : 'auth-stack'}>
       <AppNavigator user={user} />
       <StatusBar style="auto" />
     </NavigationContainer>

@@ -51,4 +51,61 @@ router.post('/upload', upload.single('file'), async (req: any, res: any) => {
   }
 });
 
+// POST /file/syllabus-ocr - Upload syllabus image/PDF, run OCR, extract key dates/topics
+router.post('/syllabus-ocr', upload.single('file'), async (req: any, res: any) => {
+  try {
+    const userId = req.body.userId;
+    if (!req.file || !userId) {
+      return res.status(400).json({ message: 'File and userId are required.' });
+    }
+    // Upload to Firebase Storage
+    const bucket = admin.storage().bucket();
+    const fileName = `syllabus/${userId}/${Date.now()}_${req.file.originalname}`;
+    const file = bucket.file(fileName);
+    await file.save(req.file.buffer, { contentType: req.file.mimetype });
+    const [url] = await file.getSignedUrl({ action: 'read', expires: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+
+    // OCR with Tesseract.js (image/pdf only)
+    let ocrText = '';
+    if (req.file.mimetype && (req.file.mimetype.startsWith('image/') || req.file.mimetype === 'application/pdf')) {
+      const Tesseract = require('tesseract.js');
+      // For PDFs, extract first page as image (MVP: reject multi-page PDFs)
+      if (req.file.mimetype === 'application/pdf') {
+        return res.status(415).json({ message: 'PDF OCR not yet supported. Please upload an image file.' });
+      }
+      // OCR image buffer
+      const result = await Tesseract.recognize(req.file.buffer, 'eng');
+      ocrText = result.data.text;
+    } else {
+      return res.status(415).json({ message: 'Only image files are supported for OCR.' });
+    }
+
+    // Extract key dates/topics using Hugging Face NLP
+    let nlpResult = null;
+    if (ocrText) {
+      const aiRes = await axios.post(
+        'http://localhost:5000/ai/nlp',
+        { text: ocrText, user: userId, task: 'syllabus_extraction' },
+        { timeout: 20000 }
+      );
+      nlpResult = aiRes.data.result;
+    }
+
+    // Save OCR and NLP result to Firestore
+    await firestore.collection('users').doc(userId).collection('syllabus').add({
+      fileName,
+      url,
+      mimetype: req.file.mimetype,
+      uploadedAt: new Date(),
+      ocrText,
+      nlpResult,
+    });
+
+    res.status(201).json({ message: 'Syllabus uploaded, OCR complete, NLP extracted.', url, ocrText, nlpResult });
+  } catch (error: any) {
+    console.error('Syllabus OCR error:', error);
+    res.status(500).json({ message: 'Syllabus OCR failed', error: error?.message || String(error) });
+  }
+});
+
 export default router;

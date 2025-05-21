@@ -36,15 +36,20 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
     return res.status(400).json({ message: 'Invalid level. Level must be between 100 and 600.' });
   }
 
+  let userRecord; // Declare userRecord here to access it in catch block
+
   try {
     // Create user in Firebase Authentication
-    const userRecord = await getAuth().createUser({
+    console.log(`Attempting to create Firebase Auth user for email: ${email}`);
+    userRecord = await getAuth().createUser({
       email,
       password,
       displayName: name,
     });
+    console.log(`Successfully created Firebase Auth user with UID: ${userRecord.uid} for email: ${email}`);
 
     // Store additional user data in MongoDB
+    console.log(`Attempting to save user data to MongoDB for UID: ${userRecord.uid}`);
     const newUser = new User({
       username: userRecord.uid, // Use Firebase UID as username
       email,
@@ -56,7 +61,10 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
       graduationYear, // Added
     });
     await newUser.save();
+    console.log(`Successfully saved user data to MongoDB for UID: ${userRecord.uid}`);
+    
     // Sync to Firestore
+    console.log(`Attempting to save user data to Firestore for UID: ${userRecord.uid}`);
     await firestore.collection('users').doc(userRecord.uid).set({
       email,
       name,
@@ -67,10 +75,46 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
       graduationYear,
       createdAt: new Date(),
     });
+    console.log(`Successfully saved user data to Firestore for UID: ${userRecord.uid}`);
 
     res.status(201).json({ message: 'Signup successful', user: { uid: userRecord.uid, email, name, age, level, university, major, graduationYear } });
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating user', error });
+  } catch (error: any) { // Ensure 'any' type for error object
+    console.error('Error during signup process:', error); // Log the full error object
+
+    let errorMessage = 'An unexpected error occurred during signup.';
+    let errorCode = 'UNKNOWN_ERROR';
+    let errorDetails = {};
+
+    if (error.message) {
+      errorMessage = error.message;
+    }
+    if (error.code) {
+      errorCode = error.code; 
+    }
+    
+    if (userRecord && userRecord.uid) {
+      console.error(`Firebase Auth user ${userRecord.uid} (email: ${email}) was created, but a subsequent step failed.`);
+      // If Auth user was created but DB write failed, this log confirms it.
+      // The client will still receive an error because the overall process failed.
+    } else {
+      console.error(`Firebase Auth user creation failed for email: ${email} or error occurred before creation.`);
+    }
+    
+    // Specifically check for gRPC status code 5 (NOT_FOUND) which Firestore uses
+    if (error.code === 5 && error.details !== undefined) { 
+        errorMessage = 'Failed to save user details to the database. The user authentication record might have been created, but profile data is missing. Please contact support or try again later.';
+        errorCode = 'FIRESTORE_SAVE_FAILED';
+        // Safely access error.metadata and convert to string if it exists
+        const metadataString = error.metadata && typeof error.metadata.toString === 'function' ? error.metadata.toString() : 'No metadata';
+        errorDetails = { details: error.details, metadata: metadataString };
+    }
+
+    res.status(500).json({ 
+        message: 'Error creating user', 
+        error: errorMessage, 
+        errorCode,
+        errorDetails 
+    });
   }
 });
 

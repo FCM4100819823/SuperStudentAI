@@ -11,7 +11,8 @@ import {
   ScrollView 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { auth } from '../firebaseConfig';
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth as authInstance } from '../firebaseConfig';
 
 const Icon = ({ name, size = 24, color = "#4A5568" }) => <MaterialIcons name={name} size={size} color={color} style={{ marginRight: 10 }} />;
 
@@ -28,19 +29,33 @@ const Login = ({ navigation }) => {
     }
     setLoading(true);
     setError('');
+    console.log(`Attempting to sign in with email: ${email}`);
     try {
-      await auth.signInWithEmailAndPassword(email, password);
-      // navigation.navigate('Dashboard'); // REMOVE: navigation is now handled by auth state
-    } catch (error) {
+      await signInWithEmailAndPassword(authInstance, email, password);
+      console.log("Login successful, auth state should trigger navigation.");
+    } catch (err) {
+      console.error('Login Error:', JSON.stringify(err, null, 2));
       let errorMessage = 'An unexpected error occurred. Please try again.';
-      if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address.';
-      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-login-credentials') {
-        errorMessage = 'Incorrect password. Please try again.';
-      } else if (error.code === 'auth/user-not-found') {
-        errorMessage = 'No user found with this email.';
-      } else if (error.code === 'auth/user-disabled') {
-        errorMessage = 'This user account has been disabled.';
+      if (err.code) {
+        switch (err.code) {
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address format.';
+            break;
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+            errorMessage = 'Incorrect email or password. Please try again.';
+            break;
+          case 'auth/user-not-found':
+            errorMessage = 'No user found with this email.';
+            break;
+          case 'auth/user-disabled':
+            errorMessage = 'This user account has been disabled.';
+            break;
+          default:
+            errorMessage = err.message || 'Login failed. Please check your credentials.';
+        }
+      } else {
+        errorMessage = err.message || 'An unexpected error occurred.';
       }
       setError(errorMessage);
     }
@@ -54,12 +69,13 @@ const Login = ({ navigation }) => {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.headerContainer}>
+          <Image source={require('../assets/superstudentlogo.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.appName}>SuperStudentAI</Text>
           <Text style={styles.tagline}>Welcome Back, Super Student!</Text>
         </View>
 
         <View style={styles.formContainer}>
-          <Text style={styles.title}>Log In to Your Account</Text>
+          <Text style={styles.title}>Welcome Back!</Text>
           
           <View style={styles.inputWithIcon}>
             <Icon name="email" />
@@ -111,6 +127,8 @@ const styles = StyleSheet.create({
   keyboardAvoidingContainer: {
     flex: 1,
     backgroundColor: '#E8F0FE',
+    // For web, ensure the container can scroll if content overflows window height
+    ...(Platform.OS === 'web' && { height: '100vh', overflowY: 'auto' }),
   },
   scrollContainer: {
     flexGrow: 1,

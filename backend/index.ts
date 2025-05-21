@@ -2,35 +2,36 @@ import express from 'express';
 import dotenv from 'dotenv';
 import mongoose, { ConnectOptions } from 'mongoose';
 import { Request, Response } from 'express';
+import cors from 'cors'; // Import cors
 
 // Initialize Firebase Admin (must be done before importing routes)
 import './firebase';
 import authRoutes from './routes/auth';
 import aiRoutes from './routes/ai';
 import fileRoutes from './routes/file';
+import studyPlanRoutes from './routes/studyPlan';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = Number(process.env.PORT) || 5000;
+const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0'; // Listen on all interfaces for LAN access
+const MONGO_URI = process.env.MONGO_URI; // Added
 
 // Middleware
-app.use(express.json());
+// Option 1: Basic CORS setup (allow all origins)
+app.use(cors()); 
 
-// CORS middleware to allow requests from the mobile app
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  next();
-});
+// Option 2: More specific CORS configuration (if needed later)
+// const corsOptions = {
+//   origin: 'http://localhost:8081', // Or your frontend's origin
+//   optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+// };
+// app.use(cors(corsOptions));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Basic route
 app.get('/', (req: Request, res: Response) => {
@@ -38,17 +39,21 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // Connect to MongoDB
+if (!MONGO_URI) { // Added check
+  console.error('MongoDB connection URI not found. Please set MONGO_URI in your .env file.');
+  process.exit(1); // Exit if URI is not found
+}
 mongoose
-  .connect('mongodb+srv://SuperStudentAI:1234@superstudentai.2cbr81q.mongodb.net/?retryWrites=true&w=majority&appName=SuperStudentAI', {
-    useUnifiedTopology: true,
+  .connect(MONGO_URI, { // Changed to use MONGO_URI variable
   } as ConnectOptions)
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
 // Use authentication routes
-app.use('/auth', authRoutes);
-app.use('/ai', aiRoutes);
-app.use('/file', fileRoutes);
+app.use('/auth', authRoutes); // Changed from /api/auth to /auth to match mobile app
+app.use('/ai', aiRoutes); // Changed from /api/ai to /ai
+app.use('/file', fileRoutes); // Changed from /api/file to /file
+app.use('/study-plans', studyPlanRoutes); // Changed from /api/study-plans to /study-plans
 
 // Start the server
 app.listen(PORT, HOST, () => {
