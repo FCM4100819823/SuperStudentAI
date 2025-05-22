@@ -1,35 +1,45 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './navigation/AppNavigator';
 import { auth } from './firebaseConfig';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { StatusBar } from 'expo-status-bar';
+
+function AppContent({ user }) {
+  const { theme, colors } = useTheme();
+
+  return (
+    <NavigationContainer theme={{
+      dark: theme === 'dark',
+      colors: {
+        primary: colors.primary,
+        background: colors.background,
+        card: colors.surface,
+        text: colors.text,
+        border: colors.border,
+        notification: colors.accent,
+      },
+    }}>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} backgroundColor={colors.background} />
+      <AppNavigator user={user} />
+    </NavigationContainer>
+  );
+}
 
 export default function App() {
-  const [initializing, setInitializing] = useState(true);
-  const [user, setUser] = useState(null); // Changed to null as initial state for clarity
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('App.js: useEffect for onAuthStateChanged, initializing:', initializing);
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      console.log('App.js: onAuthStateChanged triggered. User:', firebaseUser ? firebaseUser.uid : null);
-      setUser(firebaseUser);
-      if (initializing) {
-        console.log('App.js: Setting initializing to false.');
-        setInitializing(false);
-      }
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
     });
-    return () => {
-      console.log('App.js: Unsubscribing from onAuthStateChanged.');
-      unsubscribe();
-    };
-    // The dependency array [initializing] is intentional here to re-subscribe 
-    // if initializing were to change, though it primarily serves to run after initial mount
-    // and when initializing becomes false. A simple [] might also work if setInitializing(false)
-    // is handled carefully after the first auth check.
-  }, [initializing]);
+    return unsubscribe;
+  }, []);
 
-  if (initializing) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4169E1" />
@@ -38,10 +48,9 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer key={user ? 'app-stack' : 'auth-stack'}>
-      <AppNavigator user={user} />
-      <StatusBar style="auto" />
-    </NavigationContainer>
+    <ThemeProvider>
+      <AppContent user={user} />
+    </ThemeProvider>
   );
 }
 

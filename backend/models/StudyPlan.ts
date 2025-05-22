@@ -37,6 +37,8 @@ export interface IStudyPlan extends Document {
   syllabusAnalysisId?: string; // Optional: if linked to a Firestore syllabus analysis document
   tasks: IStudyTask[];
   aiSuggestions?: string; // To store suggestions from AI optimization or generation
+  startDate?: Date; // Added for plan duration
+  endDate?: Date;   // Added for plan duration
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,6 +51,8 @@ const StudyPlanSchema: Schema = new Schema(
     syllabusAnalysisId: { type: String }, // Could be a Firestore document ID
     tasks: [StudyTaskSchema], // Array of embedded tasks
     aiSuggestions: { type: String }, // To store suggestions from AI
+    startDate: { type: Date }, // Added for plan duration
+    endDate: { type: Date },   // Added for plan duration
   },
   { timestamps: true } // Adds createdAt and updatedAt automatically
 );

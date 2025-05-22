@@ -67,6 +67,7 @@
    - Implement AI-based prioritization for tasks and study sessions.
    - Build a spaced repetition scheduler for effective learning.
    - Develop a focus session tracker with Pomodoro support.
+   CWA/GPA checker and courses exersises, quizzes.assignments and exams tracker like in an excel
 
 3. **Writing Assistant Tools**
    - Implement research organization tools for note-taking and references.
@@ -165,3 +166,8 @@
    - Create mock test environments with time tracking.
    - Implement AI-based feedback on performance.
    - Build a question bank with categorized topics.
+
+
+dark themes
+user profile pic upload
+

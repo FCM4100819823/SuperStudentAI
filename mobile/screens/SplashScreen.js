@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions, Platform, FlatList } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions, Platform, FlatList, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient'; // For a smoother gradient
 import { Ionicons } from '@expo/vector-icons'; // For icons
+import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
 const { width, height } = Dimensions.get('window');
 
@@ -13,6 +14,8 @@ const FEATURES = [
 ];
 
 const SplashScreen = ({ navigation }) => {
+  const themeContext = useTheme() || {};
+  const colors = themeContext.colors || {};
   const appNameAnim = useRef(new Animated.Value(0)).current;
   const taglineAnim = useRef(new Animated.Value(0)).current;
   const featuresAnim = useRef(new Animated.Value(0)).current;
@@ -76,6 +79,8 @@ const SplashScreen = ({ navigation }) => {
     </Animated.View>
   );
 
+  const styles = getStyles(colors); // Get styles based on theme
+
   return (
     <LinearGradient
       colors={['#E0EFFF', '#F2F7FF', '#E0EFFF']} // Subtle blueish gradient
@@ -127,7 +132,7 @@ const SplashScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
   absoluteFill: {
     flex: 1,
   },
@@ -137,6 +142,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 30,
     paddingBottom: 50, // Space for footer
+    backgroundColor: colors.background, // Use theme background
   },
   logo: {
     width: Platform.OS === 'web' ? 130 : 110,
@@ -147,14 +153,14 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: Platform.OS === 'web' ? 40 : 32,
     fontWeight: 'bold', // Using bold for more impact
-    color: '#2C3E50', // Darker, more professional blue/grey
+    color: colors.primary, // Use theme primary color
     marginBottom: 8,
     fontFamily: Platform.OS === 'ios' ? 'AvenirNext-Bold' : 'sans-serif-condensed',
     letterSpacing: 0.5,
   },
   tagline: {
     fontSize: Platform.OS === 'web' ? 20 : 17,
-    color: '#34495E', // Slightly lighter than appName
+    color: colors.subtext, // Use theme secondary text color
     marginBottom: 30,
     textAlign: 'center',
     fontWeight: '600', // Semi-bold
@@ -221,6 +227,9 @@ const styles = StyleSheet.create({
     width: '100%',
     fontFamily: Platform.OS === 'ios' ? 'AvenirNext-Regular' : 'sans-serif',
   },
+  activityIndicator: {
+    marginTop: 30,
+  }
 });
 
 export default SplashScreen;

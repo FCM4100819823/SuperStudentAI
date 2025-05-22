@@ -3,17 +3,21 @@ import {
     View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, TouchableOpacity, FlatList, RefreshControl, Platform, TextInput, Modal, KeyboardAvoidingView
 } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuth } from 'firebase/auth';
 import DateTimePicker from '@react-native-community/datetimepicker'; // Import DateTimePicker
+import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
 // Replace with your actual backend URL
 const API_URL = 'http://172.20.10.4:5000/api'; // Or your deployed backend URL
 
-const StudyPlanDetailScreen = () => {
-    const navigation = useNavigation();
+const StudyPlanDetailScreen = ({ navigation }) => {
+  const themeContext = useTheme() || {};
+  const colors = themeContext.colors || {};
+  const styles = getStyles(colors);
+
     const route = useRoute();
     const { planId } = route.params; // Removed planTitle from here, will be fetched
     const auth = getAuth();
@@ -22,6 +26,9 @@ const StudyPlanDetailScreen = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [optimizing, setOptimizing] = useState(false);
+
+    // Add a new state for AI-generated suggestions
+    const [aiOptimizedSuggestions, setAiOptimizedSuggestions] = useState(null);
 
     const [isTaskModalVisible, setIsTaskModalVisible] = useState(false);
     const [currentTask, setCurrentTask] = useState(null); // For editing
@@ -210,6 +217,60 @@ const StudyPlanDetailScreen = () => {
         }
     };
 
+    const handleOptimizePlan = async () => {
+        if (!studyPlan || !studyPlan._id) {
+            Alert.alert("Error", "Study plan details are not available.");
+            return;
+        }
+        if (!studyPlan.tasks || studyPlan.tasks.length === 0) {
+            Alert.alert("No Tasks", "There are no tasks in this plan to optimize.");
+            return;
+        }
+
+        setOptimizing(true);
+        setAiOptimizedSuggestions(null); // Clear previous suggestions
+        try {
+            const user = auth.currentUser;
+            if (!user) throw new Error("User not authenticated");
+            const token = await user.getIdToken();
+
+            // Endpoint for AI optimization
+            const response = await axios.post(`${API_URL}/study-plans/${studyPlan._id}/optimize`, {}, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.data && response.data.message) {
+                Alert.alert("Optimization Started", response.data.message);
+                // Optionally, store and display more detailed suggestions or updated tasks
+                // For now, we can just show a message and maybe refresh the plan
+                if(response.data.suggestions) {
+                    setAiOptimizedSuggestions(response.data.suggestions);
+                }
+                if (response.data.updatedTasks) {
+                     // If the backend sends back the full updated task list
+                    setStudyPlan(prev => ({
+                        ...prev,
+                        tasks: response.data.updatedTasks,
+                        // Optionally update a field like aiSuggestions if the backend provides it
+                        // aiSuggestions: response.data.aiOverallSuggestion || prev.aiSuggestions
+                    }));
+                } else {
+                    // If only suggestions are sent, or if we need to re-fetch to see changes
+                    fetchStudyPlanDetail(); // Re-fetch to see AI-driven changes if any
+                }
+
+            } else {
+                Alert.alert("Optimization", "AI optimization process initiated.");
+            }
+
+        } catch (error) {
+            console.error("Error optimizing study plan:", error.response?.data || error.message);
+            Alert.alert("Optimization Error", "Failed to optimize study plan. " + (error.response?.data?.message || error.message));
+        } finally {
+            setOptimizing(false);
+        }
+    };
+
     const renderTaskItem = ({ item }) => (
         <View style={styles.taskItemContainer}>
             <TouchableOpacity onPress={() => toggleTaskStatus(item._id, item.status)} style={styles.taskStatusIcon}>
@@ -241,7 +302,7 @@ const StudyPlanDetailScreen = () => {
     if (loading && !refreshing && !studyPlan) {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#4A90E2" />
+                <ActivityIndicator size="large" color={theme.colors.primary} />
                 <Text style={styles.loadingText}>Loading Plan Details...</Text>
             </View>
         );
@@ -284,6 +345,17 @@ const StudyPlanDetailScreen = () => {
                     <View style={styles.aiSuggestionBox}>
                         <FontAwesome5 name="lightbulb" size={18} color="#FFC107" style={{marginRight: 10}} />
                         <Text style={styles.aiSuggestionText}>{studyPlan.aiSuggestions}</Text>
+                    </View>
+                )}
+
+                {/* Display AI Optimized Suggestions */}
+                {aiOptimizedSuggestions && (
+                    <View style={[styles.aiSuggestionBox, styles.optimizedSuggestionBox]}>
+                        <MaterialIcons name="auto-awesome" size={20} color="#2ECC71" style={{marginRight: 10}} />
+                        <View>
+                            <Text style={styles.optimizedSuggestionTitle}>AI Optimization Insights:</Text>
+                            <Text style={styles.aiSuggestionText}>{aiOptimizedSuggestions}</Text>
+                        </View>
                     </View>
                 )}
 
@@ -381,10 +453,84 @@ const StudyPlanDetailScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
     container: {
         flex: 1,
-        backgroundColor: '#F0F4F8',
+        backgroundColor: colors.background,
+    },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    header: {
+        backgroundColor: colors.primary,
+        padding: 20,
+        paddingTop: Platform.OS === 'ios' ? 50 : 30, // Adjust for status bar
+        alignItems: 'center',
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: colors.buttonText, // Assuming primary color has good contrast for text
+        marginBottom: 5,
+    },
+    dateRange: {
+        fontSize: 16,
+        color: colors.buttonText, // Same as title
+        opacity: 0.9,
+    },
+    card: {
+        backgroundColor: colors.card,
+        borderRadius: 10,
+        padding: 20,
+        marginHorizontal: 15,
+        marginTop: 20,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    cardHeader: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+        paddingBottom: 8,
+    },
+    description: {
+        fontSize: 16,
+        color: colors.subtext,
+        lineHeight: 22,
+    },
+    emptyText: {
+        fontSize: 15,
+        color: colors.subtext,
+        textAlign: 'center',
+        marginTop: 10,
+    },
+    editButton: {
+        flexDirection: 'row',
+        backgroundColor: colors.secondary, // Or another distinct color
+        paddingVertical: 15,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        margin: 20,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 3,
+    },
+    editButtonText: {
+        color: colors.buttonText, // Ensure this contrasts with secondary
+        fontSize: 17,
+        fontWeight: '600',
+        marginLeft: 10,
     },
     headerBar: {
         backgroundColor: '#4A90E2',
@@ -454,19 +600,31 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
     },
     aiSuggestionBox: {
-        backgroundColor: '#FFF9C4', // Light yellow for suggestions
-        borderRadius: 8,
-        padding: 15,
-        marginVertical: 15,
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start', // Align items to the start for multi-line text
+        backgroundColor: colors.cardLight, // A slightly different background for suggestions
+        padding: 15,
+        borderRadius: 8,
+        marginVertical: 10, // Add some vertical margin
+        marginHorizontal: 15, // Match card horizontal margin
         borderLeftWidth: 4,
-        borderLeftColor: '#FFC107',
+        borderLeftColor: '#FFC107', // Accent color for AI suggestions
     },
     aiSuggestionText: {
-        fontSize: 14,
-        color: '#5D4037',
         flex: 1,
+        fontSize: 14,
+        color: colors.subtext,
+        fontStyle: 'italic',
+    },
+    optimizedSuggestionBox: {
+        borderLeftColor: '#2ECC71', // Different accent for optimized suggestions
+        backgroundColor: colors.successLight, // A light green background
+    },
+    optimizedSuggestionTitle: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: colors.successDark, // Darker green for title
+        marginBottom: 5,
     },
     optimizeButton: {
         backgroundColor: '#673AB7', // Deep purple for AI actions

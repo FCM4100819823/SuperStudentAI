@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Image, Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { auth } from '../firebaseConfig';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native'; // Import useNavigation
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
 const backendUrl = 'http://172.20.10.4:5000';
 
-const FileUploadScreen = () => {
+const FileUploadScreen = ({ navigation, route }) => {
+  const themeContext = useTheme() || {};
+  const colors = themeContext.colors || {};
+  const styles = getStyles(colors); // Get styles based on theme
+
+  const { studyPlanId } = route.params || {}; // Get studyPlanId if passed
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const navigation = useNavigation(); // Initialize navigation
+  const [progress, setProgress] = useState(0);
 
   const pickFile = async () => {
     setError('');
@@ -32,9 +36,8 @@ const FileUploadScreen = () => {
     setUploading(true);
     setError('');
     setResult(null);
+    setProgress(0);
     try {
-      const user = auth.currentUser;
-      if (!user) throw new Error('You must be logged in.');
       const formData = new FormData();
       formData.append('file', {
         uri: file.uri,
@@ -64,9 +67,8 @@ const FileUploadScreen = () => {
     setUploading(true);
     setError('');
     setResult(null);
+    setProgress(0);
     try {
-      const user = auth.currentUser;
-      if (!user) throw new Error('You must be logged in.');
       const formData = new FormData();
       formData.append('file', {
         uri: file.uri,
@@ -99,57 +101,219 @@ const FileUploadScreen = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Upload a File</Text>
-      <TouchableOpacity style={styles.pickButton} onPress={pickFile}>
-        <MaterialIcons name="attach-file" size={24} color="#fff" />
-        <Text style={styles.pickButtonText}>{file ? file.name : 'Choose File'}</Text>
-      </TouchableOpacity>
-      {file && (
-        <TouchableOpacity style={styles.uploadButton} onPress={uploadFile} disabled={uploading}>
-          {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.uploadButtonText}>Upload & Parse</Text>}
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back-outline" size={28} color={theme.colors.headerText} />
         </TouchableOpacity>
-      )}
-      {/* Syllabus OCR upload button */}
-      {file && (
-        <TouchableOpacity style={[styles.uploadButton, { backgroundColor: '#007bff' }]} onPress={uploadSyllabus} disabled={uploading}>
-          {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.uploadButtonText}>Syllabus OCR & Extract</Text>}
+        <Text style={styles.headerTitle}>Upload Files</Text>
+      </View>
+
+      <View style={styles.contentContainer}>
+        <Image source={require('../assets/superstudentlogo.png')} style={styles.logo} />
+        <Text style={styles.title}>Share Your Study Materials</Text>
+        <Text style={styles.subtitle}>
+          Upload documents, notes, or presentations.
+          {studyPlanId ? " They will be linked to your study plan." : ""}
+        </Text>
+
+        <TouchableOpacity style={styles.uploadButton} onPress={pickFile} disabled={uploading}>
+          <Ionicons name="cloud-upload-outline" size={28} color={theme.colors.buttonText} style={styles.uploadIcon} />
+          <Text style={styles.uploadButtonText}>Select File to Upload</Text>
         </TouchableOpacity>
-      )}
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      {result && (
-        <View style={styles.resultBox}>
-          <Text style={styles.resultTitle}>AI Result:</Text>
-          <Text style={styles.resultText}>{JSON.stringify(result.aiResult, null, 2)}</Text>
-          <Text style={styles.resultTitle}>File URL:</Text>
-          <Text style={styles.resultText}>{result.url}</Text>
-        </View>
-      )}
-      {result && result.ocrText && (
-        <View style={styles.resultBox}>
-          <Text style={styles.resultTitle}>OCR Text:</Text>
-          <Text style={styles.resultText}>{result.ocrText}</Text>
-          <Text style={styles.resultTitle}>NLP Extracted Data:</Text>
-          <Text style={styles.resultText}>{JSON.stringify(result.nlpResult, null, 2)}</Text>
-          <Text style={styles.resultTitle}>File URL:</Text>
-          <Text style={styles.resultText}>{result.url}</Text>
-        </View>
-      )}
+
+        {uploading && (
+          <View style={styles.progressContainer}>
+            <Text style={styles.progressText}>Uploading: {progress.toFixed(2)}%</Text>
+            <View style={styles.progressBarBackground}>
+              <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
+            </View>
+          </View>
+        )}
+
+        {result && !uploading && (
+          <View style={styles.successContainer}>
+            <Ionicons name="checkmark-circle-outline" size={60} color={theme.colors.success} />
+            <Text style={styles.successText}>File uploaded successfully!</Text>
+            <TouchableOpacity onPress={() => Alert.alert("File URL", result.url)}>
+              <Text style={styles.linkText}>View Uploaded File (URL)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.uploadAnotherButton} onPress={pickFile}>
+              <Text style={styles.uploadAnotherButtonText}>Upload Another File</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {error && !uploading && (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={60} color={theme.colors.error} />
+            <Text style={styles.errorText}>Upload Failed: {error}</Text>
+            <TouchableOpacity style={styles.uploadButton} onPress={pickFile}>
+              <Text style={styles.uploadButtonText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#f5f5f5' },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 24, color: '#4169E1' },
-  pickButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#4169E1', padding: 14, borderRadius: 25, marginBottom: 18 },
-  pickButtonText: { color: '#fff', fontSize: 16, marginLeft: 10 },
-  uploadButton: { backgroundColor: '#28a745', padding: 14, borderRadius: 25, marginBottom: 18, width: 180, alignItems: 'center' },
-  uploadButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  errorText: { color: '#FF6347', marginTop: 10, textAlign: 'center' },
-  resultBox: { backgroundColor: '#fff', borderRadius: 10, padding: 16, marginTop: 20, width: '100%' },
-  resultTitle: { fontWeight: 'bold', color: '#4169E1', marginBottom: 6 },
-  resultText: { color: '#333', fontSize: 14, marginBottom: 10 },
+const getStyles = (colors) => StyleSheet.create({ // Wrap StyleSheet.create
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    backgroundColor: colors.primary,
+    paddingTop: Platform.OS === 'android' ? 25 : 50,
+    paddingBottom: 15,
+    paddingHorizontal: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center', // Center title
+  },
+  backButton: {
+    position: 'absolute',
+    left: 15,
+    top: Platform.OS === 'android' ? 28 : 53, // Adjust to align with centered title
+    zIndex: 1,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.headerText,
+  },
+  contentContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
+    marginBottom: 20,
+    tintColor: colors.primary, // Tint logo with primary color
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.subtext,
+    textAlign: 'center',
+    marginBottom: 30,
+    paddingHorizontal: 10,
+  },
+  uploadButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+    marginBottom: 20,
+  },
+  uploadIcon: {
+    marginRight: 10,
+  },
+  uploadButtonText: {
+    color: colors.buttonText,
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  progressContainer: {
+    width: '80%',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  progressText: {
+    fontSize: 15,
+    color: colors.text,
+    marginBottom: 8,
+  },
+  progressBarBackground: {
+    height: 10,
+    width: '100%',
+    backgroundColor: colors.border,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 5,
+  },
+  successContainer: {
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+    marginVertical: 20,
+    width: '90%',
+  },
+  successText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.success,
+    marginTop: 10,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  linkText: {
+    fontSize: 15,
+    color: colors.primary,
+    textDecorationLine: 'underline',
+    marginBottom: 20,
+  },
+  uploadAnotherButton: {
+    backgroundColor: colors.secondary, // Or another appropriate color
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 10,
+  },
+  uploadAnotherButtonText: {
+    color: colors.buttonText, // Ensure contrast if secondary is light
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+    marginVertical: 20,
+    width: '90%',
+  },
+  errorText: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: colors.error,
+    marginTop: 10,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
 });
 
 export default FileUploadScreen;

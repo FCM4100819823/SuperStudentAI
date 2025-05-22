@@ -21,7 +21,7 @@ interface AISuggestedTask {
 // CREATE a new Study Plan (with AI Task Generation)
 router.post('/', async (req: Request, res: Response) => {
     try {
-        const { title, description, syllabusAnalysisId, userGoals, tasks } = req.body;
+        const { title, description, syllabusAnalysisId, userGoals, tasks, startDate, endDate } = req.body;
         // @ts-ignore
         const userId = req.user.uid;
 
@@ -79,7 +79,9 @@ router.post('/', async (req: Request, res: Response) => {
             description,
             tasks: generatedTasks,
             syllabusAnalysisId: syllabusAnalysisId,
-            aiSuggestions: aiSuggestionsFromGeneration
+            aiSuggestions: aiSuggestionsFromGeneration,
+            startDate: startDate ? new Date(startDate) : undefined,
+            endDate: endDate ? new Date(endDate) : undefined,
         };
         
         const newStudyPlan = new StudyPlan(newStudyPlanData);
