@@ -35,8 +35,8 @@ const InputField = ({ iconName, placeholder, value, onChangeText, secureTextEntr
     ]}>
       <Ionicons 
         name={iconName} 
-        size={22} 
-        color={error ? colors.error : (isFocused || hasValue ? colors.focusedInputIcon : colors.inputIcon)} 
+        size={24} // Increased icon size
+        color={error ? colors.error : (isFocused || hasValue ? colors.primary : colors.inputIcon)} 
         style={dynamicStyles(colors).inputIcon} 
       />
       <TextInput
@@ -183,6 +183,34 @@ const LoginScreen = ({ navigation }) => {
               <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')} style={dynamicStyles(colors).linkButton}>
                 <Text style={dynamicStyles(colors).linkText}>Forgot Password?</Text>
               </TouchableOpacity>
+              
+              {/* Divider */}
+              <View style={dynamicStyles(colors).divider}>
+                <View style={dynamicStyles(colors).dividerLine} />
+                <Text style={dynamicStyles(colors).dividerText}>OR</Text>
+                <View style={dynamicStyles(colors).dividerLine} />
+              </View>
+              
+              {/* Social login buttons (visual only) */}
+              <View style={dynamicStyles(colors).socialButtonsContainer}>
+                <TouchableOpacity style={dynamicStyles(colors).socialButton}>
+                  <Ionicons name="logo-google" size={22} color={colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity style={dynamicStyles(colors).socialButton}>
+                  <Ionicons name="logo-apple" size={22} color={colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity style={dynamicStyles(colors).socialButton}>
+                  <Ionicons name="logo-facebook" size={22} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+              
+              {/* Sign up option */}
+              <View style={dynamicStyles(colors).footer}>
+                <Text style={dynamicStyles(colors).footerText}>Don't have an account? </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                  <Text style={dynamicStyles(colors).signupLink}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
             </Animated.View>
           </View>
         </ScrollView>
@@ -207,26 +235,24 @@ const dynamicStyles = (colors) => StyleSheet.create({
     paddingHorizontal: 20, 
   },
   logo: {
-    width: width * 0.25, 
-    height: width * 0.25,
+    width: width * 0.28, // Slightly larger logo 
+    height: width * 0.28,
     resizeMode: 'contain',
     marginBottom: 25,
-    // Tint color for dark mode if logo is not transparent or needs adjustment
-    // tintColor: theme === 'dark' ? colors.text : null, 
   },
   welcomeTitle: {
-    fontSize: width * 0.07,
+    fontSize: width * 0.075, // Slightly bigger welcome title
     fontWeight: 'bold',
     color: colors.text, // Use theme color
-    marginBottom: 8,
+    marginBottom: 10,
     textAlign: 'center',
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
   catchyPhrase: {
-    fontSize: width * 0.04,
+    fontSize: width * 0.045,
     color: colors.subtext, // Use theme color
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 35, // More space before input fields
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
   formContainer: { 
@@ -236,13 +262,13 @@ const dynamicStyles = (colors) => StyleSheet.create({
     borderRadius: 20,
     backgroundColor: colors.surface, // Use theme color
     alignItems: 'center',
-    shadowColor: colors.text, // Shadow color can be theme-dependent
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 5,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    shadowOpacity: 0.15, 
+    shadowRadius: 15,
     elevation: 8,
     marginVertical: 20,
   },
@@ -250,21 +276,21 @@ const dynamicStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    height: 55,
-    backgroundColor: colors.inputBackground, // Use theme color
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    marginBottom: 5,
+    height: 60, // Taller input fields
+    backgroundColor: colors.inputBackground, 
+    borderRadius: 15, // More rounded corners
+    paddingHorizontal: 18, // More horizontal padding
+    marginBottom: 15, // More space between inputs
     borderWidth: 1.5,
-    borderColor: colors.border, // Use theme color
+    borderColor: colors.border,
   },
   inputContainerFocused: {
-    borderColor: colors.primary, // Use theme color
-    // shadowColor: colors.primary,
-    // shadowOffset: { width: 0, height: 0 },
-    // shadowOpacity: 0.2,
-    // shadowRadius: 4,
-    // elevation: 3, 
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3, 
   },
   inputContainerError: {
     borderColor: colors.error, // Use theme color
@@ -275,7 +301,7 @@ const dynamicStyles = (colors) => StyleSheet.create({
   input: {
     flex: 1,
     height: '100%',
-    fontSize: 16,
+    fontSize: 17, // Larger font size
     color: colors.text, // Use theme color
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
@@ -289,22 +315,23 @@ const dynamicStyles = (colors) => StyleSheet.create({
   },
   button: {
     width: '100%',
-    height: 55,
+    height: 58, // Slightly taller button
     backgroundColor: colors.primary, // Use theme color
-    borderRadius: 12,
+    borderRadius: 15, // More rounded corners
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 15,
+    marginTop: 20, // More space above button
     shadowColor: colors.primary, // Use theme color
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 7,
   },
   buttonText: {
     color: colors.buttonText, // Use theme color
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder text
+    letterSpacing: 0.5, // Letter spacing for better readability
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
   linkButton: {
@@ -315,15 +342,49 @@ const dynamicStyles = (colors) => StyleSheet.create({
     color: colors.link, // Use theme color
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    textAlign: 'center',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginVertical: 25,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    color: colors.subtext,
+    marginHorizontal: 10,
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  },
+  socialButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: 25,
+  },
+  socialButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: Platform.OS === 'ios' ? height * 0.03 : height * 0.04,
-    paddingTop: 10,
-    width: '100%',
     justifyContent: 'center',
-    backgroundColor: colors.background, // Ensure footer matches background
+    marginTop: 5,
+    paddingVertical: 10,
+    width: '100%',
   },
   footerText: {
     color: colors.subtext, // Use theme color
@@ -332,8 +393,9 @@ const dynamicStyles = (colors) => StyleSheet.create({
   },
   signupLink: {
     fontWeight: 'bold',
-    marginLeft: 5,
-    color: colors.link, // Use theme color for consistency
+    fontSize: 15,
+    color: colors.primary, // Changed to primary color for better visibility
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   }
 });
 
