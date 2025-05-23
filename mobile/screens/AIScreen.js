@@ -195,26 +195,26 @@ const AIScreen = ({ navigation }) => {
         <View style={styles.typingIndicatorContainer}>
           <Image source={require('../assets/superstudentlogo.png')} style={styles.typingAvatar} />
           <Text style={styles.typingIndicator}>AI is typing...</Text>
-          <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginLeft: 5 }}/>
+          <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 5 }} />
         </View>
       )}
       <View style={styles.inputContainer}>
         <TouchableOpacity style={styles.attachButton} onPress={handleFileUpload} disabled={loading}>
-          <Ionicons name="attach" size={28} color={theme.colors.primary} />
+          <Ionicons name="attach" size={28} color={colors.primary} />
         </TouchableOpacity>
         <TextInput
           style={styles.input}
           value={input}
           onChangeText={setInput}
           placeholder="Ask SuperStudent AI..."
-          placeholderTextColor={theme.colors.subtext}
+          placeholderTextColor={colors.subtext}
           multiline
         />
         <TouchableOpacity style={styles.sendButton} onPress={handleSend} disabled={loading}>
           {loading ? (
-            <ActivityIndicator size="small" color={theme.colors.buttonText} />
+            <ActivityIndicator size="small" color={colors.buttonText} />
           ) : (
-            <Ionicons name="send" size={24} color={theme.colors.buttonText} />
+            <Ionicons name="send" size={24} color={colors.buttonText} />
           )}
         </TouchableOpacity>
       </View>
@@ -271,7 +271,10 @@ const getStyles = (colors) => StyleSheet.create({
     height: 30,
     borderRadius: 15,
     marginRight: 8,
-    marginBottom: 2, // Align with bottom of text bubble
+    marginBottom: 2,
+    backgroundColor: colors.cardLight || '#F0F4F8',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   messageText: { // Base style for all message text
     fontSize: 16,

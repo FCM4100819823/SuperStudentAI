@@ -41,7 +41,24 @@ const COLORS = {
 
 const HomeScreen = ({ navigation }) => {
   const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
+  // Ensure colors has a fallback for all expected properties if themeContext.colors is undefined
+  const defaultColors = {
+    gradientStart: '#6A11CB', // Example default
+    gradientEnd: '#2575FC',   // Example default
+    accent: '#FFD700',       // Example default
+    icon: '#FFFFFF',          // Example default
+    buttonTextDark: '#000000', // Example default
+    buttonText: '#FFFFFF',    // Example default
+    primary: '#6A11CB',       // Example default
+    // Add any other colors that might be accessed
+    background: '#F0F4F8',
+    text: '#1A2B4D',
+    card: '#FFFFFF',
+    border: '#E0E6F0',
+    subtext: '#5A6B7C',
+    shadow: '#000',
+  };
+  const colors = themeContext.colors || defaultColors;
   const styles = getStyles(colors); // Get styles based on theme
   const [userName, setUserName] = useState('');
   const [upcomingTasksCount, setUpcomingTasksCount] = useState(0);
@@ -122,8 +139,8 @@ const HomeScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <LinearGradient colors={[theme.colors.gradientStart, theme.colors.gradientEnd]} style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
+      <LinearGradient colors={[colors.gradientStart || defaultColors.gradientStart, colors.gradientEnd || defaultColors.gradientEnd]} style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.accent || defaultColors.accent} />
         <Text style={styles.loadingText}>Loading your dashboard...</Text>
       </LinearGradient>
     );
@@ -152,7 +169,7 @@ const HomeScreen = ({ navigation }) => {
 
     return (
       <Animated.View style={[styles.statBox, { opacity: itemFadeAnim, transform: [{ translateY: itemSlideAnim }] }]}>
-        <Ionicons name={iconName} size={width * 0.08} color={theme.colors.icon} />
+        <Ionicons name={iconName} size={width * 0.08} color={colors.icon || defaultColors.icon} />
         <Text style={styles.statNumber}>{value}</Text>
         <Text style={styles.statLabel}>{label}</Text>
       </Animated.View>
@@ -189,7 +206,7 @@ const HomeScreen = ({ navigation }) => {
           ]} 
           onPress={onPress}
         >
-          <Ionicons name={iconName} size={width * 0.06} color={primary ? theme.colors.buttonTextDark : theme.colors.icon} />
+          <Ionicons name={iconName} size={width * 0.06} color={primary ? (colors.buttonTextDark || defaultColors.buttonTextDark) : (colors.icon || defaultColors.icon)} />
           <Text style={[
             styles.actionButtonText, 
             primary ? styles.actionButtonTextPrimary : styles.actionButtonTextSecondary
@@ -206,7 +223,7 @@ const HomeScreen = ({ navigation }) => {
         <Text style={styles.headerTitle}>Hello, Student!</Text>
         <Text style={styles.headerSubtitle}>Ready to ace your studies?</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.profileIconContainer}>
-          <Ionicons name="person-circle-outline" size={30} color={theme.colors.buttonText} />
+          <Ionicons name="person-circle-outline" size={30} color={colors.buttonText || defaultColors.buttonText} />
         </TouchableOpacity>
       </View>
 
@@ -242,7 +259,7 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={styles.studyPlanTitle}>{plan.name}</Text>
                 <Text style={styles.studyPlanDate}>{plan.dateRange}</Text>
               </View>
-              <Ionicons name="chevron-forward-outline" size={24} color={theme.colors.primary} />
+              <Ionicons name="chevron-forward-outline" size={24} color={colors.primary || defaultColors.primary} />
             </TouchableOpacity>
           ))
         ) : (
@@ -252,7 +269,7 @@ const HomeScreen = ({ navigation }) => {
           style={styles.createPlanButton} 
           onPress={() => navigation.navigate('CreateStudyPlan')}
         >
-          <Ionicons name="add-circle-outline" size={22} color={theme.colors.buttonText} style={{marginRight: 8}}/>
+          <Ionicons name="add-circle-outline" size={22} color={colors.buttonText || defaultColors.buttonText} style={{marginRight: 8}}/>
           <Text style={styles.createPlanButtonText}>Create New Study Plan</Text>
         </TouchableOpacity>
       </View>

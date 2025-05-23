@@ -31,7 +31,7 @@ const Dashboard = ({ navigation, route }) => {
         return;
       }
       const idToken = await user.getIdToken();
-      const backendUrl = 'http://172.20.10.4:5000';
+      const backendUrl = 'http://172.20.10.3:5000';
       const response = await fetch(`${backendUrl}/auth/profile`, {
         method: 'GET',
         headers: {

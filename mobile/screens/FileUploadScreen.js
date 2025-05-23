@@ -4,7 +4,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
-const backendUrl = 'http://172.20.10.4:5000';
+const backendUrl = 'http://172.20.10.3:5000';
 
 const FileUploadScreen = ({ navigation, route }) => {
   const themeContext = useTheme() || {};
@@ -104,7 +104,7 @@ const FileUploadScreen = ({ navigation, route }) => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back-outline" size={28} color={theme.colors.headerText} />
+          <Ionicons name="arrow-back-outline" size={28} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Upload Files</Text>
       </View>
@@ -118,7 +118,7 @@ const FileUploadScreen = ({ navigation, route }) => {
         </Text>
 
         <TouchableOpacity style={styles.uploadButton} onPress={pickFile} disabled={uploading}>
-          <Ionicons name="cloud-upload-outline" size={28} color={theme.colors.buttonText} style={styles.uploadIcon} />
+          <Ionicons name="cloud-upload-outline" size={28} color={colors.buttonText} style={styles.uploadIcon} />
           <Text style={styles.uploadButtonText}>Select File to Upload</Text>
         </TouchableOpacity>
 
@@ -133,7 +133,7 @@ const FileUploadScreen = ({ navigation, route }) => {
 
         {result && !uploading && (
           <View style={styles.successContainer}>
-            <Ionicons name="checkmark-circle-outline" size={60} color={theme.colors.success} />
+            <Ionicons name="checkmark-circle-outline" size={60} color={colors.success} /> {/* Fix: Use colors.success instead of theme.colors.success */}
             <Text style={styles.successText}>File uploaded successfully!</Text>
             <TouchableOpacity onPress={() => Alert.alert("File URL", result.url)}>
               <Text style={styles.linkText}>View Uploaded File (URL)</Text>
@@ -146,7 +146,7 @@ const FileUploadScreen = ({ navigation, route }) => {
 
         {error && !uploading && (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={60} color={theme.colors.error} />
+            <Ionicons name="alert-circle-outline" size={60} color={colors.error} /> {/* Fix: Use colors.error instead of theme.colors.error */}
             <Text style={styles.errorText}>Upload Failed: {error}</Text>
             <TouchableOpacity style={styles.uploadButton} onPress={pickFile}>
               <Text style={styles.uploadButtonText}>Try Again</Text>

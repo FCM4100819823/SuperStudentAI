@@ -8,7 +8,7 @@ import { getAuth } from 'firebase/auth';
 import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
 // Replace with your actual backend URL
-const API_URL = 'http://172.20.10.4:5000/api'; // Or your deployed backend URL
+const API_URL = 'http://172.20.10.3:5000/api'; // Or your deployed backend URL
 
 const StudyPlanListScreen = () => {
     const navigation = useNavigation();

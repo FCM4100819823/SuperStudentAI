@@ -3,6 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext'; // Import useTheme
+import { Platform } from 'react-native'; // Import Platform
 
 import LoginScreen from '../screens/Login';
 import RegisterScreen from '../screens/Register';
@@ -24,6 +25,25 @@ import ProfileScreen from '../screens/ProfileScreen'; // Placeholder for Profile
 import AppSettingsScreen from '../screens/AppSettingsScreen'; // Import AppSettingsScreen
 import ThemeSettingsScreen from '../screens/ThemeSettingsScreen'; // Import ThemeSettingsScreen
 import SpacedRepetitionScreen from '../screens/SpacedRepetitionScreen'; // Import SpacedRepetitionScreen
+
+// Define default colors as a fallback
+const defaultThemeColors = {
+  primary: '#6A11CB', // Default primary color (e.g., a purple)
+  subtext: '#5A6B7C', // Default subtext color
+  card: '#FFFFFF',    // Default card background
+  border: '#E0E6F0',  // Default border color
+  text: '#1A2B4D',     // Default text color
+  // Add any other colors that AppTabs might try to access from theme.colors
+};
+
+// Define default fonts as a fallback
+const defaultThemeFonts = {
+  regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  medium: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+  light: Platform.OS === 'ios' ? 'System' : 'sans-serif-light',
+  thin: Platform.OS === 'ios' ? 'System' : 'sans-serif-thin',
+  bold: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
+};
 
 const AuthStackNav = createStackNavigator();
 const AppTabsNav = createBottomTabNavigator();
@@ -82,7 +102,15 @@ const AuthStack = () => (
 );
 
 const AppTabs = () => {
-  const { theme } = useTheme(); // Get theme context
+  const themeContext = useTheme(); // Get theme context
+
+  // More robust fallback for the entire theme object
+  const theme = themeContext && themeContext.colors && themeContext.fonts 
+                ? themeContext 
+                : { colors: defaultThemeColors, fonts: defaultThemeFonts, dark: false, themeName: 'light' };
+  
+  const colors = theme.colors;
+  const fonts = theme.fonts; // Ensure fonts are destructured or accessed from the resolved theme
 
   return (
     <AppTabsNav.Navigator
@@ -101,22 +129,23 @@ const AppTabs = () => {
           } else if (route.name === 'SettingsTab') {
             iconName = focused ? 'settings' : 'settings-outline';
           }
-          // Use theme color for focused icon, allow default for inactive
-          return <Ionicons name={iconName} size={size} color={focused ? theme.colors.primary : theme.colors.subtext} />; // Changed theme.colors.icon to theme.colors.subtext
+          // Use colors.primary and colors.subtext from the resolved theme
+          return <Ionicons name={iconName} size={size} color={focused ? colors.primary : colors.subtext} />;
         },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.subtext, // Changed theme.colors.textSecondary to theme.colors.subtext
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.subtext,
         tabBarStyle: { 
-          backgroundColor: theme.colors.card, // Use theme color for tab bar background
+          backgroundColor: colors.card,
           borderTopWidth: 0, 
           elevation: 5, 
           shadowOpacity: 0.1,
-          borderTopColor: theme.colors.border, // Add border color from theme
+          borderTopColor: colors.border, // Use colors.border from the resolved theme
         },
         tabBarLabelStyle: { 
           fontSize: 11, 
           paddingBottom: 3,
-          color: theme.colors.text, // Use theme color for label
+          fontFamily: fonts.medium, // Use fonts.medium from the resolved theme
+          color: colors.text, // Use colors.text from the resolved theme
         },
       })}
     >

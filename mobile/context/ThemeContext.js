@@ -1,96 +1,138 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { Appearance } from 'react-native';
+import { Appearance, Platform } from 'react-native'; // Added Platform
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Define app fonts
+const appFonts = {
+  regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  medium: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium', // Used for fontWeight: '500' or '600'
+  light: Platform.OS === 'ios' ? 'System' : 'sans-serif-light',
+  thin: Platform.OS === 'ios' ? 'System' : 'sans-serif-thin',
+  bold: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
+};
+
+// Base color definitions
+const baseLightColors = {
+  background: '#F0F4F8',
+  surface: '#FFFFFF',
+  primary: '#6A11CB',
+  secondary: '#2575FC',
+  text: '#1A2B4D',
+  subtext: '#5A6B7C',
+  placeholder: '#A0A0A0',
+  border: '#E0E6F0',
+  accent: '#FF6B6B',
+  success: '#28A745',
+  error: '#D32F2F',
+  disabled: '#B0B0B0',
+  tabBarBackground: '#FFFFFF',
+  tabBarActiveTint: '#6A11CB',
+  tabBarInactiveTint: '#8E8E93', // Explicitly define here
+  inputBackground: '#F7F9FC',
+  inputBorder: '#E0E6F0',
+  inputIcon: '#A0A0A0',
+  focusedInputIcon: '#007AFF',
+  buttonText: '#FFFFFF',
+  buttonTextDark: '#1A2B4D', // For light buttons
+  link: '#007AFF',
+  cardHeader: '#6A11CB',
+  cardText: '#1A2B4D',
+  gradientStart: '#6A11CB',
+  gradientEnd: '#2575FC',
+  shadow: '#000000',
+};
+
+const navigationLightColors = {
+  primary: baseLightColors.primary,
+  background: baseLightColors.background,
+  card: baseLightColors.surface,
+  text: baseLightColors.text,
+  border: baseLightColors.border,
+  notification: baseLightColors.accent,
+};
+
 export const lightTheme = {
-  theme: 'light',
+  dark: false,
+  themeName: 'light',
   colors: {
-    background: '#F0F4F8', // Light grey background
-    surface: '#FFFFFF', // White surfaces like cards, modals
-    primary: '#6A11CB', // Primary purple
-    secondary: '#2575FC', // Secondary blue
-    text: '#1A2B4D', // Dark blue-grey text
-    subtext: '#5A6B7C', // Lighter grey text
-    placeholder: '#A0A0A0',
-    border: '#E0E6F0',
-    accent: '#FF6B6B', // Accent color (e.g., for notifications or errors)
-    success: '#28A745',
-    error: '#D32F2F',
-    disabled: '#B0B0B0',
-    // Specific component colors
-    tabBarBackground: '#FFFFFF',
-    tabBarActiveTint: '#6A11CB',
-    tabBarInactiveTint: 'gray',
-    inputBackground: '#F7F9FC',
-    inputBorder: '#E0E6F0',
-    inputIcon: '#A0A0A0',
-    focusedInputIcon: '#007AFF',
-    buttonText: '#FFFFFF',
-    link: '#007AFF',
-    cardHeader: '#6A11CB', // Example for card headers
-    cardText: '#1A2B4D',
-    gradientStart: '#6A11CB',
-    gradientEnd: '#2575FC',
+    ...baseLightColors,
+    ...navigationLightColors,
   },
-  // Add other theme-specific properties like font sizes, spacing if needed
+  fonts: appFonts,
+};
+
+const baseDarkColors = {
+  background: '#121212',
+  surface: '#1E1E1E',
+  primary: '#BB86FC',
+  secondary: '#3700B3',
+  text: '#E0E0E0',
+  subtext: '#A0A0A0',
+  placeholder: '#757575',
+  border: '#333333',
+  accent: '#CF6679',
+  success: '#4CAF50',
+  error: '#EF5350',
+  disabled: '#505050',
+  tabBarBackground: '#1E1E1E',
+  tabBarActiveTint: '#BB86FC',
+  tabBarInactiveTint: '#9E9E9E',
+  inputBackground: '#2C2C2C',
+  inputBorder: '#424242',
+  inputIcon: '#757575',
+  focusedInputIcon: '#BB86FC',
+  buttonText: '#FFFFFF', // For dark buttons (primary button on dark theme)
+  buttonTextDark: '#E0E0E0', // For light buttons on dark theme (e.g. secondary button)
+  link: '#BB86FC',
+  cardHeader: '#BB86FC',
+  cardText: '#E0E0E0',
+  gradientStart: '#BB86FC',
+  gradientEnd: '#3700B3',
+  shadow: '#000000', // Shadow color might need to be lighter or less opaque in dark mode
+};
+
+const navigationDarkColors = {
+  primary: baseDarkColors.primary,
+  background: baseDarkColors.background,
+  card: baseDarkColors.surface,
+  text: baseDarkColors.text,
+  border: baseDarkColors.border,
+  notification: baseDarkColors.accent,
 };
 
 export const darkTheme = {
-  theme: 'dark',
+  dark: true,
+  themeName: 'dark',
   colors: {
-    background: '#121212', // Very dark grey, almost black
-    surface: '#1E1E1E', // Dark grey for cards, modals
-    primary: '#BB86FC', // Lighter purple for dark mode
-    secondary: '#3700B3', // Darker purple variant
-    text: '#E0E0E0', // Light grey text
-    subtext: '#A0A0A0', // Medium grey text
-    placeholder: '#757575',
-    border: '#333333',
-    accent: '#CF6679', // Accent color for dark mode
-    success: '#4CAF50',
-    error: '#EF5350',
-    disabled: '#505050',
-    // Specific component colors
-    tabBarBackground: '#1E1E1E',
-    tabBarActiveTint: '#BB86FC',
-    tabBarInactiveTint: '#9E9E9E',
-    inputBackground: '#2C2C2C',
-    inputBorder: '#424242',
-    inputIcon: '#757575',
-    focusedInputIcon: '#BB86FC',
-    buttonText: '#121212', // Dark text on light buttons, or light text on dark buttons
-    link: '#BB86FC',
-    cardHeader: '#BB86FC',
-    cardText: '#E0E0E0',
-    gradientStart: '#BB86FC',
-    gradientEnd: '#3700B3',
+    ...baseDarkColors,
+    ...navigationDarkColors,
   },
+  fonts: appFonts,
 };
 
 export const ThemeContext = createContext({
-  theme: 'light',
-  colors: lightTheme.colors,
+  ...lightTheme, // Default context value uses the light theme structure
   setTheme: (themeName) => {},
+  toggleTheme: () => {},
 });
 
 export const ThemeProvider = ({ children }) => {
-  const [currentTheme, setCurrentTheme] = useState('light'); // Default to light
+  const [currentThemeName, setCurrentThemeName] = useState('light');
 
   useEffect(() => {
     const loadTheme = async () => {
       try {
         const savedTheme = await AsyncStorage.getItem('appTheme');
         if (savedTheme) {
-          setCurrentTheme(savedTheme);
+          setCurrentThemeName(savedTheme);
         } else {
-          // If no saved theme, use system preference
           const systemTheme = Appearance.getColorScheme();
-          setCurrentTheme(systemTheme || 'light');
+          setCurrentThemeName(systemTheme || 'light');
           await AsyncStorage.setItem('appTheme', systemTheme || 'light');
         }
       } catch (error) {
         console.error('Failed to load theme from storage', error);
-        setCurrentTheme('light'); // Fallback to light
+        setCurrentThemeName('light');
       }
     };
     loadTheme();
@@ -99,35 +141,38 @@ export const ThemeProvider = ({ children }) => {
   const setTheme = async (themeName) => {
     try {
       await AsyncStorage.setItem('appTheme', themeName);
-      setCurrentTheme(themeName);
+      setCurrentThemeName(themeName);
     } catch (error) {
       console.error('Failed to save theme to storage', error);
     }
   };
   
-  // Listen to system theme changes
+  const toggleTheme = () => {
+    const newThemeName = currentThemeName === 'dark' ? 'light' : 'dark';
+    setTheme(newThemeName);
+  };
+
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      // Only update if no theme is explicitly set by user, or handle as per app logic
-      // For now, let's assume user preference overrides system unless reset
-      // console.log('System theme changed to:', colorScheme);
-      // If you want the app to always follow system theme unless user explicitly sets one:
-      // async function updateThemeIfSystem() {
-      //   const savedTheme = await AsyncStorage.getItem('userSetTheme'); // Need a different flag
-      //   if (!savedTheme && colorScheme) {
-      //     setTheme(colorScheme);
-      //   }
-      // }
-      // updateThemeIfSystem();
+      // This logic can be enhanced to respect user's explicit choice vs system theme
+      // For now, if no theme was manually saved, follow system.
+      AsyncStorage.getItem('appTheme').then(savedTheme => {
+        if (!savedTheme && colorScheme) { // Or some other logic to decide if system should override
+             // setCurrentThemeName(colorScheme); // Potentially update if app should follow system dynamically
+        }
+      });
     });
     return () => subscription.remove();
   }, []);
 
-
-  const themeData = currentTheme === 'dark' ? darkTheme : lightTheme;
+  const currentAppliedTheme = currentThemeName === 'dark' ? darkTheme : lightTheme;
 
   return (
-    <ThemeContext.Provider value={{ theme: currentTheme, colors: themeData.colors, setTheme }}>
+    <ThemeContext.Provider value={{ 
+      ...currentAppliedTheme, // Spread all properties: dark, themeName, colors, fonts
+      setTheme,
+      toggleTheme 
+    }}>
       {children}
     </ThemeContext.Provider>
   );

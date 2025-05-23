@@ -6,8 +6,8 @@ import { Ionicons } from '@expo/vector-icons'; // For icons
 
 const ThemeSettingsScreen = ({ navigation }) => {
   const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
-  const styles = getStyles(colors);
+  const { theme: themeName, colors, setTheme } = themeContext; // Fix: Properly destructure theme as themeName
+  const styles = getStyles(colors); // Using colors from theme context
 
   const themeOptions = [
     { key: 'light', label: 'Light Mode', icon: 'sunny-outline' },
@@ -24,20 +24,17 @@ const ThemeSettingsScreen = ({ navigation }) => {
     }
   };
 
-  // Dynamic styles based on theme
-  const dynamicStyles = getStyles(theme);
-
   return (
-    <ScrollView style={dynamicStyles.container}>
-      <View style={dynamicStyles.header}>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={28} color={colors.text} />
         </TouchableOpacity>
-        <Text style={dynamicStyles.headerTitle}>Theme Settings</Text>
+        <Text style={styles.headerTitle}>Theme Settings</Text>
       </View>
 
-      <View style={dynamicStyles.contentContainer}>
-        <Text style={dynamicStyles.title}>Choose your preferred theme</Text>
+      <View style={styles.contentContainer}>
+        <Text style={styles.title}>Choose your preferred theme</Text>
         
         {themeOptions.map((option) => {
           // Determine if this option is currently active
@@ -49,29 +46,29 @@ const ThemeSettingsScreen = ({ navigation }) => {
             // For now, let's assume if current theme matches system, it could be system default.
             // A more robust way would be to store the *choice* ('light', 'dark', 'system') separately.
             const systemTheme = Appearance.getColorScheme() || 'light';
-            isActive = theme === systemTheme; // This might not be perfectly accurate if user manually set to match system
+            isActive = themeName === systemTheme; // Fix: Use themeName instead of theme
           } else {
-            isActive = theme === option.key;
+            isActive = themeName === option.key; // Fix: Use themeName instead of theme
           }
 
           return (
             <TouchableOpacity 
               key={option.key} 
-              style={dynamicStyles.optionButton} 
+              style={styles.optionButton} 
               onPress={() => handleSetTheme(option.key)}
             >
               <Ionicons name={option.icon} size={24} color={isActive ? colors.primary : colors.subtext} />
-              <Text style={[dynamicStyles.optionText, isActive && { color: colors.primary, fontWeight: '600' }]}>
+              <Text style={[styles.optionText, isActive && { color: colors.primary, fontWeight: '600' }]}>
                 {option.label}
               </Text>
               {isActive && (
-                <Ionicons name="checkmark-circle" size={24} color={colors.primary} style={dynamicStyles.activeIcon} />
+                <Ionicons name="checkmark-circle" size={24} color={colors.primary} style={styles.activeIcon} />
               )}
             </TouchableOpacity>
           );
         })}
 
-        <Text style={dynamicStyles.footerText}>
+        <Text style={styles.footerText}>
           Selecting 'System Default' will automatically adjust the theme based on your device's settings.
         </Text>
       </View>
@@ -79,7 +76,7 @@ const ThemeSettingsScreen = ({ navigation }) => {
   );
 };
 
-// Wrap the existing StyleSheet.create in a function that accepts theme
+// Fixed: Remove the dependency on theme in getStyles - it already uses colors
 const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
@@ -123,7 +120,7 @@ const getStyles = (colors) => StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: colors === 'dark' ? 0.3 : 0.1, // Adjust opacity for dark/light
+    shadowOpacity: 0.1, // Fixed: removed conditional based on theme
     shadowRadius: 4,
     elevation: 3,
     borderWidth: 1,

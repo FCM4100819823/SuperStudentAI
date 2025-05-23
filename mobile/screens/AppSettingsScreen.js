@@ -5,8 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
 const AppSettingsScreen = ({ navigation }) => {
-  const { theme, themeName, toggleTheme } = useTheme();
-  const styles = getStyles(theme);
+  const themeContext = useTheme() || {};
+  const { theme: themeName, colors, toggleTheme } = themeContext; // Fix: Properly destructure theme as themeName
+  const styles = getStyles(colors); // Fix: Use colors instead of theme
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [dataSyncEnabled, setDataSyncEnabled] = useState(true);
@@ -20,13 +21,13 @@ const AppSettingsScreen = ({ navigation }) => {
 
   const SettingItem = ({ label, value, onValueChange, type = 'switch', onPress, iconName }) => (
     <View style={styles.settingItem}>
-      <Ionicons name={iconName} size={24} color={theme.colors.icon} style={styles.settingIcon} />
+      <Ionicons name={iconName} size={24} color={colors.icon} style={styles.settingIcon} /> {/* Fix: Use colors.icon */}
       <Text style={styles.settingLabel}>{label}</Text>
       {type === 'switch' && (
         <Switch
-          trackColor={{ false: theme.colors.disabled, true: theme.colors.primary }}
-          thumbColor={value ? theme.colors.card : theme.colors.background} 
-          ios_backgroundColor={theme.colors.disabled}
+          trackColor={{ false: colors.disabled, true: colors.primary }} /* Fix: Use colors */
+          thumbColor={value ? colors.card : colors.background} 
+          ios_backgroundColor={colors.disabled}
           onValueChange={onValueChange}
           value={value}
         />
@@ -34,7 +35,7 @@ const AppSettingsScreen = ({ navigation }) => {
       {type === 'button' && (
         <TouchableOpacity onPress={onPress} style={styles.navigateButton}>
           <Text style={styles.navigateButtonText}>{value}</Text>
-          <Ionicons name="chevron-forward-outline" size={22} color={theme.colors.subtext} />
+          <Ionicons name="chevron-forward-outline" size={22} color={colors.subtext} />
         </TouchableOpacity>
       )}
     </View>
@@ -48,9 +49,10 @@ const AppSettingsScreen = ({ navigation }) => {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Appearance</Text>
+        {/* Fix: Use themeName instead of theme */}
         <SettingItem
           label="Dark Mode"
-          value={themeName === 'dark'}
+          value={themeName === 'dark'} 
           onValueChange={toggleTheme}
           iconName="moon-outline"
         />
@@ -82,7 +84,7 @@ const AppSettingsScreen = ({ navigation }) => {
           iconName="sync-circle-outline"
         />
         <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert("Clear Cache", "Cache cleared successfully!")}>
-          <Ionicons name="trash-bin-outline" size={20} color={theme.colors.primary} style={styles.actionButtonIcon} />
+          <Ionicons name="trash-bin-outline" size={20} color={colors.primary} style={styles.actionButtonIcon} />
           <Text style={styles.actionButtonText}>Clear Cache</Text>
         </TouchableOpacity>
       </View>
@@ -90,12 +92,12 @@ const AppSettingsScreen = ({ navigation }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         <TouchableOpacity style={[styles.actionButton, styles.firstActionButton]} onPress={() => navigation.navigate('ProfileEdit')}>
-          <Ionicons name="person-circle-outline" size={20} color={theme.colors.primary} style={styles.actionButtonIcon} />
+          <Ionicons name="person-circle-outline" size={20} color={colors.primary} style={styles.actionButtonIcon} />
           <Text style={styles.actionButtonText}>Edit Profile</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert("Logout", "Are you sure you want to logout?", [{ text: "Cancel" }, { text: "Logout", onPress: () => console.log("User logged out") }])}>
-          <Ionicons name="log-out-outline" size={20} color={theme.colors.error} style={styles.actionButtonIcon} />
-          <Text style={[styles.actionButtonText, { color: theme.colors.error }]}>Logout</Text>
+          <Ionicons name="log-out-outline" size={20} color={colors.error} style={styles.actionButtonIcon} />
+          <Text style={[styles.actionButtonText, { color: colors.error }]}>Logout</Text>
         </TouchableOpacity>
       </View>
 
@@ -106,13 +108,13 @@ const AppSettingsScreen = ({ navigation }) => {
   );
 };
 
-const getStyles = (theme) => StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     paddingVertical: 20,
     paddingHorizontal: 15,
     alignItems: 'center',
@@ -121,16 +123,16 @@ const getStyles = (theme) => StyleSheet.create({
   headerText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.headerText,
+    color: colors.headerText,
   },
   section: {
     marginBottom: 20,
-    backgroundColor: theme.colors.card,
+    backgroundColor: colors.card,
     borderRadius: 10,
     marginHorizontal: 15,
     paddingVertical: 15,
     paddingHorizontal: 20,
-    shadowColor: theme.colors.shadow,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -139,10 +141,10 @@ const getStyles = (theme) => StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
     paddingBottom: 10,
   },
   settingItem: {
@@ -151,14 +153,14 @@ const getStyles = (theme) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderMuted,
+    borderBottomColor: colors.borderMuted,
   },
   settingIcon: {
     marginRight: 15,
   },
   settingLabel: {
     fontSize: 16,
-    color: theme.colors.text,
+    color: colors.text,
     flex: 1,
   },
   navigateButton: {
@@ -167,7 +169,7 @@ const getStyles = (theme) => StyleSheet.create({
   },
   navigateButtonText: {
     fontSize: 16,
-    color: theme.colors.primary,
+    color: colors.primary,
     marginRight: 5,
   },
   actionButton: {
@@ -178,14 +180,14 @@ const getStyles = (theme) => StyleSheet.create({
   },
   firstActionButton: { // Style for the first action button in a group that needs a separator
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderMuted,
+    borderBottomColor: colors.borderMuted,
   },
   actionButtonIcon: {
     marginRight: 15,
   },
   actionButtonText: {
     fontSize: 16,
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   footer: {
     alignItems: 'center',
@@ -194,7 +196,7 @@ const getStyles = (theme) => StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: theme.colors.subtext,
+    color: colors.subtext,
   },
 });
 

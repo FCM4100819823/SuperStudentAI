@@ -8,7 +8,7 @@ import { getAuth } from 'firebase/auth';
 import { useTheme } from '../context/ThemeContext';
 
 // Replace with your actual backend URL and endpoint
-const API_URL = 'http://172.20.10.4:5000/api'; // Ensure this is your backend URL
+const API_URL = 'http://172.20.10.3:5000/api'; // Ensure this is your backend URL
 const SRS_ENDPOINT = `${API_URL}/srs`;
 
 const SpacedRepetitionScreen = ({ navigation }) => {

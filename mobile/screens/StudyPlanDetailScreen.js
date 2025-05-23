@@ -11,7 +11,7 @@ import DateTimePicker from '@react-native-community/datetimepicker'; // Import D
 import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
 // Replace with your actual backend URL
-const API_URL = 'http://172.20.10.4:5000/api'; // Or your deployed backend URL
+const API_URL = 'http://172.20.10.3:5000/api'; // Or your deployed backend URL
 
 const StudyPlanDetailScreen = ({ navigation }) => {
   const themeContext = useTheme() || {};
@@ -302,7 +302,7 @@ const StudyPlanDetailScreen = ({ navigation }) => {
     if (loading && !refreshing && !studyPlan) {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.loadingText}>Loading Plan Details...</Text>
             </View>
         );

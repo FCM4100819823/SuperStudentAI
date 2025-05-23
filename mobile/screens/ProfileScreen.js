@@ -70,14 +70,14 @@ const ProfileScreen = ({ navigation, route }) => {
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} /> {/* Fix: Use colors.primary instead of theme.colors.primary */}
       </View>
     );
   }
 
   const ProfileInfoItem = ({ icon, label, value }) => (
     <View style={styles.infoItem}>
-      <Ionicons name={icon} size={22} color={theme.colors.icon} style={styles.infoIcon} />
+      <Ionicons name={icon} size={22} color={colors.icon} style={styles.infoIcon} /> {/* Fix: Use colors.icon instead of theme.colors.icon */}
       <View>
         <Text style={styles.infoLabel}>{label}</Text>
         <Text style={styles.infoValue}>{value || 'Not set'}</Text>
