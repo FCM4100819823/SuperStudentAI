@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Button, ScrollView, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, Button, ScrollView, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, Image } from 'react-native'; // Added Image
 import Icon from 'react-native-vector-icons/Ionicons';
+import axios from 'axios'; // Import axios
+import * as DocumentPicker from 'expo-document-picker'; // Import DocumentPicker
 
 const NLP_API_ENDPOINT = 'http://localhost:3000/api/ai/nlp';
 const SYLLABUS_TEXT_ANALYSIS_ENDPOINT = 'http://localhost:3000/api/ai/syllabus/analyze-text';
@@ -108,8 +110,6 @@ const AIScreen = ({ navigation }) => {
       if (isSyllabusTextAnalysis) {
         endpoint = SYLLABUS_TEXT_ANALYSIS_ENDPOINT;
         const syllabusText = currentInput.substring(currentInput.toLowerCase().indexOf('syllabus text:') + 'syllabus text:'.length).trim();
-        payload = { syllabusText: syllabusText }; 
-      }
 
       console.log(`Sending to ${endpoint} with payload:`, payload);
 
