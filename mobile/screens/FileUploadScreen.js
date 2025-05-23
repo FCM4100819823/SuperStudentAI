@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Scr
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 
-const backendUrl = 'http://172.20.10.2:5000';
+const backendUrl = 'http://172.20.10.2:3000';
 
 const FileUploadScreen = ({ navigation, route }) => {
   const { studyPlanId } = route.params || {}; // Get studyPlanId if passed

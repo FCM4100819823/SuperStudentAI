@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
   Alert
 } from 'react-native';
-import { auth, firestore as db } from '../firebaseConfig';
+import { collection, doc, onSnapshot } from 'firebase/firestore'; 
+import { auth, firestore } from '../firebaseConfig'; 
 import { signOut } from 'firebase/auth';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -27,7 +28,7 @@ const Dashboard = ({ navigation, route }) => {
         return;
       }
       const idToken = await user.getIdToken();
-      const backendUrl = 'http://172.20.10.2:5000';
+      const backendUrl = 'http://172.20.10.2:3000';
       const response = await fetch(`${backendUrl}/auth/profile`, {
         method: 'GET',
         headers: {
@@ -73,19 +74,21 @@ const Dashboard = ({ navigation, route }) => {
     let unsubscribeFirestore;
     const user = auth.currentUser;
     if (user) {
-      // Listen to Firestore user document for real-time updates
-      // console.log('Dashboard.js: Imported firestore object:', db); // Use db consistently
-      unsubscribeFirestore = db.collection('users').doc(user.uid)
-        .onSnapshot(doc => {
-          if (doc.exists) {
-            setProfileData(doc.data());
-            setLoading(false);
-          }
-        }, err => {
-          setError('Failed to sync profile in real-time.');
-        });
+      // Ensure 'firestore' is used directly, not 'db' if you changed the import alias
+      unsubscribeFirestore = onSnapshot(doc(firestore, "users", user.uid), (docSnap) => {
+        if (docSnap.exists()) {
+          setProfileData(docSnap.data());
+        } else {
+          console.log("No such document in Firestore!");
+          // setError('User profile not found.'); // Optionally set an error
+        }
+      }, (err) => {
+        console.error("Firestore snapshot error:", err);
+        setError('Error fetching profile updates.');
+      });
     }
-    fetchUserProfile();
+    fetchUserProfile(); // Initial fetch
+
     // Refresh profile when returning from profile edit screen
     const unsubscribeNav = navigation.addListener('focus', () => {
       if (route.params?.refreshProfile) {
@@ -313,8 +316,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: 'bold', // Added a default style property
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   logoutButton: {
     flexDirection: 'row',
@@ -415,11 +419,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  gridItem: {
-    backgroundColor: '#FFFFFF',
+   
     borderRadius: 10,
     padding: 15,
     margin: 5,

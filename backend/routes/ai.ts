@@ -160,7 +160,7 @@ router.post('/nlp', limiter, async (req: Request, res: Response) => {
           Authorization: `Bearer ${process.env.HF_API_TOKEN}`,
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+        timeout: 13000,
       }
     );
     aiCache[cacheKey] = { result: hfResponse.data, timestamp: Date.now() };
@@ -248,7 +248,7 @@ router.post('/study-plan/optimize', async (req: Request, res: Response) => {
                     Authorization: `Bearer ${process.env.HF_API_TOKEN}`,
                     'Content-Type': 'application/json',
                 },
-                timeout: 45000, 
+                timeout: 43000, 
             }
         );
         const { tasks: optimizedTasks, suggestions } = parseAIOptimizationResponse(hfResponse.data);

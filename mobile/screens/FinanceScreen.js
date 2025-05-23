@@ -39,6 +39,15 @@ const FinanceScreen = ({ navigation }) => {
     fetchTransactions();
   }, []);
 
+  // Define totalIncome and totalExpenses in the component scope
+  const totalIncome = transactions
+    .filter(item => item.type === 'income')
+    .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0); // Added || 0 for safety
+
+  const totalExpenses = transactions
+    .filter(item => item.type === 'expense')
+    .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0); // Added || 0 for safety
+
   const fetchTransactions = async () => {
     setIsLoading(true);
     try {
@@ -137,12 +146,7 @@ const FinanceScreen = ({ navigation }) => {
   };
 
   const calculateTotalBalance = () => {
-    const totalIncome = transactions
-      .filter(item => item.type === 'income')
-      .reduce((sum, item) => sum + parseFloat(item.amount), 0);
-    const totalExpenses = transactions
-      .filter(item => item.type === 'expense')
-      .reduce((sum, item) => sum + parseFloat(item.amount), 0);
+    // No need to recalculate totalIncome and totalExpenses here, use the ones from component scope
     return totalIncome - totalExpenses;
   };
 

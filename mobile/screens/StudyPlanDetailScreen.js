@@ -10,7 +10,7 @@ import { getAuth } from 'firebase/auth';
 import DateTimePicker from '@react-native-community/datetimepicker'; // Import DateTimePicker
 
 // Replace with your actual backend URL
-const API_URL = 'http://172.20.10.2:5000/api'; // Or your deployed backend URL
+const API_URL = 'http://172.20.10.2:3000/api'; // Or your deployed backend URL
 
 // Define STATIC_COLORS and STATIC_FONTS for this screen
 const STATIC_COLORS = {

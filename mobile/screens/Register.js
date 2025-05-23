@@ -267,14 +267,13 @@ const RegisterScreen = ({ navigation }) => {
     switch (currentStep) {
       case 1:
         return (
-          <View style={styles.stepContainer}>
+          <Animated.View style={[styles.stepContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <Text style={styles.stepTitle}>Create Your Account</Text>
-            <Text style={styles.stepDescription}>Let's start with the basics</Text>
-
+            <Text style={styles.stepSubtitle}>Let's start with the basics.</Text>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Full Name</Text>
               <View style={[styles.inputContainer, errors.name && styles.inputError]}>
-                <Ionicons name="person-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <Ionicons name="person-outline" size={22} color={styles.inputIcon.color} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Your full name"
@@ -284,6 +283,8 @@ const RegisterScreen = ({ navigation }) => {
                     setName(text);
                     if (errors.name) setErrors({ ...errors, name: undefined });
                   }}
+                  returnKeyType="next"
+                  onSubmitEditing={() => emailInputRef.current?.focus()}
                 />
               </View>
               {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
@@ -292,8 +293,9 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email Address</Text>
               <View style={[styles.inputContainer, errors.email && styles.inputError]}>
-                <Ionicons name="mail-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <Ionicons name="mail-outline" size={22} color={styles.inputIcon.color} style={styles.inputIcon} />
                 <TextInput
+                  ref={emailInputRef}
                   style={styles.input}
                   placeholder="Your email address"
                   placeholderTextColor="#A0A0A0"
@@ -301,19 +303,22 @@ const RegisterScreen = ({ navigation }) => {
                   autoCapitalize="none"
                   value={email}
                   onChangeText={(text) => {
-                    setEmail(text);
+                    setEmail(text.toLowerCase());
                     if (errors.email) setErrors({ ...errors, email: undefined });
                   }}
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordInputRef.current?.focus()}
                 />
               </View>
               {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Password</Text>
               <View style={[styles.inputContainer, errors.password && styles.inputError]}>
-                <Ionicons name="lock-closed-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={22} color={styles.inputIcon.color} style={styles.inputIcon} />
                 <TextInput
+                  ref={passwordInputRef}
                   style={styles.input}
                   placeholder="Create a password"
                   placeholderTextColor="#A0A0A0"
@@ -323,19 +328,22 @@ const RegisterScreen = ({ navigation }) => {
                     setPassword(text);
                     if (errors.password) setErrors({ ...errors, password: undefined });
                   }}
+                  returnKeyType="next"
+                  onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                  <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color="#A0A0A0" />
+                  <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={24} color="#A0A0A0" />
                 </TouchableOpacity>
               </View>
               {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Confirm Password</Text>
               <View style={[styles.inputContainer, errors.confirmPassword && styles.inputError]}>
-                <Ionicons name="lock-closed-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={22} color={styles.inputIcon.color} style={styles.inputIcon} />
                 <TextInput
+                  ref={confirmPasswordInputRef}
                   style={styles.input}
                   placeholder="Confirm your password"
                   placeholderTextColor="#A0A0A0"
@@ -345,271 +353,247 @@ const RegisterScreen = ({ navigation }) => {
                     setConfirmPassword(text);
                     if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: undefined });
                   }}
+                  returnKeyType="done"
+                  onSubmitEditing={handleNextStep}
                 />
                 <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
-                  <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={22} color="#A0A0A0" />
+                  <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={24} color="#A0A0A0" />
                 </TouchableOpacity>
               </View>
               {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
             </View>
-          </View>
+          </Animated.View>
         );
       case 2:
         return (
-          <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Personal Information</Text>
-            <Text style={styles.stepDescription}>Tell us about yourself</Text>
-
+          <Animated.View style={[styles.stepContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <Text style={styles.stepTitle}>About You</Text>
+            <Text style={styles.stepSubtitle}>Tell us a bit more to personalize your experience.</Text>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Age</Text>
-              <TouchableOpacity 
-                style={[styles.inputContainer, errors.age && styles.inputError]}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Ionicons name="calendar-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
-                <Text style={[styles.input, !age && styles.placeholderText]}>
-                  {age ? `${age} years old` : "Select your date of birth"}
+              <TouchableOpacity onPress={() => setShowDatePicker(true)} style={[styles.inputContainer, errors.age && styles.inputError]}>
+                <Ionicons name="calendar-outline" size={22} color={styles.inputIcon.color} style={styles.inputIcon} />
+                <Text style={[styles.input, age ? {} : { color: '#A0A0A0' }]}>
+                  {age || "Select your date of birth"}
                 </Text>
               </TouchableOpacity>
               {errors.age && <Text style={styles.errorText}>{errors.age}</Text>}
-
-              {showDatePicker && (
-                <DateTimePicker
-                  value={datePickerValue}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={onChangeDatePicker}
-                  maximumDate={new Date()}
-                  minimumDate={new Date(1950, 0, 1)}
-                />
-              )}
             </View>
-            
+
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>University</Text>
-              {/* Changed from TouchableOpacity to TextInput */}
+              <Text style={styles.inputLabel}>University/Institution</Text>
               <View style={[styles.inputContainer, errors.university && styles.inputError]}>
-                <Ionicons name="school-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <Ionicons name="school-outline" size={22} color={styles.inputIcon.color} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Your university name"
+                  placeholder="e.g., Harvard University"
                   placeholderTextColor="#A0A0A0"
                   value={university}
                   onChangeText={(text) => {
                     setUniversity(text);
                     if (errors.university) setErrors({ ...errors, university: undefined });
                   }}
+                  returnKeyType="next"
+                  onSubmitEditing={() => majorInputRef.current?.focus()}
                 />
               </View>
               {errors.university && <Text style={styles.errorText}>{errors.university}</Text>}
             </View>
-            
+
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Field of Study / Major</Text>
+              <Text style={styles.inputLabel}>Field of Study/Major</Text>
               <View style={[styles.inputContainer, errors.major && styles.inputError]}>
-                <Ionicons name="book-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <Ionicons name="book-outline" size={22} color={styles.inputIcon.color} style={styles.inputIcon} />
                 <TextInput
+                  ref={majorInputRef}
                   style={styles.input}
-                  placeholder="Your field of study or major"
+                  placeholder="e.g., Computer Science"
                   placeholderTextColor="#A0A0A0"
                   value={major}
                   onChangeText={(text) => {
                     setMajor(text);
                     if (errors.major) setErrors({ ...errors, major: undefined });
                   }}
+                  returnKeyType="done"
+                  onSubmitEditing={handleNextStep}
                 />
               </View>
               {errors.major && <Text style={styles.errorText}>{errors.major}</Text>}
             </View>
-          </View>
+          </Animated.View>
         );
       case 3:
         return (
-          <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Academic Information</Text>
-            <Text style={styles.stepDescription}>Just a few more details</Text>
-
+          <Animated.View style={[styles.stepContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <Text style={styles.stepTitle}>Academic Details</Text>
+            <Text style={styles.stepSubtitle}>Almost there! Just a few more details.</Text>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Current Level (100-600)</Text>
+              <Text style={styles.inputLabel}>Current Level (e.g., 100, 200)</Text>
               <View style={[styles.inputContainer, errors.level && styles.inputError]}>
-                <MaterialIcons name="grade" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <Ionicons name="bar-chart-outline" size={22} color={styles.inputIcon.color} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Your current level (e.g., 100, 200)"
+                  placeholder="e.g., 200"
                   placeholderTextColor="#A0A0A0"
-                  keyboardType="numeric"
+                  keyboardType="number-pad"
                   value={level}
                   onChangeText={(text) => {
                     setLevel(text);
                     if (errors.level) setErrors({ ...errors, level: undefined });
                   }}
+                  returnKeyType="next"
+                  onSubmitEditing={() => graduationYearInputRef.current?.focus()}
                 />
               </View>
               {errors.level && <Text style={styles.errorText}>{errors.level}</Text>}
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Expected Graduation Year</Text>
               <View style={[styles.inputContainer, errors.graduationYear && styles.inputError]}>
-                <Ionicons name="calendar" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <Ionicons name="calendar-number-outline" size={22} color={styles.inputIcon.color} style={styles.inputIcon} />
                 <TextInput
+                  ref={graduationYearInputRef}
                   style={styles.input}
-                  placeholder="Year of expected graduation"
+                  placeholder="e.g., 2023"
                   placeholderTextColor="#A0A0A0"
-                  keyboardType="numeric"
+                  keyboardType="number-pad"
                   value={graduationYear}
                   onChangeText={(text) => {
                     setGraduationYear(text);
                     if (errors.graduationYear) setErrors({ ...errors, graduationYear: undefined });
                   }}
+                  returnKeyType="done"
+                  onSubmitEditing={handleRegister}
                 />
               </View>
               {errors.graduationYear && <Text style={styles.errorText}>{errors.graduationYear}</Text>}
             </View>
-
-            <View style={styles.termsContainer}>
-              <Ionicons 
-                name="shield-checkmark-outline" 
-                size={36} 
-                color="#007AFF" 
-                style={styles.termsIcon} 
-              />
-              <Text style={styles.termsText}>
-                By creating an account, you agree to our{' '}
-                <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-                <Text style={styles.termsLink}>Privacy Policy</Text>
-              </Text>
-            </View>
-          </View>
+          </Animated.View>
         );
       default:
         return null;
     }
   };
 
+  // Refs for input fields
+  const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
+  const confirmPasswordInputRef = useRef(null);
+  const majorInputRef = useRef(null);
+  const graduationYearInputRef = useRef(null);
+
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle={'dark-content'} />
-      <View style={styles.gradientBackground}>
+      <StatusBar barStyle="dark-content" backgroundColor={styles.safeArea.backgroundColor} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.container}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 50 : 0}
-          >
-            <ScrollView 
-              contentContainerStyle={styles.scrollContent}
+          <View style={styles.innerContainer}>
+            {!isKeyboardVisible && (
+              <View style={styles.headerContainer}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                  <Ionicons name="arrow-back-outline" size={28} color="#333" />
+                </TouchableOpacity>
+                <Image
+                  source={require('../assets/superstudentlogo.png')} // Ensure this path is correct
+                  style={styles.logo}
+                />
+              </View>
+            )}
+
+            <View style={styles.progressBarContainer}>
+              <View style={styles.progressStep}>
+                <View style={[styles.progressDot, currentStep >= 1 && styles.progressDotActive]} />
+                <Text style={[styles.progressLabel, currentStep >= 1 && styles.progressLabelActive]}>Account</Text>
+              </View>
+              <View style={[styles.progressLine, currentStep > 1 && styles.progressLineActive]} />
+              <View style={styles.progressStep}>
+                <View style={[styles.progressDot, currentStep >= 2 && styles.progressDotActive]} />
+                <Text style={[styles.progressLabel, currentStep >= 2 && styles.progressLabelActive]}>About</Text>
+              </View>
+              <View style={[styles.progressLine, currentStep > 2 && styles.progressLineActive]} />
+              <View style={styles.progressStep}>
+                <View style={[styles.progressDot, currentStep >= 3 && styles.progressDotActive]} />
+                <Text style={[styles.progressLabel, currentStep >= 3 && styles.progressLabelActive]}>Details</Text>
+              </View>
+            </View>
+
+            <ScrollView
               showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
             >
-              <TouchableOpacity 
-                style={styles.backButton} 
-                onPress={() => navigation.goBack()}
-                hitSlop={{top: 20, bottom: 20, left: 20, right: 20}}
-              >
-                <Ionicons name="arrow-back" size={24} color="#333333" />
-              </TouchableOpacity>
-
-              <Animated.View style={[styles.headerContainer, { opacity: fadeAnim }]}>
-                <View style={styles.logoContainer}>
-                  <Image 
-                    source={require('../assets/superstudentlogo.png')} 
-                    style={styles.logo} 
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.titleText}>Create Account</Text>
-                  <Text style={styles.subtitleText}>Join SuperStudent AI and start learning smarter</Text>
-                </View>
-              </Animated.View>
-              
-              {/* Progress bar */}
-              <View style={styles.progressContainer}>
-                <Animated.View 
-                  style={[
-                    styles.progressBar, 
-                    { width: progressAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0%', '100%']
-                    })}
-                  ]}
-                />
-                <View style={styles.stepIndicatorsContainer}>
-                  <View style={[styles.stepIndicator, currentStep >= 1 && styles.activeStepIndicator]}>
-                    <Text style={[styles.stepNumber, currentStep >= 1 && styles.activeStepNumber]}>1</Text>
-                  </View>
-                  <View style={styles.stepConnector}>
-                    <View style={[styles.stepConnectorLine, currentStep >= 2 && styles.activeStepConnector]} />
-                  </View>
-                  <View style={[styles.stepIndicator, currentStep >= 2 && styles.activeStepIndicator]}>
-                    <Text style={[styles.stepNumber, currentStep >= 2 && styles.activeStepNumber]}>2</Text>
-                  </View>
-                  <View style={styles.stepConnector}>
-                    <View style={[styles.stepConnectorLine, currentStep >= 3 && styles.activeStepConnector]} />
-                  </View>
-                  <View style={[styles.stepIndicator, currentStep >= 3 && styles.activeStepIndicator]}>
-                    <Text style={[styles.stepNumber, currentStep >= 3 && styles.activeStepNumber]}>3</Text>
-                  </View>
-                </View>
-              </View>
-
-              <Animated.View 
-                style={[
-                  styles.formContainer, 
-                  { 
-                    opacity: fadeAnim,
-                    transform: [{ translateY: slideAnim }]
-                  }
-                ]}
-              >
-                {renderStep()}
-                
-                <View style={styles.navigationButtonsContainer}>
-                  {currentStep > 1 && (
-                    <TouchableOpacity style={styles.prevButton} onPress={handlePrevStep}>
-                      <Ionicons name="arrow-back" size={20} color="#007AFF" />
-                      <Text style={styles.prevButtonText}>Back</Text>
-                    </TouchableOpacity>
-                  )}
-                  
-                  {currentStep < 3 ? (
-                    <TouchableOpacity 
-                      style={[styles.nextButton, currentStep === 1 && styles.fullWidthButton]} 
-                      onPress={handleNextStep}
-                    >
-                      <Text style={styles.nextButtonText}>Continue</Text>
-                      <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity 
-                      style={styles.registerButton} 
-                      onPress={handleRegister}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <ActivityIndicator color="#FFFFFF" size="small" />
-                      ) : (
-                        <>
-                          <Text style={styles.registerButtonText}>Create Account</Text>
-                          <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </Animated.View>
-              
-              {!isKeyboardVisible && (
-                <View style={styles.footerContainer}>
-                  <Text style={styles.footerText}>Already have an account?</Text>
-                  <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                    <Text style={styles.loginLink}>Sign In</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+              {renderStep()}
             </ScrollView>
-          </KeyboardAvoidingView>
+
+            <View style={styles.buttonContainer}>
+              {currentStep > 1 && (
+                <TouchableOpacity onPress={handlePrevStep} style={[styles.button, styles.prevButton]}>
+                  <Ionicons name="chevron-back-outline" size={24} color="#6A11CB" />
+                  <Text style={[styles.buttonText, styles.prevButtonText]}>Previous</Text>
+                </TouchableOpacity>
+              )}
+              {currentStep < 3 ? (
+                <TouchableOpacity onPress={handleNextStep} style={[styles.button, styles.nextButton, currentStep === 1 && {flex: 1} ]}>
+                  <Text style={[styles.buttonText, styles.nextButtonText]}>Next</Text>
+                  <Ionicons name="chevron-forward-outline" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={handleRegister} style={[styles.button, styles.registerButton]} disabled={loading}>
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Text style={[styles.buttonText, styles.registerButtonText]}>Register</Text>
+                      <Ionicons name="checkmark-done-outline" size={24} color="#FFFFFF" />
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
         </TouchableWithoutFeedback>
-      </View>
+      </KeyboardAvoidingView>
+
+      {showDatePicker && (
+        <Modal
+          transparent={true}
+          animationType="slide"
+          visible={showDatePicker}
+          onRequestClose={() => setShowDatePicker(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setShowDatePicker(false)}>
+            <View style={styles.datePickerModalBackground}>
+              <View style={styles.datePickerContainer}>
+                {Platform.OS === 'ios' && (
+                    <View style={styles.datePickerHeader}>
+                        <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                            <Text style={styles.datePickerDoneText}>Done</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+                {/* DateTimePicker will be rendered here, ensure it's imported and used correctly */}
+                {/* For simplicity, assuming DateTimePicker is handled as before or replaced by a custom component */}
+                 <Text>DateTimePicker Placeholder - Implement with @react-native-community/datetimepicker</Text>
+                 {/* Example:
+                 <DateTimePicker
+                    value={datePickerValue}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={onChangeDatePicker}
+                    maximumDate={new Date(new Date().setFullYear(new Date().getFullYear() - 10))} // Min 10 years old
+                    minimumDate={new Date(new Date().setFullYear(new Date().getFullYear() - 80))} // Max 80 years old
+                  />
+                */}
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 };
@@ -617,296 +601,237 @@ const RegisterScreen = ({ navigation }) => {
 const getStyles = () => StyleSheet.create({
   safeArea: {
     flex: 1,
-  },
-  gradientBackground: {
-    flex: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F7F8FA', // Light background for the entire screen
   },
   container: {
     flex: 1,
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
-    paddingBottom: 20,
+  innerContainer: {
+    flex: 1,
+    paddingHorizontal: 25,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 20, // Adjust bottom padding
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center', // Center logo if back button is absolute
+    paddingVertical: 15,
+    position: 'relative', // For absolute positioning of back button
   },
   backButton: {
     position: 'absolute',
-    top: 20,
-    left: 16,
-    zIndex: 10,
-    width: 40,
-    height: 40,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  headerContainer: {
-    alignItems: 'center',
-    marginTop: 60,
-    marginBottom: 20,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 20,
-  },
-  titleText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 8,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
-  },
-  subtitleText: {
-    fontSize: 16,
-    color: '#555555',
-    textAlign: 'center',
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
-  },
-  progressContainer: {
-    paddingHorizontal: 30,
-    marginBottom: 20,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#007AFF',
-    borderRadius: 2,
-  },
-  stepIndicatorsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: -12,
-  },
-  stepIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#F0F0F0',
-    borderWidth: 2,
-    borderColor: '#CCCCCC',
-    justifyContent: 'center',
-    alignItems: 'center',
+    left: 0, // Align to the left of headerContainer
+    top: 15, // Adjust to vertically align with logo or title
+    padding: 5, // Add padding for easier touch
     zIndex: 1,
   },
-  activeStepIndicator: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+  logo: {
+    width: width * 0.4,
+    height: width * 0.15, // Adjust height to maintain aspect ratio
+    resizeMode: 'contain',
+    alignSelf: 'center', // Center the logo
+    marginBottom: 5, // Reduced margin
   },
-  stepNumber: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#333333',
+  progressBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 20, // Add some horizontal margin
+    marginBottom: 30, // Increased space below progress bar
   },
-  activeStepNumber: {
-    color: '#FFFFFF',
+  progressStep: {
+    alignItems: 'center',
+    flexShrink: 1, // Allow steps to shrink if needed
   },
-  stepConnector: {
-    flex: 1,
-    height: 2,
+  progressDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#D1D1D6', // Inactive dot color
+    marginBottom: 6,
   },
-  stepConnectorLine: {
-    flex: 1,
-    height: 2,
-    backgroundColor: '#CCCCCC',
+  progressDotActive: {
+    backgroundColor: '#6A11CB', // Primary color
+    transform: [{ scale: 1.1 }], // Slightly larger active dot
   },
-  activeStepConnector: {
-    backgroundColor: '#007AFF',
+  progressLabel: {
+    fontSize: 13,
+    color: '#8E8E93', // Inactive label color
+    fontWeight: '500',
+    textAlign: 'center',
   },
-  formContainer: {
-    paddingHorizontal: 30,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+  progressLabelActive: {
+    color: '#6A11CB', // Primary color
+    fontWeight: '700',
+  },
+  progressLine: {
+    flexGrow: 1, // Take up available space
+    height: 3,
+    backgroundColor: '#D1D1D6', // Inactive line color
+    marginHorizontal: 8, // Space between dot and line
+    borderRadius: 2,
+  },
+  progressLineActive: {
+    backgroundColor: '#6A11CB', // Primary color
+  },
+  scrollContent: {
+    paddingBottom: 20, // Space for the buttons at the bottom
   },
   stepContainer: {
-    marginBottom: 20,
+    paddingVertical: 10, // Add some vertical padding
+    backgroundColor: '#FFFFFF', // White background for step content
+    borderRadius: 15, // Rounded corners for the card effect
+    paddingHorizontal: 20,
+    marginBottom: 20, // Space between step card and buttons
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   stepTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    color: '#333333',
+    color: '#333333', // Darker title
     marginBottom: 8,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+    textAlign: 'center',
   },
-  stepDescription: {
+  stepSubtitle: {
     fontSize: 16,
-    color: '#555555',
-    marginBottom: 24,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    color: '#666666', // Medium gray for subtitle
+    textAlign: 'center',
+    marginBottom: 25,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 20, // Increased space between input groups
   },
   inputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
+    fontSize: 15,
+    color: '#4F4F4F', // Slightly darker label
     marginBottom: 8,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+    fontWeight: '600',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#CCCCCC',
+    backgroundColor: '#F0F0F0', // Lighter input background
+    borderRadius: 12, // More rounded inputs
     paddingHorizontal: 15,
-    height: 56,
+    borderWidth: 1,
+    borderColor: '#E0E0E0', // Subtle border
   },
   inputError: {
-    borderColor: '#FF3B30',
-  },
-  input: {
-    flex: 1,
-    color: '#333333',
-    fontSize: 16,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
-    height: '100%',
-  },
-  placeholderText: {
-    color: '#A0A0A0',
+    borderColor: '#FF6B6B', // Error color
+    borderWidth: 1.5, // Slightly thicker border for error
   },
   inputIcon: {
     marginRight: 12,
+    color: '#828282', // Icon color
+  },
+  input: {
+    flex: 1,
+    height: 50, // Standard height
+    fontSize: 16,
+    color: '#333333',
   },
   eyeIcon: {
-    padding: 8,
+    padding: 8, // Easier to tap
   },
   errorText: {
-    color: '#FF3B30',
-    fontSize: 12,
-    marginTop: 4,
-    marginLeft: 4,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    color: '#FF6B6B',
+    fontSize: 13,
+    marginTop: 6,
+    marginLeft: 5, // Align with input text
   },
-  navigationButtonsContainer: {
+  buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 24,
-    marginBottom: 16,
+    marginTop: 'auto', // Push buttons to the bottom
+    paddingTop: 10, // Add some space above buttons
+    gap: 15, // Space between buttons if both are visible
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    borderRadius: 12, // Rounded buttons
+    minHeight: 50, // Ensure consistent button height
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 3.0,
+    elevation: 3,
   },
   prevButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-    borderRadius: 12,
-    height: 56,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
+    backgroundColor: '#FFFFFF', // White background for previous
+    borderColor: '#6A11CB', // Primary color border
+    borderWidth: 1.5,
+    flex: 1, // Take half width
   },
   prevButtonText: {
-    fontSize: 16,
+    color: '#6A11CB', // Primary color text
+    fontSize: 17,
     fontWeight: '600',
-    color: '#007AFF',
     marginLeft: 8,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
   nextButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    height: 56,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-    flex: 1,
-    marginLeft: 8,
-  },
-  fullWidthButton: {
-    marginLeft: 0,
+    backgroundColor: '#6A11CB', // Primary color
+    flex: 1, // Take half width, or full if only button
   },
   nextButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     marginRight: 8,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
   registerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
-    height: 56,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-    width: '100%',
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.27,
-    shadowRadius: 4.65,
-    elevation: 6,
+    backgroundColor: '#27AE60', // Success green for register
+    flex: 1, // Take full width
   },
   registerButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     marginRight: 8,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
-  footerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  footerText: {
-    fontSize: 16,
-    color: '#555555',
-    marginRight: 8,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
-  },
-  loginLink: {
-    fontSize: 16,
-    color: '#007AFF',
+  buttonText: { // General button text styling (can be overridden)
+    fontSize: 17,
     fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
-  termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F9FF',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#CCCCCC',
-  },
-  termsIcon: {
-    marginRight: 16,
-  },
-  termsText: {
+  // Date Picker Modal Styles
+  datePickerModalBackground: {
     flex: 1,
-    fontSize: 14,
-    color: '#333333',
-    lineHeight: 20,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  termsLink: {
-    color: '#007AFF',
+  datePickerContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 20, // Safe area for bottom
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EFEFEF',
+  },
+  datePickerDoneText: {
+    color: '#6A11CB', // Primary color
+    fontSize: 17,
     fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
+  // ... any other styles
 });
 
 export default RegisterScreen;

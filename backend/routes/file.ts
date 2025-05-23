@@ -28,7 +28,7 @@ router.post('/upload', upload.single('file'), async (req: any, res: any) => {
       const textContent = req.file.buffer.toString('utf-8');
       // Call Hugging Face NLP endpoint for parsing/summary
       const aiRes = await axios.post(
-        'http://localhost:5000/ai/nlp',
+        'http://localhost:3000/ai/nlp',
         { text: textContent, user: userId },
         { timeout: 20000 }
       );
@@ -84,7 +84,7 @@ router.post('/syllabus-ocr', upload.single('file'), async (req: any, res: any) =
     let nlpResult = null;
     if (ocrText) {
       const aiRes = await axios.post(
-        'http://localhost:5000/ai/nlp',
+        'http://localhost:3000/ai/nlp',
         { text: ocrText, user: userId, task: 'syllabus_extraction' },
         { timeout: 20000 }
       );

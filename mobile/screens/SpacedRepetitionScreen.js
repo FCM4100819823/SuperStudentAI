@@ -7,7 +7,7 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 
 // Replace with your actual backend URL and endpoint
-const API_URL = 'http://172.20.10.2:5000/api'; // Ensure this is your backend URL
+const API_URL = 'http://172.20.10.2:3000/api'; // Ensure this is your backend URL
 const SRS_ENDPOINT = `${API_URL}/srs`;
 
 const STATIC_COLORS = {

@@ -11,7 +11,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // Replace with your actual backend URL
-const API_URL = 'http://172.20.10.2:5000/api'; // Or your deployed backend URL
+const API_URL = 'http://172.20.10.2:3000/api'; // Or your deployed backend URL
 
 const CreateStudyPlanScreen = ({ route }) => {
     const navigation = useNavigation();

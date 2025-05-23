@@ -115,7 +115,7 @@ const AIScreen = ({ navigation }) => {
 
       const response = await axios.post(endpoint, payload, {
         headers: { 'Content-Type': 'application/json' },
-        timeout: isSyllabusTextAnalysis ? 30000 : 15000,
+        timeout: isSyllabusTextAnalysis ? 30000 : 13000,
       });
       
       let aiResponseText = '';

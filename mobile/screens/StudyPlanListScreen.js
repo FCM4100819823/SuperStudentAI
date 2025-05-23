@@ -41,8 +41,8 @@ const STATIC_FONTS = {
   bold: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
 };
 
-// const API_URL = 'http://172.20.10.2:5000'; // Ensure this is correct or use a config
-const API_URL = 'http://192.168.1.10:5000'; // Example: Replace with your actual backend IP
+// const API_URL = 'http://172.20.10.2:3000'; // Ensure this is correct or use a config
+const API_URL = 'http://192.168.1.10:3000'; // Example: Replace with your actual backend IP
 
 const StudyPlanListScreen = () => {
   const navigation = useNavigation();
