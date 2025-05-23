@@ -1,420 +1,440 @@
-import React, { useEffect, useState, useRef, useContext } from 'react'; // Added useContext
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  Dimensions, 
-  ActivityIndicator, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   Image,
-  SafeAreaView, // Added SafeAreaView
-  Animated, // Added Animated
+  RefreshControl,
+  Alert,
   Platform,
-  StatusBar,
+  Dimensions,
+  ActivityIndicator
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { auth, db } from '../firebaseConfig';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { LinearGradient } from 'expo-linear-gradient'; // Added LinearGradient
-import { useTheme } from '../context/ThemeContext'; // Import useTheme
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { auth, db } from '../firebaseConfig'; // Assuming this is your primary firebase export
+import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const logo = require('../assets/superstudentlogo.png');
-
-const { width, height } = Dimensions.get('window');
-
-// Define a more sophisticated color palette
-const COLORS = {
+// Define static colors and fonts directly or import from a non-theme style utility
+const STATIC_COLORS = {
+  background: '#F0F4F8', // Light grey-blue
+  surface: '#FFFFFF', // White
   primary: '#6A11CB', // Deep Purple
   secondary: '#2575FC', // Vibrant Blue
-  accent: '#FFD700', // Gold for accents/highlights
-  textPrimary: '#FFFFFF', // White for primary text on dark backgrounds
-  textSecondary: '#E0E0E0', // Light grey for secondary text
-  cardBackground: 'rgba(255, 255, 255, 0.1)', // Semi-transparent white
-  iconColor: '#FFFFFF',
-  statBoxBackground: 'rgba(255, 255, 255, 0.15)',
-  actionButtonPrimaryBg: '#FFD700', // Gold accent for primary CTA
-  actionButtonPrimaryText: '#333333', // Dark text for gold button
-  actionButtonSecondaryBg: 'rgba(255, 255, 255, 0.2)',
-  actionButtonSecondaryText: '#FFFFFF',
+  text: '#1A2B4D', // Dark Blue/Black
+  subtext: '#5A6B7C', // Greyish Blue
+  placeholder: '#A0A0A0', // Medium Grey
+  border: '#E0E6F0', // Light Grey
+  accent: '#FFD700', // Gold
+  success: '#28A745', // Green
+  error: '#D32F2F', // Red
+  gradientStart: '#6A11CB',
+  gradientEnd: '#2575FC',
+  card: '#FFFFFF',
+  icon: '#1A2B4D',
+  headerText: '#FFFFFF',
+  shadow: 'rgba(0, 0, 0, 0.1)',
 };
 
-const HomeScreen = ({ navigation }) => {
-  const themeContext = useTheme() || {};
-  // Ensure colors has a fallback for all expected properties if themeContext.colors is undefined
-  const defaultColors = {
-    gradientStart: '#6A11CB', // Example default
-    gradientEnd: '#2575FC',   // Example default
-    accent: '#FFD700',       // Example default
-    icon: '#FFFFFF',          // Example default
-    buttonTextDark: '#000000', // Example default
-    buttonText: '#FFFFFF',    // Example default
-    primary: '#6A11CB',       // Example default
-    // Add any other colors that might be accessed
-    background: '#F0F4F8',
-    text: '#1A2B4D',
-    card: '#FFFFFF',
-    border: '#E0E6F0',
-    subtext: '#5A6B7C',
-    shadow: '#000',
-  };
-  const colors = themeContext.colors || defaultColors;
-  const styles = getStyles(colors); // Get styles based on theme
-  const [userName, setUserName] = useState('');
-  const [upcomingTasksCount, setUpcomingTasksCount] = useState(0);
-  const [activeFocusSessionsCount, setActiveFocusSessionsCount] = useState(0);
-  const [wellbeingScore, setWellbeingScore] = useState(0);
+const STATIC_FONTS = {
+  regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  medium: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+  bold: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
+};
+
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = width * 0.9;
+const QUICK_ACTION_SIZE = width * 0.2;
+
+const HomeScreen = () => {
+  const navigation = useNavigation();
+  const colors = STATIC_COLORS; // USE STATIC
+  const fonts = STATIC_FONTS; // USE STATIC
+  const styles = getStyles(colors, fonts);
+
+  const [userName, setUserName] = useState('Student');
+  const [profilePic, setProfilePic] = useState(null);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [recentPlans, setRecentPlans] = useState([]);
+  const [motivationalQuote, setMotivationalQuote] = useState({ text: "Loading quote...", author: "" });
+  const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideUpAnim = useRef(new Animated.Value(50)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideUpAnim, {
-        toValue: 0,
-        duration: 700,
-        useNativeDriver: true,
-        delay: 200,
-      }),
-    ]).start();
-    
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const currentUser = auth.currentUser;
-        if (currentUser) {
-          const userDocRef = doc(db, 'users', currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            const userData = userDocSnap.data();
-            setUserName(userData.name || currentUser.displayName || 'User');
-            setWellbeingScore(userData.wellbeingScore || 0);
-          } else {
-            setUserName(currentUser.displayName || 'User');
-            setWellbeingScore(0);
-          }
-
-          const studyPlansRef = collection(db, 'studyPlans');
-          const qTasks = query(studyPlansRef, where('userId', '==', currentUser.uid));
-          const studyPlansSnap = await getDocs(qTasks);
-          let tasksCount = 0;
-          studyPlansSnap.forEach(planDoc => {
-            const planData = planDoc.data();
-            if (planData.tasks && Array.isArray(planData.tasks)) {
-              planData.tasks.forEach(task => {
-                if (task.status !== 'completed') {
-                  tasksCount++;
-                }
-              });
-            }
-          });
-          setUpcomingTasksCount(tasksCount);
-
-          const focusSessionsRef = collection(db, 'focusSessions');
-          const qFocus = query(focusSessionsRef, where('userId', '==', currentUser.uid), where('status', '==', 'active'));
-          const focusSessionsSnap = await getDocs(qFocus);
-          setActiveFocusSessionsCount(focusSessionsSnap.size);
-
-        }
-      } catch (error) {
-        console.error("Error fetching home screen data:", error);
-        setUserName('User');
-        setUpcomingTasksCount(0);
-        setActiveFocusSessionsCount(0);
-        setWellbeingScore(0);
-      } finally {
-        setLoading(false);
+  const fetchUserData = async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        setUserName(userData.name || currentUser.displayName || 'Student');
+        setProfilePic(userData.profilePicture || null);
+      } else {
+        setUserName(currentUser.displayName || 'Student');
       }
-    };
+    }
+  };
 
-    fetchData();
-  }, [fadeAnim, slideUpAnim]); // Added animation refs to dependency array
+  const fetchUpcomingEvents = async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      const eventsRef = collection(db, 'events');
+      const qEvents = query(eventsRef, where('userId', '==', currentUser.uid), orderBy('date', 'asc'), limit(5));
+      const eventsSnap = await getDocs(qEvents);
+      const events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUpcomingEvents(events);
+    }
+  };
 
-  if (loading) {
+  const fetchRecentStudyPlans = async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      const studyPlansRef = collection(db, 'studyPlans');
+      const qPlans = query(studyPlansRef, where('userId', '==', currentUser.uid), orderBy('createdAt', 'desc'), limit(5));
+      const plansSnap = await getDocs(qPlans);
+      const plans = plansSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setRecentPlans(plans);
+    }
+  };
+
+  const fetchMotivationalQuote = async () => {
+    // This could be an API call or from a static list
+    const quotes = [
+      { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+      { text: "Your limitation—it's only your imagination.", author: "" },
+      { text: "Push yourself, because no one else is going to do it for you.", author: "" },
+      { text: "Great things never come from comfort zones.", author: "" },
+      { text: "Dream it. Wish it. Do it.", author: "" },
+    ];
+    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+    setMotivationalQuote(randomQuote);
+  };
+
+  const loadData = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
+    try {
+      await Promise.all([
+        fetchUserData(),
+        fetchUpcomingEvents(),
+        fetchRecentStudyPlans(),
+        fetchMotivationalQuote(),
+      ]);
+    } catch (error) {
+      console.error("Error loading home screen data:", error);
+      Alert.alert("Error", "Could not load all data. Please try again.");
+    } finally {
+      if (!isRefresh) setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+      return () => {}; // Optional cleanup
+    }, [loadData])
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData(true);
+  };
+
+  if (loading && !refreshing) {
     return (
-      <LinearGradient colors={[colors.gradientStart || defaultColors.gradientStart, colors.gradientEnd || defaultColors.gradientEnd]} style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.accent || defaultColors.accent} />
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading your dashboard...</Text>
-      </LinearGradient>
+      </View>
     );
   }
 
-  const StatCard = ({ iconName, value, label, delay }) => {
-    const itemFadeAnim = useRef(new Animated.Value(0)).current;
-    const itemSlideAnim = useRef(new Animated.Value(20)).current;
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View style={styles.headerTextContainer}>
+        <Text style={styles.greetingText}>Hello, {userName}!</Text>
+        <Text style={styles.welcomeText}>Ready to ace your studies?</Text>
+      </View>
+      <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.profilePicButton}>
+        {profilePic ? (
+          <Image source={{ uri: profilePic }} style={styles.profilePic} />
+        ) : (
+          <Ionicons name="person-circle-outline" size={50} color={colors.placeholder} />
+        )}
+      </TouchableOpacity>
+    </View>
+  );
 
-    useEffect(() => {
-      Animated.parallel([
-        Animated.timing(itemFadeAnim, {
-          toValue: 1,
-          duration: 500,
-          delay: delay,
-          useNativeDriver: true,
-        }),
-        Animated.timing(itemSlideAnim, {
-          toValue: 0,
-          duration: 400,
-          delay: delay,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }, [itemFadeAnim, itemSlideAnim, delay]);
+  const renderQuickActions = () => (
+    <View style={styles.quickActionsContainer}>
+      <TouchableOpacity style={styles.quickActionButton} onPress={() => navigation.navigate('CreateStudyPlan')}>
+        <Ionicons name="add-circle-outline" size={24} color={colors.primary} style={styles.quickActionIcon} />
+        <Text style={styles.quickActionText}>New Plan</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.quickActionButton} onPress={() => navigation.navigate('TaskList')}>
+        <Ionicons name="checkmark-circle-outline" size={24} color={colors.primary} style={styles.quickActionIcon} />
+        <Text style={styles.quickActionText}>Tasks</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.quickActionButton} onPress={() => navigation.navigate('FocusTimer')}>
+        <MaterialCommunityIcons name="timer-sand" size={24} color={colors.primary} style={styles.quickActionIcon} />
+        <Text style={styles.quickActionText}>Focus</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.quickActionButton} onPress={() => navigation.navigate('EventList')}>
+        <Ionicons name="calendar-outline" size={24} color={colors.primary} style={styles.quickActionIcon} />
+        <Text style={styles.quickActionText}>Events</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
-    return (
-      <Animated.View style={[styles.statBox, { opacity: itemFadeAnim, transform: [{ translateY: itemSlideAnim }] }]}>
-        <Ionicons name={iconName} size={width * 0.08} color={colors.icon || defaultColors.icon} />
-        <Text style={styles.statNumber}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </Animated.View>
-    );
-  };
-  
-  const ActionButton = ({ iconName, text, onPress, primary, delay }) => {
-    const itemFadeAnim = useRef(new Animated.Value(0)).current;
-    const itemScaleAnim = useRef(new Animated.Value(0.8)).current;
+  const renderUpcomingEvents = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Upcoming Events</Text>
+      {upcomingEvents.length > 0 ? (
+        upcomingEvents.map((event) => (
+          <View key={event.id} style={[styles.card, styles.eventCard]}>
+            <Text style={styles.cardTitle}>{event.title}</Text>
+            <Text style={styles.cardText}>{event.description}</Text>
+            <Text style={styles.cardDate}>{new Date(event.date).toLocaleDateString()}</Text>
+          </View>
+        ))
+      ) : (
+        <View style={styles.emptyStateContainer}>
+          <Text style={styles.emptyStateText}>No upcoming events found.</Text>
+        </View>
+      )}
+    </View>
+  );
 
-    useEffect(() => {
-      Animated.parallel([
-        Animated.timing(itemFadeAnim, {
-          toValue: 1,
-          duration: 500,
-          delay: delay,
-          useNativeDriver: true,
-        }),
-        Animated.spring(itemScaleAnim, { // Spring animation for a bit of bounce
-          toValue: 1,
-          friction: 5,
-          delay: delay,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }, [itemFadeAnim, itemScaleAnim, delay]);
-    
-    return (
-      <Animated.View style={{opacity: itemFadeAnim, transform: [{scale: itemScaleAnim}]}}>
-        <TouchableOpacity 
-          style={[
-            styles.actionButton, 
-            primary ? styles.actionButtonPrimary : styles.actionButtonSecondary
-          ]} 
-          onPress={onPress}
-        >
-          <Ionicons name={iconName} size={width * 0.06} color={primary ? (colors.buttonTextDark || defaultColors.buttonTextDark) : (colors.icon || defaultColors.icon)} />
-          <Text style={[
-            styles.actionButtonText, 
-            primary ? styles.actionButtonTextPrimary : styles.actionButtonTextSecondary
-          ]}>{text}</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
+  const renderRecentStudyPlans = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Recent Study Plans</Text>
+      {recentPlans.length > 0 ? (
+        recentPlans.map((plan) => (
+          <View key={plan.id} style={[styles.card, styles.studyPlanCard]}>
+            <Text style={styles.cardTitle}>{plan.name}</Text>
+            <Text style={styles.cardText}>{plan.description}</Text>
+            <Text style={styles.cardDate}>{new Date(plan.createdAt).toLocaleDateString()}</Text>
+          </View>
+        ))
+      ) : (
+        <View style={styles.emptyStateContainer}>
+          <Text style={styles.emptyStateText}>No recent study plans found.</Text>
+        </View>
+      )}
+    </View>
+  );
 
+  const renderMotivationalQuote = () => (
+    <View style={styles.motivationalQuoteContainer}>
+      <Text style={styles.quoteText}>"{motivationalQuote.text}"</Text>
+      {motivationalQuote.author ? (
+        <Text style={styles.quoteAuthor}>- {motivationalQuote.author}</Text>
+      ) : null}
+    </View>
+  );
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Hello, Student!</Text>
-        <Text style={styles.headerSubtitle}>Ready to ace your studies?</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.profileIconContainer}>
-          <Ionicons name="person-circle-outline" size={30} color={colors.buttonText || defaultColors.buttonText} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Quick Features Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick Features</Text>
-        <FlatList
-          data={quickFeatures}
-          renderItem={renderFeatureCard}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalList}
-        />
-      </View>
-
-      {/* Study Plans Overview Section */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionTitle}>Your Study Plans</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('StudyPlanList')}>
-            <Text style={styles.viewAllText}>View All</Text>
-          </TouchableOpacity>
-        </View>
-        {studyPlans.length > 0 ? (
-          studyPlans.slice(0, 2).map((plan) => ( // Show only first two plans as a preview
-            <TouchableOpacity 
-              key={plan.id} 
-              style={styles.studyPlanCard} 
-              onPress={() => navigation.navigate('StudyPlanDetail', { planId: plan.id })}
-            >
-              <View style={styles.studyPlanInfo}>
-                <Text style={styles.studyPlanTitle}>{plan.name}</Text>
-                <Text style={styles.studyPlanDate}>{plan.dateRange}</Text>
-              </View>
-              <Ionicons name="chevron-forward-outline" size={24} color={colors.primary || defaultColors.primary} />
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text style={styles.emptyMessage}>No study plans yet. Create one!</Text>
-        )}
-        <TouchableOpacity 
-          style={styles.createPlanButton} 
-          onPress={() => navigation.navigate('CreateStudyPlan')}
-        >
-          <Ionicons name="add-circle-outline" size={22} color={colors.buttonText || defaultColors.buttonText} style={{marginRight: 8}}/>
-          <Text style={styles.createPlanButtonText}>Create New Study Plan</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Maybe a section for upcoming tasks or focus timer quick start */}
-      {/* ... */}
-
-    </ScrollView>
+    <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.gradientBackground}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.surface} />}
+      >
+        {renderHeader()}
+        {renderQuickActions()}
+        {renderMotivationalQuote()}
+        {renderUpcomingEvents()}
+        {renderRecentStudyPlans()}
+      </ScrollView>
+    </LinearGradient>
   );
 };
 
-const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
+const getStyles = (colors, fonts) => StyleSheet.create({
+  gradientBackground: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background, // Use a solid background for loading
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: colors.primary,
+    fontFamily: fonts.medium,
+  },
+  contentContainer: {
+    paddingBottom: 30,
   },
   header: {
-    backgroundColor: colors.primary,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40, // Adjust for status bar
-    paddingBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    paddingTop: Platform.OS === 'android' ? 40 : 50, // Adjust for status bar
+    paddingBottom: 20,
   },
-  headerTitle: {
+  headerTextContainer: {
+    maxWidth: '80%',
+  },
+  greetingText: {
     fontSize: 26,
-    fontWeight: 'bold',
-    color: colors.buttonText, // Text on primary background
-    marginBottom: 5,
+    fontFamily: fonts.bold,
+    color: colors.headerText, // Ensure this is light for gradient
+    marginBottom: 2,
   },
-  headerSubtitle: {
+  welcomeText: {
     fontSize: 16,
-    color: colors.buttonText, // Text on primary background
+    fontFamily: fonts.regular,
+    color: colors.headerText, // Ensure this is light for gradient
     opacity: 0.9,
   },
-  profileIconContainer: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 55 : 35,
-    right: 20,
+  profilePicButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.surface, // Fallback color
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.surface, // White border
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  profilePic: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 23, // Slightly less than button for border effect
   },
   section: {
-    paddingHorizontal: 20,
     marginTop: 25,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
+    fontFamily: fonts.bold,
+    color: colors.headerText, // Light text on gradient
     marginBottom: 15,
   },
-  horizontalList: {
-    paddingBottom: 10, // if cards have shadow
-  },
-  featureCard: {
-    backgroundColor: colors.card,
-    borderRadius: 15,
-    padding: 20,
-    marginRight: 15,
-    width: 150,
+  quickActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     alignItems: 'center',
+    marginBottom: 10, // Added margin for spacing
+  },
+  quickActionButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Translucent white
+    width: QUICK_ACTION_SIZE,
+    height: QUICK_ACTION_SIZE,
+    borderRadius: 20,
     justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10, // Add padding for icon and text
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowRadius: 2,
     elevation: 3,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  featureIconContainer: {
-    backgroundColor: colors.primary + '33', // Primary color with some transparency
-    borderRadius: 25,
-    padding: 12,
-    marginBottom: 10,
+  quickActionIcon: {
+    marginBottom: 5,
   },
-  featureTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
+  quickActionText: {
+    fontSize: 12,
+    fontFamily: fonts.medium,
+    color: colors.headerText,
     textAlign: 'center',
   },
-  sectionHeaderContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 15,
+    width: CARD_WIDTH,
+    alignSelf: 'center',
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 3,
   },
-  viewAllText: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '500',
+  eventCard: {
+    // Specific styles for event card if needed, inherits from card
   },
   studyPlanCard: {
-    backgroundColor: colors.card,
-    borderRadius: 10,
+    // Specific styles for study plan card, inherits from card
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontFamily: fonts.bold,
+    color: colors.primary,
+    marginBottom: 5,
+  },
+  cardText: {
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    color: colors.subtext,
+    marginBottom: 3,
+  },
+  cardDate: {
+    fontSize: 12,
+    fontFamily: fonts.medium,
+    color: colors.secondary,
+    marginTop: 5,
+  },
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Slightly transparent for gradient
+    borderRadius: 15,
+    marginHorizontal: 20, // Match card horizontal alignment
+  },
+  emptyStateText: {
+    fontSize: 15,
+    fontFamily: fonts.regular,
+    color: colors.headerText, // Light text
+    opacity: 0.8,
+  },
+  motivationalQuoteContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)', // Translucent white
+    borderRadius: 15,
     padding: 20,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginHorizontal: 20,
     alignItems: 'center',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  studyPlanInfo: {
-    flex: 1,
-  },
-  studyPlanTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  studyPlanDate: {
-    fontSize: 13,
-    color: colors.subtext,
-    marginTop: 3,
-  },
-  emptyMessage: {
-    textAlign: 'center',
-    color: colors.subtext,
-    fontSize: 15,
-    paddingVertical: 20,
-  },
-  createPlanButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.secondary, // Or primary, depending on desired emphasis
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginTop: 15,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  createPlanButtonText: {
-    color: colors.buttonText, // Ensure contrast with button background
+  quoteText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: fonts.medium,
+    color: colors.headerText,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  quoteAuthor: {
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    color: colors.headerText,
+    opacity: 0.8,
   },
 });
 

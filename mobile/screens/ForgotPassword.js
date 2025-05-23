@@ -1,25 +1,48 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ScrollView 
+  ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { auth } from '../firebaseConfig';
 import { sendPasswordResetEmail } from 'firebase/auth';
-import { useTheme } from '../context/ThemeContext';
+
+// Define static colors and fonts directly
+const STATIC_COLORS = {
+  background: '#F0F4F8', // Light grey-blue
+  surface: '#FFFFFF', // White
+  primary: '#6A11CB', // Deep Purple
+  secondary: '#2575FC', // Bright Blue
+  text: '#1A2B4D', // Dark Blue-Grey
+  subtext: '#5A6B7C', // Medium Grey-Blue
+  placeholder: '#A0A0A0', // Grey
+  border: '#E0E6F0', // Light Grey
+  error: '#D32F2F', // Red
+  success: '#28A745', // Green
+  buttonText: '#FFFFFF', // White
+  inputBackground: '#FFFFFF', // White for input fields
+  icon: '#1A2B4D', // Dark Blue-Grey for icons
+  shadow: 'rgba(0, 0, 0, 0.1)', // Soft shadow
+};
+
+const STATIC_FONTS = {
+  regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  medium: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+  bold: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
+};
 
 const ForgotPasswordScreen = ({ navigation }) => {
-  const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
-  const styles = getStyles(colors);
+  const colors = STATIC_COLORS; // USE STATIC
+  const fonts = STATIC_FONTS; // USE STATIC
+  const styles = getStyles(colors, fonts); // Pass fonts if needed by styles
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -49,7 +72,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back-outline" size={28} color={colors.primary} />
         </TouchableOpacity>
-        
+
         <View style={styles.logoContainer}>
           <Ionicons name="key-outline" size={80} color={colors.primary} />
           <Text style={styles.title}>Forgot Password?</Text>
@@ -61,7 +84,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="Email Address"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={colors.placeholder} // UPDATED from colors.textSecondary
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -88,7 +111,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
   );
 };
 
-const getStyles = (colors) => StyleSheet.create({
+const getStyles = (colors, fonts) => StyleSheet.create({ // Added fonts parameter
   keyboardAvoidingContainer: {
     flex: 1,
     backgroundColor: colors.background,
@@ -112,7 +135,8 @@ const getStyles = (colors) => StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    // fontWeight: 'bold', // Handled by font family
+    fontFamily: fonts.bold, // USE STATIC FONT
     color: colors.text,
     marginTop: 20,
     marginBottom: 10,
@@ -120,6 +144,7 @@ const getStyles = (colors) => StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: fonts.regular, // USE STATIC FONT
     color: colors.subtext,
     textAlign: 'center',
     marginBottom: 30,
@@ -143,6 +168,7 @@ const getStyles = (colors) => StyleSheet.create({
     flex: 1,
     height: 50,
     fontSize: 16,
+    fontFamily: fonts.regular, // USE STATIC FONT
     color: colors.text,
   },
   resetButton: {
@@ -166,15 +192,18 @@ const getStyles = (colors) => StyleSheet.create({
   resetButtonText: {
     color: colors.buttonText,
     fontSize: 17,
-    fontWeight: '600',
+    // fontWeight: '600', // Handled by font family
+    fontFamily: fonts.medium, // USE STATIC FONT
   },
   loginLinkText: {
     fontSize: 15,
+    fontFamily: fonts.regular, // USE STATIC FONT
     color: colors.subtext,
   },
   loginLink: {
     color: colors.primary,
-    fontWeight: 'bold',
+    // fontWeight: 'bold', // Handled by font family
+    fontFamily: fonts.bold, // USE STATIC FONT
   },
 });
 

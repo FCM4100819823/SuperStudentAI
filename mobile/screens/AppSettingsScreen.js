@@ -1,13 +1,27 @@
-// Placeholder for AppSettingsScreen.js
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext';
+
+// Define default colors directly in the component or import from a central non-theme style file if you have one
+const defaultColors = {
+  background: '#F0F4F8',
+  surface: '#FFFFFF',
+  primary: '#6A11CB',
+  text: '#1A2B4D',
+  subtext: '#5A6B7C',
+  border: '#E0E6F0',
+  error: '#D32F2F',
+  disabled: '#B0B0B0',
+  icon: '#1A2B4D',
+  headerText: '#FFFFFF',
+  card: '#FFFFFF',
+  shadow: 'rgba(0, 0, 0, 0.1)',
+  borderMuted: '#DDE2E8',
+};
 
 const AppSettingsScreen = ({ navigation }) => {
-  const themeContext = useTheme() || {};
-  const { theme: themeName, colors, toggleTheme } = themeContext; // Fix: Properly destructure theme as themeName
-  const styles = getStyles(colors); // Fix: Use colors instead of theme
+  const colors = defaultColors; // Use the locally defined defaults
+  const styles = getStyles(colors);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [dataSyncEnabled, setDataSyncEnabled] = useState(true);
@@ -15,18 +29,14 @@ const AppSettingsScreen = ({ navigation }) => {
   const toggleNotifications = () => setNotificationsEnabled(previousState => !previousState);
   const toggleDataSync = () => setDataSyncEnabled(previousState => !previousState);
 
-  const handleNavigateToThemeSettings = () => {
-    navigation.navigate('ThemeSettingsScreen');
-  };
-
   const SettingItem = ({ label, value, onValueChange, type = 'switch', onPress, iconName }) => (
     <View style={styles.settingItem}>
-      <Ionicons name={iconName} size={24} color={colors.icon} style={styles.settingIcon} /> {/* Fix: Use colors.icon */}
+      {iconName && <Ionicons name={iconName} size={24} color={colors.icon} style={styles.settingIcon} />}
       <Text style={styles.settingLabel}>{label}</Text>
       {type === 'switch' && (
         <Switch
-          trackColor={{ false: colors.disabled, true: colors.primary }} /* Fix: Use colors */
-          thumbColor={value ? colors.card : colors.background} 
+          trackColor={{ false: colors.disabled, true: colors.primary }}
+          thumbColor={value ? colors.primary : colors.surface}
           ios_backgroundColor={colors.disabled}
           onValueChange={onValueChange}
           value={value}
@@ -45,24 +55,6 @@ const AppSettingsScreen = ({ navigation }) => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerText}>App Settings</Text>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Appearance</Text>
-        {/* Fix: Use themeName instead of theme */}
-        <SettingItem
-          label="Dark Mode"
-          value={themeName === 'dark'} 
-          onValueChange={toggleTheme}
-          iconName="moon-outline"
-        />
-        <SettingItem
-          label="Customize Theme"
-          value="Edit"
-          type="button"
-          onPress={handleNavigateToThemeSettings}
-          iconName="color-palette-outline"
-        />
       </View>
 
       <View style={styles.section}>
@@ -130,7 +122,7 @@ const getStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 10,
     marginHorizontal: 15,
-    paddingVertical: 15,
+    paddingVertical: 10,
     paddingHorizontal: 20,
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
@@ -142,7 +134,7 @@ const getStyles = (colors) => StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 15,
+    marginBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     paddingBottom: 10,
@@ -157,6 +149,7 @@ const getStyles = (colors) => StyleSheet.create({
   },
   settingIcon: {
     marginRight: 15,
+    color: colors.icon,
   },
   settingLabel: {
     fontSize: 16,
@@ -176,9 +169,8 @@ const getStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 15,
-    // No border by default, add it if it's not the last one
   },
-  firstActionButton: { // Style for the first action button in a group that needs a separator
+  firstActionButton: { 
     borderBottomWidth: 1,
     borderBottomColor: colors.borderMuted,
   },

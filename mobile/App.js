@@ -1,27 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './navigation/AppNavigator';
 import { auth } from './firebaseConfig';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { StatusBar } from 'expo-status-bar';
+
+// Default color for loading indicator if not using theme
+const DEFAULT_PRIMARY_COLOR = '#6200EE'; // Example color, adjust as needed
+const DEFAULT_BACKGROUND_COLOR = '#FFFFFF'; // Example color
 
 function AppContent({ user }) {
-  const { theme, colors } = useTheme();
-
   return (
-    <NavigationContainer theme={{
-      dark: theme === 'dark',
-      colors: {
-        primary: colors.primary,
-        background: colors.background,
-        card: colors.surface,
-        text: colors.text,
-        border: colors.border,
-        notification: colors.accent,
-      },
-    }}>
-      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} backgroundColor={colors.background} />
+    <NavigationContainer>
+      {/* Use a default status bar style or make it configurable elsewhere */}
+      <StatusBar barStyle="dark-content" backgroundColor={DEFAULT_BACKGROUND_COLOR} />
       <AppNavigator user={user} />
     </NavigationContainer>
   );
@@ -42,15 +33,13 @@ export default function App() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4169E1" />
+        <ActivityIndicator size="large" color={DEFAULT_PRIMARY_COLOR} />
       </View>
     );
   }
 
   return (
-    <ThemeProvider>
-      <AppContent user={user} />
-    </ThemeProvider>
+    <AppContent user={user} />
   );
 }
 
@@ -59,6 +48,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: DEFAULT_BACKGROUND_COLOR,
   },
 });

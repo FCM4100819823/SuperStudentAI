@@ -12,12 +12,8 @@ import {
 import { auth, firestore as db } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext';
 
 const Dashboard = ({ navigation, route }) => {
-  const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
-  const styles = getStyles(colors);
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -31,7 +27,7 @@ const Dashboard = ({ navigation, route }) => {
         return;
       }
       const idToken = await user.getIdToken();
-      const backendUrl = 'http://172.20.10.3:5000';
+      const backendUrl = 'http://172.20.10.2:5000';
       const response = await fetch(`${backendUrl}/auth/profile`, {
         method: 'GET',
         headers: {
@@ -106,7 +102,7 @@ const Dashboard = ({ navigation, route }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color="#007AFF" />
         <Text style={styles.loadingText}>Loading your profile...</Text>
       </View>
     );
@@ -115,7 +111,7 @@ const Dashboard = ({ navigation, route }) => {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <MaterialIcons name="error-outline" size={60} color={colors.error} />
+        <MaterialIcons name="error-outline" size={60} color="#FF3B30" />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={fetchUserProfile}>
           <Text style={styles.retryButtonText}>Try Again</Text>
@@ -128,13 +124,13 @@ const Dashboard = ({ navigation, route }) => {
     <ScrollView 
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#007AFF']} />
       }
     >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>SuperStudent AI</Text>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <MaterialIcons name="logout" size={24} color={colors.buttonText} />
+          <MaterialIcons name="logout" size={24} color="#FFFFFF" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
@@ -153,7 +149,7 @@ const Dashboard = ({ navigation, route }) => {
         
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <MaterialIcons name="person" size={24} color={colors.primary} />
+            <MaterialIcons name="person" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Name</Text>
               <Text style={styles.infoValue}>{profileData?.name || 'Not available'}</Text>
@@ -161,7 +157,7 @@ const Dashboard = ({ navigation, route }) => {
           </View>
           
           <View style={styles.infoRow}>
-            <MaterialIcons name="email" size={24} color={colors.primary} />
+            <MaterialIcons name="email" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Email</Text>
               <Text style={styles.infoValue}>{profileData?.email || 'Not available'}</Text>
@@ -169,7 +165,7 @@ const Dashboard = ({ navigation, route }) => {
           </View>
           
           <View style={styles.infoRow}>
-            <MaterialIcons name="school" size={24} color={colors.primary} />
+            <MaterialIcons name="school" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>University</Text>
               <Text style={styles.infoValue}>{profileData?.university || 'Not available'}</Text>
@@ -177,7 +173,7 @@ const Dashboard = ({ navigation, route }) => {
           </View>
           
           <View style={styles.infoRow}>
-            <MaterialIcons name="class" size={24} color={colors.primary} />
+            <MaterialIcons name="class" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Major</Text>
               <Text style={styles.infoValue}>{profileData?.major || 'Not available'}</Text>
@@ -185,7 +181,7 @@ const Dashboard = ({ navigation, route }) => {
           </View>
           
           <View style={styles.infoRow}>
-            <MaterialIcons name="looks-one" size={24} color={colors.primary} />
+            <MaterialIcons name="looks-one" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Level</Text>
               <Text style={styles.infoValue}>{profileData?.level || 'Not available'}</Text>
@@ -193,7 +189,7 @@ const Dashboard = ({ navigation, route }) => {
           </View>
 
           <View style={styles.infoRow}>
-            <MaterialIcons name="event" size={24} color={colors.primary} />
+            <MaterialIcons name="event" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Graduation Year</Text>
               <Text style={styles.infoValue}>{profileData?.graduationYear || 'Not available'}</Text>
@@ -201,7 +197,7 @@ const Dashboard = ({ navigation, route }) => {
           </View>
           
           <View style={styles.infoRow}>
-            <MaterialIcons name="cake" size={24} color={colors.primary} />
+            <MaterialIcons name="cake" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Age</Text>
               <Text style={styles.infoValue}>{profileData?.age || 'Not available'}</Text>
@@ -212,7 +208,7 @@ const Dashboard = ({ navigation, route }) => {
         style={styles.editButton}
         onPress={() => navigation.navigate('ProfileEdit', { profileData })}
       >
-        <MaterialIcons name="edit" size={20} color={colors.buttonText} />
+        <MaterialIcons name="edit" size={20} color="#FFFFFF" />
         <Text style={styles.editButtonText}>Edit Profile</Text>
       </TouchableOpacity>
 
@@ -221,25 +217,25 @@ const Dashboard = ({ navigation, route }) => {
         <View style={styles.gridContainer}>
           {/* Study Plans Card */}
           <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('StudyPlanList')}>
-            <MaterialIcons name="library-books" size={30} color={colors.primary} />
+            <MaterialIcons name="library-books" size={30} color="#007AFF" />
             <Text style={styles.gridItemText}>Study Plans</Text>
           </TouchableOpacity>
 
           {/* Spaced Repetition Card */}
           <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('SpacedRepetition')}>
-            <MaterialIcons name="cached" size={30} color={colors.primary} />
+            <MaterialIcons name="cached" size={30} color="#007AFF" />
             <Text style={styles.gridItemText}>SRS Review</Text>
           </TouchableOpacity>
 
           {/* Focus Timer Card */}
           <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('FocusTimer')}>
-            <MaterialIcons name="timer" size={30} color={colors.primary} />
+            <MaterialIcons name="timer" size={30} color="#007AFF" />
             <Text style={styles.gridItemText}>Focus Timer</Text>
           </TouchableOpacity>
 
           {/* Placeholder for Calendar/Schedule */}
           <TouchableOpacity style={styles.gridItem} onPress={() => Alert.alert("Coming Soon!", "Calendar and schedule integration is under development.")}>
-            <MaterialIcons name="calendar-today" size={30} color={colors.primary} />
+            <MaterialIcons name="calendar-today" size={30} color="#007AFF" />
             <Text style={styles.gridItemText}>Schedule</Text>
           </TouchableOpacity>
         </View>
@@ -250,7 +246,7 @@ const Dashboard = ({ navigation, route }) => {
         style={styles.uploadButton}
         onPress={() => navigation.navigate('FileUpload')}
       >
-        <MaterialIcons name="cloud-upload" size={22} color={colors.buttonText} />
+        <MaterialIcons name="cloud-upload" size={22} color="#FFFFFF" />
         <Text style={styles.uploadButtonText}>Upload File for AI Parsing</Text>
       </TouchableOpacity>
 
@@ -259,56 +255,56 @@ const Dashboard = ({ navigation, route }) => {
         style={styles.aiButton}
         onPress={() => navigation.navigate('AI')}
       >
-        <MaterialIcons name="smart-toy" size={22} color={colors.buttonText} />
+        <MaterialIcons name="smart-toy" size={22} color="#FFFFFF" />
         <Text style={styles.aiButtonText}>Ask SuperStudent AI</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 };
 
-const getStyles = (colors) => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F0F0F0',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: '#F0F0F0',
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: colors.primary,
+    color: '#007AFF',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: colors.background, // Added for consistency
+    backgroundColor: '#F0F0F0',
   },
   errorText: {
     marginTop: 10,
     fontSize: 16,
-    color: colors.error, // Use theme error color
+    color: '#FF3B30',
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 20,
-    backgroundColor: colors.primary,
+    backgroundColor: '#007AFF',
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 25,
   },
   retryButtonText: {
-    color: colors.buttonText,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
   header: {
-    backgroundColor: colors.primary, // Use theme primary color
+    backgroundColor: '#007AFF',
     paddingVertical: 20,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -316,7 +312,7 @@ const getStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    color: colors.buttonText, // Text on primary background
+    color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -325,35 +321,35 @@ const getStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
   },
   logoutText: {
-    color: colors.buttonText, // Text on primary background
+    color: '#FFFFFF',
     marginLeft: 5,
   },
   profileContainer: {
     alignItems: 'center',
     padding: 20,
-    backgroundColor: colors.card, // Use theme card color
+    backgroundColor: '#FFFFFF',
     marginBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border, // Use theme border color
+    borderBottomColor: '#CCCCCC',
   },
   avatarContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.primary, // Use theme primary color
+    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
   avatarText: {
-    color: colors.buttonText, // Text on primary background
+    color: '#FFFFFF',
     fontSize: 30,
     fontWeight: 'bold',
   },
   welcomeText: {
     fontSize: 24,
     fontWeight: '600',
-    color: colors.text, // Use theme text color
+    color: '#333333',
     marginTop: 10,
   },
   infoSection: {
@@ -364,13 +360,13 @@ const getStyles = (colors) => StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 15,
-    color: colors.text, // Use theme text color
+    color: '#333333',
   },
   infoCard: {
-    backgroundColor: colors.card, // Use theme card color
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     padding: 15,
-    shadowColor: colors.shadow, // Use theme shadow color
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -381,7 +377,7 @@ const getStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border, // Use theme border color
+    borderBottomColor: '#CCCCCC',
   },
   infoContent: {
     marginLeft: 15,
@@ -389,15 +385,15 @@ const getStyles = (colors) => StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: colors.subtext, // Use theme secondary text color
+    color: '#777777',
   },
   infoValue: {
     fontSize: 16,
-    color: colors.text, // Use theme text color
+    color: '#333333',
     fontWeight: '500',
   },
   editButton: {
-    backgroundColor: colors.primary, // Use theme primary color
+    backgroundColor: '#007AFF',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 25,
@@ -406,11 +402,11 @@ const getStyles = (colors) => StyleSheet.create({
     justifyContent: 'center',
     marginHorizontal: 16,
     marginBottom: 20,
-    shadowColor: colors.shadow, // Use theme shadow color
-    elevation: 3, // Keep elevation for Android if desired
+    shadowColor: '#000',
+    elevation: 3,
   },
   editButtonText: {
-    color: colors.buttonText, // Text on primary background
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -423,13 +419,13 @@ const getStyles = (colors) => StyleSheet.create({
     marginTop: 10,
   },
   gridItem: {
-    backgroundColor: colors.card, // Use theme card color
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     padding: 15,
     margin: 5,
-    width: '48%', // Two items per row
+    width: '48%',
     alignItems: 'center',
-    shadowColor: colors.shadow, // Use theme shadow color
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -438,11 +434,11 @@ const getStyles = (colors) => StyleSheet.create({
   gridItemText: {
     marginTop: 8,
     fontSize: 14,
-    color: colors.text, // Use theme text color
+    color: '#333333',
     textAlign: 'center',
   },
   aiButton: {
-    backgroundColor: colors.primary, // Use theme primary color
+    backgroundColor: '#007AFF',
     borderRadius: 25,
     flexDirection: 'row',
     alignItems: 'center',
@@ -451,29 +447,29 @@ const getStyles = (colors) => StyleSheet.create({
     paddingHorizontal: 30,
     margin: 20,
     elevation: 3,
-    shadowColor: colors.shadow, // Use theme shadow color
+    shadowColor: '#000',
   },
   aiButtonText: {
-    color: colors.buttonText, // Text on primary background
+    color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '600',
     marginLeft: 10,
   },
   uploadButton: {
-    backgroundColor: colors.secondary, // Example: Use secondary color for variety
+    backgroundColor: '#FF9500',
     borderRadius: 25,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
     paddingHorizontal: 30,
-    marginHorizontal: 20, // Adjusted margin to be consistent
-    marginBottom: 20, // Added marginBottom
+    marginHorizontal: 20,
+    marginBottom: 20,
     elevation: 3,
-    shadowColor: colors.shadow, // Use theme shadow color
+    shadowColor: '#000',
   },
   uploadButtonText: {
-    color: colors.buttonText, // Text on secondary background (ensure contrast or define specific color)
+    color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '600',
     marginLeft: 10,

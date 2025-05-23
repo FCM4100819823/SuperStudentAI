@@ -8,10 +8,10 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuth } from 'firebase/auth';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useTheme } from '../context/ThemeContext'; // Import useTheme
+import Icon from 'react-native-vector-icons/Ionicons';
 
 // Replace with your actual backend URL
-const API_URL = 'http://172.20.10.3:5000/api'; // Or your deployed backend URL
+const API_URL = 'http://172.20.10.2:5000/api'; // Or your deployed backend URL
 
 const CreateStudyPlanScreen = ({ route }) => {
     const navigation = useNavigation();
@@ -27,10 +27,6 @@ const CreateStudyPlanScreen = ({ route }) => {
     const [endDate, setEndDate] = useState(new Date());
     const [showPicker, setShowPicker] = useState(false);
     const [isPickerShow, setIsPickerShow] = useState('');
-
-    const themeContext = useTheme() || {};
-    const colors = themeContext.colors || {};
-    const styles = getStyles(colors); // Get styles based on theme
 
     const handleCreatePlan = async () => {
         if (!title.trim()) {
@@ -169,12 +165,14 @@ const CreateStudyPlanScreen = ({ route }) => {
                         <Text style={styles.label}>Start Date</Text>
                         <TouchableOpacity onPress={() => showDatePicker('startDate')} style={styles.dateDisplay}>
                             <Text style={styles.dateText}>{startDate.toLocaleDateString()}</Text>
+                            <Icon name="calendar-outline" size={20} color={'#333333'} />
                         </TouchableOpacity>
                     </View>
                     <View style={styles.datePickerColumn}>
                         <Text style={styles.label}>End Date</Text>
                         <TouchableOpacity onPress={() => showDatePicker('endDate')} style={styles.dateDisplay}>
                             <Text style={styles.dateText}>{endDate.toLocaleDateString()}</Text>
+                            <Icon name="calendar-outline" size={20} color={'#333333'} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -192,11 +190,15 @@ const CreateStudyPlanScreen = ({ route }) => {
                   />
                 )}
 
-                <TouchableOpacity style={styles.createButton} onPress={handleCreatePlan} disabled={loading}>
+                <TouchableOpacity
+                    style={[styles.button, { backgroundColor: '#007AFF' }]}
+                    onPress={handleCreatePlan}
+                    disabled={loading}
+                >
                     {loading ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <ActivityIndicator color="#FFFFFF" />
                     ) : (
-                        <Text style={styles.createButtonText}>Create Plan</Text>
+                        <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>Create Plan</Text>
                     )}
                 </TouchableOpacity>
             </ScrollWrapper>
@@ -204,10 +206,10 @@ const CreateStudyPlanScreen = ({ route }) => {
     );
 };
 
-const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    padding: 20,
   },
   headerBar: {
     backgroundColor: '#4A90E2', // Primary color
@@ -246,20 +248,17 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
   },
   label: {
     fontSize: 16,
-    color: colors.text,
+    color: '#000000',
     marginBottom: 8,
     fontWeight: '500',
   },
   input: {
-    backgroundColor: colors.card,
-    color: colors.text,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 10,
-    fontSize: 16,
-    marginBottom: 20,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 15,
+    borderColor: '#CCCCCC',
   },
   textArea: {
     height: 100,
@@ -307,33 +306,32 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
     marginRight: 10, // Add some space between columns
   },
   dateDisplay: {
-    backgroundColor: colors.card,
-    padding: 15,
-    borderRadius: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 12,
+    height: 50, // Ensure consistent height with TextInput
+    borderColor: '#CCCCCC',
+    backgroundColor: '#FFFFFF',
   },
   dateText: {
     fontSize: 16,
-    color: colors.text,
+    color: '#000000',
   },
-  createButton: {
-    backgroundColor: '#4A90E2',
+  button: {
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+    marginBottom: 20, // Added margin at the bottom
+    backgroundColor: '#007AFF',
   },
-  createButtonText: {
-    color: '#FFFFFF',
+  buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
 

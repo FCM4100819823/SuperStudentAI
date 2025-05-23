@@ -14,7 +14,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { auth, db } from '../firebaseConfig';
 import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
-import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
 const moods = [
   { name: 'Happy', icon: 'happy-outline', color: '#FFD700' }, // Gold
@@ -24,9 +23,33 @@ const moods = [
   { name: 'Stressed', icon: 'flash-outline', color: '#FFA07A' }, // Light Salmon
 ];
 
+const STATIC_COLORS = {
+  primary: '#6A1B9A', // Deep Purple
+  secondary: '#4CAF50', // Green
+  background: '#F5F5F5', // Light Grey
+  card: '#FFFFFF', // White
+  text: '#333333', // Dark Grey
+  subtext: '#757575', // Medium Grey
+  buttonText: '#FFFFFF', // White
+  error: '#D32F2F', // Red
+  success: '#388E3C', // Green
+  warning: '#FFA000', // Amber
+  info: '#1976D2', // Blue
+  border: '#E0E0E0', // Light Grey Border
+  shadow: '#000000', // Black for shadow
+  disabled: '#BDBDBD', // Grey for disabled elements
+  textSecondary: '#555555', // Slightly lighter than main text
+  // Add any other static colors your app uses
+};
+
+const STATIC_FONTS = {
+  // Define any static font families if needed
+};
+
 const WellbeingScreen = ({ navigation }) => {
-  const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
+  // const themeContext = useTheme() || {};
+  // const colors = themeContext.colors || {};
+  const colors = STATIC_COLORS; // Use static colors
   const styles = getStyles(colors); // Get styles based on theme
   const [selectedMood, setSelectedMood] = useState(null);
   const [lastMoodEntry, setLastMoodEntry] = useState(null);

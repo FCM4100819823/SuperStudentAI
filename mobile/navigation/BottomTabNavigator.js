@@ -1,6 +1,5 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useTheme } from '../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 
@@ -13,8 +12,6 @@ import SettingsScreen from '../screens/SettingsScreen';
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
-  const themeContext = useTheme(); // Removed || {} to see if context is truly missing
-  
   const defaultFallbackFonts = {
     regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
     medium: Platform.OS === 'ios' ? 'System-Medium' : 'sans-serif-medium',
@@ -22,48 +19,31 @@ const BottomTabNavigator = () => {
   };
 
   // Ensure fonts object and specific font weights have fallbacks
-  const appFonts = themeContext?.fonts || defaultFallbackFonts;
-  const mediumFont = appFonts?.medium || defaultFallbackFonts.medium;
+  // Define static styles here if needed, or rely on screen-specific styles
+  // For example, if you had tab bar styling dependent on theme:
+  // const tabBarActiveTintColor = themeContext.colors?.primary || '#007AFF';
+  // const tabBarInactiveTintColor = themeContext.colors?.text || '#8e8e93';
+  // const tabBarBackgroundColor = themeContext.colors?.background || '#FFFFFF';
 
-  const defaultFallbackColors = {
-    primary: '#4A90E2',    // Default blue if theme fails
-    background: '#FFFFFF', // Default white background
-    text: '#000000',       // Default black text
-    card: '#F0F0F0',       // Default light gray for cards
-    border: '#D0D0D0',      // Default border color
-    // Ensure all colors accessed in this component have a fallback
-    activeTintColor: '#4A90E2', 
-    inactiveTintColor: '#8E8E93',
-  };
-
-  // More robustly determine colors:
-  const colors = (themeContext?.colors && themeContext.colors.primary)
-                 ? themeContext.colors
-                 : defaultFallbackColors;
-
-  // Ensure specific tint colors also have fallbacks if not in themeContext.colors
-  const tabBarActiveTintColor = colors.tabBarActiveTint || colors.primary || defaultFallbackColors.activeTintColor;
-  const tabBarInactiveTintColor = colors.tabBarInactiveTint || defaultFallbackColors.inactiveTintColor;
-  const tabBarStyleBackground = colors.tabBarBackground || colors.background || defaultFallbackColors.background;
-  const tabBarStyleBorderTopColor = colors.border || defaultFallbackColors.border;
+  // Replace with static values:
+  const tabBarActiveTintColor = '#007AFF'; // Example static color
+  const tabBarInactiveTintColor = '#8e8e93'; // Example static color
+  const tabBarBackgroundColor = '#FFFFFF';   // Example static color
 
   return (
     <Tab.Navigator
       screenOptions={{
+        headerShown: false,
         tabBarActiveTintColor: tabBarActiveTintColor,
         tabBarInactiveTintColor: tabBarInactiveTintColor,
         tabBarStyle: {
-          backgroundColor: tabBarStyleBackground,
-          borderTopColor: tabBarStyleBorderTopColor,
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          backgroundColor: tabBarBackgroundColor,
+          // Add other static styles as needed
         },
         tabBarLabelStyle: { 
-          fontFamily: mediumFont, // Use the more robust mediumFont
+          fontFamily: defaultFallbackFonts.medium, // Use the more robust mediumFont
           fontSize: 10,
         },
-        headerShown: false
       }}
     >
       <Tab.Screen

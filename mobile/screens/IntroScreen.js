@@ -1,13 +1,35 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, SafeAreaView, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
 const logo = require('../assets/superstudentlogo.png');
 const { width, height } = Dimensions.get('window');
 
+const STATIC_COLORS = {
+  primary: '#6A1B9A', // Deep Purple
+  secondary: '#4CAF50', // Green
+  background: '#F5F5F5', // Light Grey
+  card: '#FFFFFF', // White
+  text: '#333333', // Dark Grey
+  subtext: '#757575', // Medium Grey
+  buttonText: '#FFFFFF', // White
+  error: '#D32F2F', // Red
+  success: '#388E3C', // Green
+  warning: '#FFA000', // Amber
+  info: '#1976D2', // Blue
+  border: '#E0E0E0', // Light Grey Border
+  shadow: '#000000', // Black for shadow
+  // Add any other static colors your app uses
+};
+
+const STATIC_FONTS = {
+  // Define any static font families if needed, e.g.:
+  // regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  // bold: Platform.OS === 'ios' ? 'System-Bold' : 'sans-serif-bold',
+};
+
 const IntroScreen = ({ navigation }) => {
-  const { theme, colors } = useTheme(); // Get theme and colors from context
+  const colors = STATIC_COLORS; // Use static colors
   const styles = getStyles(colors); // Pass colors to getStyles
 
   return (

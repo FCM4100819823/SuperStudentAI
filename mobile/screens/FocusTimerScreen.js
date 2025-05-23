@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, Vibration } from 'r
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
-import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
 const WORK_DURATION = 25 * 60; // 25 minutes in seconds
 const SHORT_BREAK_DURATION = 5 * 60; // 5 minutes in seconds
@@ -12,9 +11,47 @@ const SESSIONS_BEFORE_LONG_BREAK = 4;
 const FOCUS_TIME_MINUTES = 25;
 const BREAK_TIME_MINUTES = 5;
 
+const STATIC_COLORS = {
+  primary: '#6A1B9A', // Deep Purple
+  secondary: '#4CAF50', // Green
+  background: '#F5F5F5', // Light Grey
+  card: '#FFFFFF', // White
+  text: '#333333', // Dark Grey
+  subtext: '#757575', // Medium Grey
+  buttonText: '#FFFFFF', // White
+  error: '#D32F2F', // Red
+  success: '#388E3C', // Green
+  warning: '#FFA000', // Amber
+  info: '#1976D2', // Blue
+  border: '#E0E0E0', // Light Grey Border
+  shadow: '#000000', // Black for shadow
+  // Add any other static colors your app uses
+  // Specific colors used in this screen (ensure they are defined or replaced)
+  headerBarBackground: '#6A1B9A',
+  headerTitleColor: '#FFFFFF',
+  sessionTypeLabelColor: '#4A148C',
+  timerTextColor: '#6A1B9A',
+  sessionCountTextColor: '#7B1FA2',
+  nextSessionTextColor: '#8E8E93',
+  controlsContainerBackground: '#FFFFFF',
+  controlsContainerBorderTop: '#E0E0E0',
+  startButtonBackground: '#4CAF50',
+  pauseButtonBackground: '#FF9800',
+  resetButtonBackground: '#757575',
+  skipButtonBackground: '#03A9F4',
+  disabledButtonBackground: '#BDBDBD',
+  modeButtonBorder: '#E0E0E0', // Assuming 'colors.border' was this
+};
+
+const STATIC_FONTS = {
+  // Define any static font families if needed
+};
+
+
 const FocusTimerScreen = ({ navigation }) => {
-  const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
+  // const themeContext = useTheme() || {};
+  // const colors = themeContext.colors || {};
+  const colors = STATIC_COLORS; // Use static colors
   const styles = getStyles(colors);
   const [timeLeft, setTimeLeft] = useState(WORK_DURATION);
   const [isActive, setIsActive] = useState(false);
@@ -154,7 +191,7 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
     padding: 20,
   },
   headerBar: {
-    backgroundColor: '#6A1B9A', // Deep Purple - Professional and motivating
+    backgroundColor: colors.headerBarBackground, // Deep Purple - Professional and motivating
     paddingTop: Platform.OS === 'android' ? 25 : 50, // Standard padding for status bar
     paddingBottom: 15,
     paddingHorizontal: 15,
@@ -174,7 +211,7 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
   headerTitle: {
     fontSize: 22, // Slightly larger for emphasis
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.headerTitleColor,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium', // Professional font
   },
   timerContainer: {
@@ -186,14 +223,14 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
   sessionTypeLabel: {
     fontSize: 32, // More prominent
     fontWeight: '600', // Bolder
-    color: '#4A148C', // Darker shade of purple for contrast
+    color: colors.sessionTypeLabelColor, // Darker shade of purple for contrast
     marginBottom: 20,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-light',
   },
   timerText: {
     fontSize: Platform.OS === 'web' ? 110 : 90, // Larger for impact
     fontWeight: 'bold',
-    color: '#6A1B9A', // Main theme color
+    color: colors.timerTextColor, // Main theme color
     marginBottom: 15,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'monospace',
     // Adding a subtle text shadow for depth, if desired (optional)
@@ -207,13 +244,13 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
   },
   sessionCountText: {
     fontSize: 18, // Clearer display
-    color: '#7B1FA2', // Complementary purple
+    color: colors.sessionCountTextColor, // Complementary purple
     marginBottom: 8,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
   nextSessionText: { // Styling for "Next: Short Break"
     fontSize: 16,
-    color: '#8E8E93', // Softer color for secondary info
+    color: colors.nextSessionTextColor, // Softer color for secondary info
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
   controlsContainer: {
@@ -222,11 +259,11 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
     alignItems: 'center',
     paddingVertical: Platform.OS === 'web' ? 40 : 30, // More padding on web
     paddingHorizontal: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.controlsContainerBackground,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: colors.controlsContainerBorderTop,
     // Enhanced shadow for a floating effect
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
@@ -259,21 +296,21 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
   },
   // Specific button styling for a modern, professional look
   startButton: {
-    backgroundColor: '#4CAF50', // Vibrant Green
+    backgroundColor: colors.startButtonBackground, // Vibrant Green
     // Add a subtle gradient or shadow on press for better UX
   },
   pauseButton: {
-    backgroundColor: '#FF9800', // Warning Orange
+    backgroundColor: colors.pauseButtonBackground, // Warning Orange
   },
   resetButton: {
-    backgroundColor: '#757575', // Neutral Grey
+    backgroundColor: colors.resetButtonBackground, // Neutral Grey
   },
   skipButton: {
-    backgroundColor: '#03A9F4', // Action Blue
+    backgroundColor: colors.skipButtonBackground, // Action Blue
   },
   // Disabled state for buttons
   disabledButton: {
-    backgroundColor: '#BDBDBD', // Lighter grey for disabled state
+    backgroundColor: colors.disabledButtonBackground, // Lighter grey for disabled state
     opacity: 0.7,
   },
   modeButton: {
@@ -282,7 +319,7 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
     paddingHorizontal: 25,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.modeButtonBorder,
   },
   modeButtonText: {
     color: colors.primary,

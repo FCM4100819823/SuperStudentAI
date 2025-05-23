@@ -2,15 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Image, Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
-const backendUrl = 'http://172.20.10.3:5000';
+const backendUrl = 'http://172.20.10.2:5000';
 
 const FileUploadScreen = ({ navigation, route }) => {
-  const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
-  const styles = getStyles(colors); // Get styles based on theme
-
   const { studyPlanId } = route.params || {}; // Get studyPlanId if passed
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -104,7 +99,7 @@ const FileUploadScreen = ({ navigation, route }) => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back-outline" size={28} color={colors.headerText} />
+          <Ionicons name="arrow-back-outline" size={28} color="#333333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Upload Files</Text>
       </View>
@@ -118,7 +113,7 @@ const FileUploadScreen = ({ navigation, route }) => {
         </Text>
 
         <TouchableOpacity style={styles.uploadButton} onPress={pickFile} disabled={uploading}>
-          <Ionicons name="cloud-upload-outline" size={28} color={colors.buttonText} style={styles.uploadIcon} />
+          <Ionicons name="cloud-upload-outline" size={28} color="#FFFFFF" style={styles.uploadIcon} />
           <Text style={styles.uploadButtonText}>Select File to Upload</Text>
         </TouchableOpacity>
 
@@ -133,7 +128,7 @@ const FileUploadScreen = ({ navigation, route }) => {
 
         {result && !uploading && (
           <View style={styles.successContainer}>
-            <Ionicons name="checkmark-circle-outline" size={60} color={colors.success} /> {/* Fix: Use colors.success instead of theme.colors.success */}
+            <Ionicons name="checkmark-circle-outline" size={60} color="green" />
             <Text style={styles.successText}>File uploaded successfully!</Text>
             <TouchableOpacity onPress={() => Alert.alert("File URL", result.url)}>
               <Text style={styles.linkText}>View Uploaded File (URL)</Text>
@@ -146,7 +141,7 @@ const FileUploadScreen = ({ navigation, route }) => {
 
         {error && !uploading && (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={60} color={colors.error} /> {/* Fix: Use colors.error instead of theme.colors.error */}
+            <Ionicons name="alert-circle-outline" size={60} color="red" />
             <Text style={styles.errorText}>Upload Failed: {error}</Text>
             <TouchableOpacity style={styles.uploadButton} onPress={pickFile}>
               <Text style={styles.uploadButtonText}>Try Again</Text>
@@ -158,30 +153,30 @@ const FileUploadScreen = ({ navigation, route }) => {
   );
 };
 
-const getStyles = (colors) => StyleSheet.create({ // Wrap StyleSheet.create
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F0F0F0',
   },
   header: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#FFFFFF',
     paddingTop: Platform.OS === 'android' ? 25 : 50,
     paddingBottom: 15,
     paddingHorizontal: 15,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center', // Center title
+    justifyContent: 'center',
   },
   backButton: {
     position: 'absolute',
     left: 15,
-    top: Platform.OS === 'android' ? 28 : 53, // Adjust to align with centered title
+    top: Platform.OS === 'android' ? 28 : 53,
     zIndex: 1,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.headerText,
+    color: '#333333',
   },
   contentContainer: {
     flex: 1,
@@ -194,31 +189,31 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap StyleSheet.create
     height: 100,
     resizeMode: 'contain',
     marginBottom: 20,
-    tintColor: colors.primary, // Tint logo with primary color
+    tintColor: '#007AFF',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.text,
+    color: '#333333',
     marginBottom: 10,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: colors.subtext,
+    color: '#555555',
     textAlign: 'center',
     marginBottom: 30,
     paddingHorizontal: 10,
   },
   uploadButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#007AFF',
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -229,7 +224,7 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap StyleSheet.create
     marginRight: 10,
   },
   uploadButtonText: {
-    color: colors.buttonText,
+    color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '600',
   },
@@ -240,27 +235,27 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap StyleSheet.create
   },
   progressText: {
     fontSize: 15,
-    color: colors.text,
+    color: '#333333',
     marginBottom: 8,
   },
   progressBarBackground: {
     height: 10,
     width: '100%',
-    backgroundColor: colors.border,
+    backgroundColor: '#CCCCCC',
     borderRadius: 5,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: '#007AFF',
     borderRadius: 5,
   },
   successContainer: {
     alignItems: 'center',
     padding: 20,
-    backgroundColor: colors.card,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    shadowColor: colors.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -271,34 +266,34 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap StyleSheet.create
   successText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.success,
+    color: 'green',
     marginTop: 10,
     marginBottom: 15,
     textAlign: 'center',
   },
   linkText: {
     fontSize: 15,
-    color: colors.primary,
+    color: '#007AFF',
     textDecorationLine: 'underline',
     marginBottom: 20,
   },
   uploadAnotherButton: {
-    backgroundColor: colors.secondary, // Or another appropriate color
+    backgroundColor: '#34C759',
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 10,
   },
   uploadAnotherButtonText: {
-    color: colors.buttonText, // Ensure contrast if secondary is light
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '500',
   },
   errorContainer: {
     alignItems: 'center',
     padding: 20,
-    backgroundColor: colors.card,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    shadowColor: colors.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -309,7 +304,7 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap StyleSheet.create
   errorText: {
     fontSize: 17,
     fontWeight: 'bold',
-    color: colors.error,
+    color: 'red',
     marginTop: 10,
     marginBottom: 20,
     textAlign: 'center',

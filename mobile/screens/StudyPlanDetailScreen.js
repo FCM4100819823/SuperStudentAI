@@ -8,15 +8,64 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuth } from 'firebase/auth';
 import DateTimePicker from '@react-native-community/datetimepicker'; // Import DateTimePicker
-import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
 // Replace with your actual backend URL
-const API_URL = 'http://172.20.10.3:5000/api'; // Or your deployed backend URL
+const API_URL = 'http://172.20.10.2:5000/api'; // Or your deployed backend URL
+
+// Define STATIC_COLORS and STATIC_FONTS for this screen
+const STATIC_COLORS = {
+  primary: '#007AFF', // Example primary color
+  background: '#F2F2F7', // Example background color
+  card: '#FFFFFF',
+  text: '#000000',
+  subtext: '#6E6E73',
+  border: '#D1D1D6',
+  error: '#FF3B30',
+  success: '#34C759',
+  buttonText: '#FFFFFF',
+  shadow: '#000000',
+  // Add other static colors as needed by the component's styles
+  headerBar: '#4A90E2', // From CreateStudyPlanScreen for consistency
+  iconColor: '#333333',
+  completedTask: '#4CAF50',
+  pendingTask: '#757575',
+  deleteAction: '#FF6347',
+  editAction: '#4A90E2',
+  fabBackground: '#007AFF', // Example FAB color
+  modalOverlay: 'rgba(0,0,0,0.5)',
+  modalBackground: '#FFFFFF',
+  cancelButton: '#6C757D',
+  saveButton: '#007AFF',
+  aiSuggestionBackground: '#E3F2FD',
+  aiSuggestionText: '#1E88E5',
+  optimizedSuggestionBackground: '#E8F5E9',
+  optimizedSuggestionTitle: '#2E7D32',
+  loadingText: '#4A4A4A',
+  emptyMessage: '#6E6E73',
+  retryButtonBackground: '#007AFF',
+  retryButtonText: '#FFFFFF',
+  taskSeparator: '#E0E0E0',
+  inputPlaceholder: '#B0BEC5',
+};
+
+const STATIC_FONTS = {
+  regular: 'System', // Default system font
+  bold: 'System-Bold',
+  // Add other static fonts as needed
+  titleSize: 22,
+  subtitleSize: 16,
+  bodySize: 14,
+  captionSize: 12,
+};
+
 
 const StudyPlanDetailScreen = ({ navigation }) => {
-  const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
-  const styles = getStyles(colors);
+  // REMOVE: const themeContext = useTheme() || {};
+  // REMOVE: const colors = themeContext.colors || {};
+  // USE STATIC:
+  const colors = STATIC_COLORS;
+  const fonts = STATIC_FONTS; // If your getStyles uses fonts
+  const styles = getStyles(colors, fonts); // Pass fonts if getStyles expects it
 
     const route = useRoute();
     const { planId } = route.params; // Removed planTitle from here, will be fetched
@@ -453,7 +502,7 @@ const StudyPlanDetailScreen = ({ navigation }) => {
     );
 };
 
-const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
+const getStyles = (colors, fonts) => StyleSheet.create({ // Wrap styles in a function
     container: {
         flex: 1,
         backgroundColor: colors.background,

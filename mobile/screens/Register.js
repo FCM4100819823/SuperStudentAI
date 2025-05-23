@@ -20,30 +20,12 @@ import {
   Modal
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext';
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
-import { LinearGradient } from 'expo-linear-gradient';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const { width, height } = Dimensions.get('window');
 
 const RegisterScreen = ({ navigation }) => {
-  // Safely access theme with fallback values
-  const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {
-    primary: '#4A90E2',
-    background: '#FFFFFF',
-    card: '#F8F9FA',
-    text: '#212121',
-    border: '#E0E0E0',
-    placeholder: '#9E9E9E',
-    error: '#FF6B6B',
-    success: '#4CAF50'
-  };
-
   // Form fields
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -206,27 +188,29 @@ const RegisterScreen = ({ navigation }) => {
     setLoading(true);
     
     try {
-      const auth = getAuth();
-      
       // Create user with email and password
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Update profile with name
-      await updateProfile(user, { displayName: name });
-      
-      // Store additional user data in Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        name,
-        email,
-        age: parseInt(age),
-        level: parseInt(level),
-        university,
-        major,
-        graduationYear: parseInt(graduationYear),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      const response = await fetch('http://localhost:3000/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          age: parseInt(age),
+          level: parseInt(level),
+          university,
+          major,
+          graduationYear: parseInt(graduationYear),
+        }),
       });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed. Please try again.');
+      }
       
       Alert.alert(
         "Registration Successful", 
@@ -236,13 +220,13 @@ const RegisterScreen = ({ navigation }) => {
       // Navigation will be handled by auth state listener
     } catch (error) {
       let errorMessage = 'Registration failed. Please try again.';
-      if (error.code === 'auth/email-already-in-use') {
+      if (error.message.includes('email')) {
         errorMessage = 'This email is already in use by another account.';
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (error.message.includes('invalid')) {
         errorMessage = 'The email address is invalid.';
-      } else if (error.code === 'auth/weak-password') {
+      } else if (error.message.includes('weak')) {
         errorMessage = 'The password is too weak. Please choose a stronger password.';
-      } else if (error.code === 'auth/network-request-failed') {
+      } else if (error.message.includes('Network')) {
         errorMessage = 'Network error. Please check your connection and try again.';
       }
       
@@ -277,7 +261,7 @@ const RegisterScreen = ({ navigation }) => {
     }
   };
 
-  const styles = getStyles(colors);
+  const styles = getStyles();
 
   const renderStep = () => {
     switch (currentStep) {
@@ -290,11 +274,11 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Full Name</Text>
               <View style={[styles.inputContainer, errors.name && styles.inputError]}>
-                <Ionicons name="person-outline" size={20} color={colors.icon || colors.placeholder} style={styles.inputIcon} />
+                <Ionicons name="person-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Your full name"
-                  placeholderTextColor={colors.placeholder}
+                  placeholderTextColor="#A0A0A0"
                   value={name}
                   onChangeText={(text) => {
                     setName(text);
@@ -308,11 +292,11 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email Address</Text>
               <View style={[styles.inputContainer, errors.email && styles.inputError]}>
-                <Ionicons name="mail-outline" size={20} color={colors.icon || colors.placeholder} style={styles.inputIcon} />
+                <Ionicons name="mail-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Your email address"
-                  placeholderTextColor={colors.placeholder}
+                  placeholderTextColor="#A0A0A0"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={email}
@@ -328,11 +312,11 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Password</Text>
               <View style={[styles.inputContainer, errors.password && styles.inputError]}>
-                <Ionicons name="lock-closed-outline" size={20} color={colors.icon || colors.placeholder} style={styles.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Create a password"
-                  placeholderTextColor={colors.placeholder}
+                  placeholderTextColor="#A0A0A0"
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={(text) => {
@@ -341,7 +325,7 @@ const RegisterScreen = ({ navigation }) => {
                   }}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                  <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.icon || colors.placeholder} />
+                  <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color="#A0A0A0" />
                 </TouchableOpacity>
               </View>
               {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
@@ -350,11 +334,11 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Confirm Password</Text>
               <View style={[styles.inputContainer, errors.confirmPassword && styles.inputError]}>
-                <Ionicons name="lock-closed-outline" size={20} color={colors.icon || colors.placeholder} style={styles.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Confirm your password"
-                  placeholderTextColor={colors.placeholder}
+                  placeholderTextColor="#A0A0A0"
                   secureTextEntry={!showConfirmPassword}
                   value={confirmPassword}
                   onChangeText={(text) => {
@@ -363,7 +347,7 @@ const RegisterScreen = ({ navigation }) => {
                   }}
                 />
                 <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
-                  <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.icon || colors.placeholder} />
+                  <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={22} color="#A0A0A0" />
                 </TouchableOpacity>
               </View>
               {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
@@ -382,7 +366,7 @@ const RegisterScreen = ({ navigation }) => {
                 style={[styles.inputContainer, errors.age && styles.inputError]}
                 onPress={() => setShowDatePicker(true)}
               >
-                <Ionicons name="calendar-outline" size={20} color={colors.icon || colors.placeholder} style={styles.inputIcon} />
+                <Ionicons name="calendar-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
                 <Text style={[styles.input, !age && styles.placeholderText]}>
                   {age ? `${age} years old` : "Select your date of birth"}
                 </Text>
@@ -405,11 +389,11 @@ const RegisterScreen = ({ navigation }) => {
               <Text style={styles.inputLabel}>University</Text>
               {/* Changed from TouchableOpacity to TextInput */}
               <View style={[styles.inputContainer, errors.university && styles.inputError]}>
-                <Ionicons name="school-outline" size={20} color={colors.icon || colors.placeholder} style={styles.inputIcon} />
+                <Ionicons name="school-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Your university name"
-                  placeholderTextColor={colors.placeholder}
+                  placeholderTextColor="#A0A0A0"
                   value={university}
                   onChangeText={(text) => {
                     setUniversity(text);
@@ -423,11 +407,11 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Field of Study / Major</Text>
               <View style={[styles.inputContainer, errors.major && styles.inputError]}>
-                <Ionicons name="book-outline" size={20} color={colors.icon || colors.placeholder} style={styles.inputIcon} />
+                <Ionicons name="book-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Your field of study or major"
-                  placeholderTextColor={colors.placeholder}
+                  placeholderTextColor="#A0A0A0"
                   value={major}
                   onChangeText={(text) => {
                     setMajor(text);
@@ -448,11 +432,11 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Current Level (100-600)</Text>
               <View style={[styles.inputContainer, errors.level && styles.inputError]}>
-                <MaterialIcons name="grade" size={20} color={colors.icon || colors.placeholder} style={styles.inputIcon} />
+                <MaterialIcons name="grade" size={20} color="#A0A0A0" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Your current level (e.g., 100, 200)"
-                  placeholderTextColor={colors.placeholder}
+                  placeholderTextColor="#A0A0A0"
                   keyboardType="numeric"
                   value={level}
                   onChangeText={(text) => {
@@ -467,11 +451,11 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Expected Graduation Year</Text>
               <View style={[styles.inputContainer, errors.graduationYear && styles.inputError]}>
-                <Ionicons name="calendar" size={20} color={colors.icon || colors.placeholder} style={styles.inputIcon} />
+                <Ionicons name="calendar" size={20} color="#A0A0A0" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Year of expected graduation"
-                  placeholderTextColor={colors.placeholder}
+                  placeholderTextColor="#A0A0A0"
                   keyboardType="numeric"
                   value={graduationYear}
                   onChangeText={(text) => {
@@ -487,7 +471,7 @@ const RegisterScreen = ({ navigation }) => {
               <Ionicons 
                 name="shield-checkmark-outline" 
                 size={36} 
-                color={colors.primary} 
+                color="#007AFF" 
                 style={styles.termsIcon} 
               />
               <Text style={styles.termsText}>
@@ -505,11 +489,8 @@ const RegisterScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle={colors.isDark ? 'light-content' : 'dark-content'} />
-      <LinearGradient 
-        colors={[colors.background, colors.background, colors.backgroundSecondary || colors.background]} 
-        style={styles.gradientBackground}
-      >
+      <StatusBar barStyle={'dark-content'} />
+      <View style={styles.gradientBackground}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -526,7 +507,7 @@ const RegisterScreen = ({ navigation }) => {
                 onPress={() => navigation.goBack()}
                 hitSlop={{top: 20, bottom: 20, left: 20, right: 20}}
               >
-                <Ionicons name="arrow-back" size={24} color={colors.text} />
+                <Ionicons name="arrow-back" size={24} color="#333333" />
               </TouchableOpacity>
 
               <Animated.View style={[styles.headerContainer, { opacity: fadeAnim }]}>
@@ -585,7 +566,7 @@ const RegisterScreen = ({ navigation }) => {
                 <View style={styles.navigationButtonsContainer}>
                   {currentStep > 1 && (
                     <TouchableOpacity style={styles.prevButton} onPress={handlePrevStep}>
-                      <Ionicons name="arrow-back" size={20} color={colors.primary} />
+                      <Ionicons name="arrow-back" size={20} color="#007AFF" />
                       <Text style={styles.prevButtonText}>Back</Text>
                     </TouchableOpacity>
                   )}
@@ -628,17 +609,18 @@ const RegisterScreen = ({ navigation }) => {
             </ScrollView>
           </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 };
 
-const getStyles = (colors) => StyleSheet.create({
+const getStyles = () => StyleSheet.create({
   safeArea: {
     flex: 1,
   },
   gradientBackground: {
     flex: 1,
+    backgroundColor: '#F0F0F0',
   },
   container: {
     flex: 1,
@@ -655,11 +637,11 @@ const getStyles = (colors) => StyleSheet.create({
     zIndex: 10,
     width: 40,
     height: 40,
-    backgroundColor: colors.card,
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.shadow || '#000',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -682,13 +664,13 @@ const getStyles = (colors) => StyleSheet.create({
   titleText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: colors.text,
+    color: '#333333',
     marginBottom: 8,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
   subtitleText: {
     fontSize: 16,
-    color: colors.subtext || colors.placeholder,
+    color: '#555555',
     textAlign: 'center',
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
@@ -698,7 +680,7 @@ const getStyles = (colors) => StyleSheet.create({
   },
   progressBar: {
     height: 4,
-    backgroundColor: colors.primary,
+    backgroundColor: '#007AFF',
     borderRadius: 2,
   },
   stepIndicatorsContainer: {
@@ -711,21 +693,21 @@ const getStyles = (colors) => StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: colors.background,
+    backgroundColor: '#F0F0F0',
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: '#CCCCCC',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
   },
   activeStepIndicator: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
   },
   stepNumber: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: colors.text,
+    color: '#333333',
   },
   activeStepNumber: {
     color: '#FFFFFF',
@@ -737,13 +719,20 @@ const getStyles = (colors) => StyleSheet.create({
   stepConnectorLine: {
     flex: 1,
     height: 2,
-    backgroundColor: colors.border,
+    backgroundColor: '#CCCCCC',
   },
   activeStepConnector: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#007AFF',
   },
   formContainer: {
     paddingHorizontal: 30,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   stepContainer: {
     marginBottom: 20,
@@ -751,13 +740,13 @@ const getStyles = (colors) => StyleSheet.create({
   stepTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.text,
+    color: '#333333',
     marginBottom: 8,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
   stepDescription: {
     fontSize: 16,
-    color: colors.subtext || colors.placeholder,
+    color: '#555555',
     marginBottom: 24,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
@@ -767,32 +756,32 @@ const getStyles = (colors) => StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.text,
+    color: '#333333',
     marginBottom: 8,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.inputBackground || colors.card,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#CCCCCC',
     paddingHorizontal: 15,
     height: 56,
   },
   inputError: {
-    borderColor: colors.error,
+    borderColor: '#FF3B30',
   },
   input: {
     flex: 1,
-    color: colors.text,
+    color: '#333333',
     fontSize: 16,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
     height: '100%',
   },
   placeholderText: {
-    color: colors.placeholder,
+    color: '#A0A0A0',
   },
   inputIcon: {
     marginRight: 12,
@@ -801,7 +790,7 @@ const getStyles = (colors) => StyleSheet.create({
     padding: 8,
   },
   errorText: {
-    color: colors.error,
+    color: '#FF3B30',
     fontSize: 12,
     marginTop: 4,
     marginLeft: 4,
@@ -816,9 +805,9 @@ const getStyles = (colors) => StyleSheet.create({
   prevButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: '#007AFF',
     borderRadius: 12,
     height: 56,
     paddingHorizontal: 20,
@@ -827,14 +816,14 @@ const getStyles = (colors) => StyleSheet.create({
   prevButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.primary,
+    color: '#007AFF',
     marginLeft: 8,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
   nextButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     height: 56,
     paddingHorizontal: 20,
@@ -855,13 +844,13 @@ const getStyles = (colors) => StyleSheet.create({
   registerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.success || '#4CAF50',
+    backgroundColor: '#4CAF50',
     borderRadius: 12,
     height: 56,
     paddingHorizontal: 20,
     justifyContent: 'center',
     width: '100%',
-    shadowColor: colors.success || '#4CAF50',
+    shadowColor: '#4CAF50',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.27,
     shadowRadius: 4.65,
@@ -883,25 +872,25 @@ const getStyles = (colors) => StyleSheet.create({
   },
   footerText: {
     fontSize: 16,
-    color: colors.subtext || colors.placeholder,
+    color: '#555555',
     marginRight: 8,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
   loginLink: {
     fontSize: 16,
-    color: colors.primary,
+    color: '#007AFF',
     fontWeight: '600',
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
   termsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.cardLight || '#F5F9FF',
+    backgroundColor: '#F5F9FF',
     borderRadius: 12,
     padding: 16,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#CCCCCC',
   },
   termsIcon: {
     marginRight: 16,
@@ -909,12 +898,12 @@ const getStyles = (colors) => StyleSheet.create({
   termsText: {
     flex: 1,
     fontSize: 14,
-    color: colors.text,
+    color: '#333333',
     lineHeight: 20,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
   termsLink: {
-    color: colors.primary,
+    color: '#007AFF',
     fontWeight: '600',
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },

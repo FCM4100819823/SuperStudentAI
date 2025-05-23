@@ -1,18 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
-import * as DocumentPicker from 'expo-document-picker';
-import { useTheme } from '../context/ThemeContext';
+import { View, Text, TextInput, Button, ScrollView, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableOpacity, Alert } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const NLP_API_ENDPOINT = 'http://localhost:3000/api/ai/nlp';
 const SYLLABUS_TEXT_ANALYSIS_ENDPOINT = 'http://localhost:3000/api/ai/syllabus/analyze-text';
 const SYLLABUS_FILE_ANALYSIS_ENDPOINT = 'http://localhost:3000/api/ai/syllabus/analyze-file';
 
 const AIScreen = ({ navigation }) => {
-  const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
-  const styles = getStyles(colors);
   const [messages, setMessages] = useState([
     { id: '1', text: 'Hello! How can I help you study today? You can ask me to analyze syllabus text or upload a syllabus file.', sender: 'ai' },
   ]);
@@ -20,6 +14,7 @@ const AIScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef(null);
+  const scrollViewRef = useRef(null);
 
   useEffect(() => {
     if (flatListRef.current) {
@@ -172,49 +167,55 @@ const AIScreen = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0} // Adjust as needed
+      style={[styles.container, { backgroundColor: '#F0F0F0' /* formerly colors.background */ }]}
     >
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>SuperStudent AI Assistant</Text>
-      </View>
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={item => item.id}
-        style={styles.messageList}
-        contentContainerStyle={{ paddingBottom: 10 }} // Add padding to bottom of content
-        // The following two are often helpful for auto-scrolling, but test behavior
-        // onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-        // onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
-      />
-      {isTyping && (
-        <View style={styles.typingIndicatorContainer}>
-          <Image source={require('../assets/superstudentlogo.png')} style={styles.typingAvatar} />
-          <Text style={styles.typingIndicator}>AI is typing...</Text>
-          <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 5 }} />
-        </View>
-      )}
-      <View style={styles.inputContainer}>
-        <TouchableOpacity style={styles.attachButton} onPress={handleFileUpload} disabled={loading}>
-          <Ionicons name="attach" size={28} color={colors.primary} />
-        </TouchableOpacity>
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={styles.scrollContent}
+        onContentSizeChange={() => scrollViewRef.current.scrollToEnd({ animated: true })}
+      >
+        {messages.map((entry, index) => (
+          <View
+            key={index}
+            style={[
+              styles.chatBubble,
+              entry.sender === 'user' ? styles.userBubble : styles.aiBubble,
+              entry.sender === 'user' ? { backgroundColor: '#007AFF' /* formerly colors.primary */ } : { backgroundColor: '#E5E5EA' /* formerly colors.card */ },
+            ]}
+          >
+            <Text style={entry.sender === 'user' ? { color: '#FFFFFF' /* formerly colors.buttonText */ } : { color: '#000000' /* formerly colors.text */ }}>
+              {entry.text}
+            </Text>
+          </View>
+        ))}
+        {isTyping && (
+          <View style={styles.typingIndicatorContainer}>
+            <Image source={require('../assets/superstudentlogo.png')} style={styles.typingAvatar} />
+            <Text style={styles.typingIndicator}>AI is typing...</Text>
+            <ActivityIndicator size="small" color="#007AFF" style={{ marginLeft: 5 }} />
+          </View>
+        )}
+      </ScrollView>
+      <View style={[styles.inputContainer, { borderTopColor: '#CCCCCC' /* formerly colors.border */ }]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, {
+            backgroundColor: '#FFFFFF', // formerly colors.card
+            color: '#333333', // formerly colors.text
+            borderColor: '#CCCCCC', // formerly colors.border
+          }]}
           value={input}
           onChangeText={setInput}
           placeholder="Ask SuperStudent AI..."
-          placeholderTextColor={colors.subtext}
+          placeholderTextColor="#A0A0A0"
           multiline
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSend} disabled={loading}>
+        <TouchableOpacity onPress={handleSend} style={[styles.sendButton, { backgroundColor: '#007AFF' /* formerly colors.primary */ }]}>
           {loading ? (
-            <ActivityIndicator size="small" color={colors.buttonText} />
+            <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Ionicons name="send" size={24} color={colors.buttonText} />
+            <Icon name="send" size={24} color="#FFFFFF" /* formerly colors.buttonText */ />
           )}
         </TouchableOpacity>
       </View>
@@ -222,121 +223,62 @@ const AIScreen = ({ navigation }) => {
   );
 };
 
-const getStyles = (colors) => StyleSheet.create({ 
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
-  header: {
-    backgroundColor: colors.primary,
-    paddingTop: Platform.OS === 'android' ? 25 : 50, // Adjust for status bar
-    paddingBottom: 15,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+  scrollContent: {
+    padding: 10,
+    paddingBottom: 20, // Extra padding for the last message
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  messageList: {
-    paddingHorizontal: 15,
-    paddingTop: 10,
-  },
-  messageBubble: {
-    maxWidth: '80%',
+  chatBubble: {
     padding: 12,
-    borderRadius: 18,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-  },
-  userMessage: {
-    backgroundColor: colors.primary,
-    alignSelf: 'flex-end',
-    borderBottomRightRadius: 5,
-  },
-  aiMessage: {
-    backgroundColor: colors.card,
-    alignSelf: 'flex-start',
-    borderBottomLeftRadius: 5,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  aiAvatar: {
-    width: 30,
-    height: 30,
     borderRadius: 15,
-    marginRight: 8,
-    marginBottom: 2,
-    backgroundColor: colors.cardLight || '#F0F4F8',
-    borderWidth: 1,
-    borderColor: colors.border,
+    marginBottom: 10,
+    maxWidth: '80%',
+    alignSelf: 'flex-start', // Default for AI
   },
-  messageText: { // Base style for all message text
-    fontSize: 16,
+  userBubble: {
+    alignSelf: 'flex-end',
   },
-  userMessageText: { // Specific style for user message text
-    color: colors.buttonText, 
-  },
-  aiMessageText: { // Specific style for AI message text
-    color: colors.text,
+  aiBubble: {
+    // backgroundColor is set dynamically
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10, // Adjusted for attach button
-    paddingVertical: 10,
+    padding: 10,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.card, // Input area background
-  },
-  attachButton: {
-    padding: 5,
-    marginRight: 5,
   },
   input: {
     flex: 1,
-    minHeight: 45,
-    maxHeight: 120, // Allow for multi-line input
-    backgroundColor: colors.inputBackground,
-    borderRadius: 22,
+    borderWidth: 1,
+    borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 10,
-    fontSize: 16,
-    color: colors.text,
     marginRight: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    placeholderTextColor: colors.subtext,
+    fontSize: 16,
   },
   sendButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 22,
-    width: 44,
-    height: 44,
+    padding: 10,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   typingIndicatorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    padding: 10,
   },
   typingAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginRight: 10,
   },
   typingIndicator: {
-    fontSize: 14,
-    color: colors.subtext,
-    fontStyle: 'italic',
+    fontSize: 16,
+    color: '#333333',
   },
 });
 

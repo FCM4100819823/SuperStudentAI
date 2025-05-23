@@ -1,19 +1,44 @@
-// c:\Users\USER\Desktop\SuperStudentAI\SuperStudentAI\mobile\screens\SpacedRepetitionScreen.js
+// c:\\Users\\USER\\Desktop\\SuperStudentAI\\SuperStudentAI\\mobile\\screens\\SpacedRepetitionScreen.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Platform } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
-import { useTheme } from '../context/ThemeContext';
 
 // Replace with your actual backend URL and endpoint
-const API_URL = 'http://172.20.10.3:5000/api'; // Ensure this is your backend URL
+const API_URL = 'http://172.20.10.2:5000/api'; // Ensure this is your backend URL
 const SRS_ENDPOINT = `${API_URL}/srs`;
 
+const STATIC_COLORS = {
+  primary: '#6A1B9A', // Deep Purple
+  secondary: '#4CAF50', // Green
+  background: '#F5F5F5', // Light Grey
+  card: '#FFFFFF', // White
+  text: '#333333', // Dark Grey
+  subtext: '#757575', // Medium Grey
+  buttonText: '#FFFFFF', // White
+  error: '#D32F2F', // Red
+  success: '#388E3C', // Green
+  warning: '#FFA000', // Amber
+  info: '#1976D2', // Blue
+  border: '#E0E0E0', // Light Grey Border
+  shadow: '#000000', // Black for shadow
+  disabled: '#BDBDBD', // Grey for disabled elements
+  headerText: '#FFFFFF', // White for header text on primary background
+  successLight: '#E8F5E9', // Light green for success messages background
+  successDark: '#2E7D32',  // Darker green for success messages text
+  // Add any other static colors your app uses
+};
+
+const STATIC_FONTS = {
+  // Define any static font families if needed
+};
+
 const SpacedRepetitionScreen = ({ navigation }) => {
-  const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
+  // const themeContext = useTheme() || {};
+  // const colors = themeContext.colors || {};
+  const colors = STATIC_COLORS;
   const styles = getStyles(colors);
 
     const auth = getAuth();
@@ -93,7 +118,7 @@ const SpacedRepetitionScreen = ({ navigation }) => {
     if (isLoading) {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.loadingText}>Loading Review Items...</Text>
             </View>
         );
@@ -104,21 +129,21 @@ const SpacedRepetitionScreen = ({ navigation }) => {
             <View style={styles.container}>
                  <View style={styles.headerBar}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <MaterialIcons name="arrow-back-ios" size={24} color={theme.colors.headerText} />
+                        <MaterialIcons name="arrow-back-ios" size={24} color={colors.headerText} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Spaced Repetition</Text>
                 </View>
                 <View style={styles.centered}>
-                    <FontAwesome5 name="check-circle" size={60} color={theme.colors.primary} style={{ marginBottom: 20 }} />
+                    <FontAwesome5 name="check-circle" size={60} color={colors.primary} style={{ marginBottom: 20 }} />
                     <Text style={styles.emptyMessage}>No items due for review right now!</Text>
                     <Text style={styles.subEmptyMessage}>Check back later or add new items to your review queue.</Text>
                     <TouchableOpacity style={styles.primaryButton} onPress={fetchDueItems}>
-                        <MaterialIcons name="refresh" size={20} color={theme.colors.buttonText} />
+                        <MaterialIcons name="refresh" size={20} color={colors.buttonText} />
                         <Text style={styles.primaryButtonText}>Refresh</Text>
                     </TouchableOpacity>
                      {/* Placeholder for Add New Item Button */}
-                    <TouchableOpacity style={[styles.primaryButton, styles.secondaryButton]} onPress={() => Alert.alert("Navigate", "Go to Add SRS Item screen (TODO)")}>
-                        <MaterialIcons name="add" size={20} color={theme.colors.primary} />
+                    <TouchableOpacity style={[styles.primaryButton, styles.secondaryButton]} onPress={() => navigation.navigate('AddSpacedRepetitionItem')}>
+                        <MaterialIcons name="add" size={20} color={colors.primary} />
                         <Text style={[styles.primaryButtonText, styles.secondaryButtonText]}>Add New Item</Text>
                     </TouchableOpacity>
                 </View>
@@ -131,7 +156,7 @@ const SpacedRepetitionScreen = ({ navigation }) => {
         <View style={styles.container}>
             <View style={styles.headerBar}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <MaterialIcons name="arrow-back-ios" size={24} color={theme.colors.headerText} />
+                    <MaterialIcons name="arrow-back-ios" size={24} color={colors.headerText} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Review Session ({currentItemIndex + 1}/{dueItems.length})</Text>
             </View>
@@ -150,7 +175,7 @@ const SpacedRepetitionScreen = ({ navigation }) => {
 
                     {!showAnswer && !feedbackGiven && (
                         <TouchableOpacity style={styles.primaryButton} onPress={() => setShowAnswer(true)}>
-                            <FontAwesome5 name="eye" size={18} color={theme.colors.buttonText} />
+                            <FontAwesome5 name="eye" size={18} color={colors.buttonText} />
                             <Text style={styles.primaryButtonText}>Show Answer</Text>
                         </TouchableOpacity>
                     )}
@@ -171,7 +196,7 @@ const SpacedRepetitionScreen = ({ navigation }) => {
                                     style={[styles.feedbackButton, { backgroundColor: feedback.color }]}
                                     onPress={() => handleReviewAction(currentItem._id, feedback.quality)}
                                 >
-                                    <FontAwesome5 name={feedback.icon} size={16} color={theme.colors.buttonText} style={{marginRight: 5}}/>
+                                    <FontAwesome5 name={feedback.icon} size={16} color={colors.buttonText} style={{marginRight: 5}}/>
                                     <Text style={styles.feedbackButtonText}>{feedback.label}</Text>
                                 </TouchableOpacity>
                             ))}
@@ -180,7 +205,7 @@ const SpacedRepetitionScreen = ({ navigation }) => {
                 )}
                 {feedbackGiven && (
                      <View style={styles.feedbackGivenMessage}>
-                        <MaterialIcons name="check-circle-outline" size={24} color={theme.colors.primary} />
+                        <MaterialIcons name="check-circle-outline" size={24} color={colors.primary} />
                         <Text style={styles.feedbackGivenText}>Feedback recorded. Moving to next card shortly...</Text>
                     </View>
                 )}
@@ -230,7 +255,7 @@ const getStyles = (colors) => StyleSheet.create({
         paddingHorizontal: 15,
         flexDirection: 'row',
         alignItems: 'center',
-        shadowColor: '#000',
+        shadowColor: colors.shadow, 
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 3,
@@ -243,20 +268,20 @@ const getStyles = (colors) => StyleSheet.create({
     headerTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: colors.headerText,
+        color: colors.headerText, 
     },
     card: {
         backgroundColor: colors.card,
         borderRadius: 15,
         padding: 25,
         marginVertical: 20,
-        shadowColor: colors.shadow,
+        shadowColor: colors.shadow, 
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
         shadowRadius: 8,
         elevation: 5,
-        minHeight: Platform.OS === 'web' ? 300 : 250, // Ensure card has a decent height
-        justifyContent: 'space-between', // Distribute content within card
+        minHeight: Platform.OS === 'web' ? 300 : 250, 
+        justifyContent: 'space-between', 
     },
     cardHint: {
         fontSize: 14,
@@ -291,14 +316,14 @@ const getStyles = (colors) => StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: 20,
-        shadowColor: colors.shadow,
+        shadowColor: colors.shadow, 
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
         elevation: 3,
     },
     primaryButtonText: {
-        color: colors.buttonText,
+        color: colors.buttonText, 
         fontSize: 16,
         fontWeight: 'bold',
         marginLeft: 10,
@@ -324,7 +349,7 @@ const getStyles = (colors) => StyleSheet.create({
     feedbackButtons: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        flexWrap: 'wrap', // Allow buttons to wrap on smaller screens
+        flexWrap: 'wrap', 
         width: '100%',
     },
     feedbackButton: {
@@ -335,15 +360,15 @@ const getStyles = (colors) => StyleSheet.create({
         paddingHorizontal: 15,
         borderRadius: 25,
         margin: 5,
-        minWidth: Platform.OS === 'web' ? 100 : 80, // Ensure buttons have a minimum width
-        shadowColor: colors.shadow,
+        minWidth: Platform.OS === 'web' ? 100 : 80, 
+        shadowColor: colors.shadow, 
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 2,
         elevation: 2,
     },
     feedbackButtonText: {
-        color: colors.buttonText,
+        color: colors.buttonText, 
         fontSize: 14,
         fontWeight: 'bold',
     },
@@ -353,13 +378,13 @@ const getStyles = (colors) => StyleSheet.create({
         justifyContent: 'center',
         padding: 15,
         marginTop: 20,
-        backgroundColor: colors.successLight, // A light green for success
+        backgroundColor: colors.successLight, 
         borderRadius: 10,
     },
     feedbackGivenText: {
         marginLeft: 10,
         fontSize: 15,
-        color: colors.successDark, // Darker green text
+        color: colors.successDark, 
         fontWeight: '500',
     },
 });

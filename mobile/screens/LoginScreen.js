@@ -13,9 +13,8 @@ import {
   ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../firebaseConfig';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebaseConfig';
 
 // Define static colors and fonts directly
 const STATIC_COLORS = {
@@ -40,59 +39,18 @@ const STATIC_FONTS = {
   bold: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
 };
 
-const RegisterScreen = ({ navigation }) => {
+const LoginScreen = ({ navigation }) => {
   const colors = STATIC_COLORS; // USE STATIC
   const fonts = STATIC_FONTS; // USE STATIC
   const styles = getStyles(colors, fonts);
 
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      return Alert.alert('Please fill in all fields');
-    }
-    if (password !== confirmPassword) {
-      return Alert.alert('Passwords do not match');
-    }
-    try {
-      setLoading(true);
-      // Create user with email and password
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Update profile with name
-      await updateProfile(user, { displayName: name });
-      
-      // Store additional user data in Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        name,
-        email,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-      
-      // Navigate to the main app
-      // navigation.navigate('App'); // This will depend on your navigation structure
-    } catch (error) {
-      let errorMessage = 'Registration failed. Please try again.';
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'That email address is already in use.';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'That email address is invalid.';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password is too weak.';
-      }
-      Alert.alert('Registration Error', errorMessage);
-      console.error('Registration error:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleLogin = async () => {
+    // ...existing code...
   };
 
   return (
@@ -102,25 +60,9 @@ const RegisterScreen = ({ navigation }) => {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.container}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back-outline" size={28} color={colors.primary} />
-          </TouchableOpacity>
           <Image source={require('../assets/superstudentlogo.png')} style={styles.logo} />
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join the SuperStudent community!</Text>
-
-          <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={22} color={colors.placeholder} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Full Name"
-              placeholderTextColor={colors.placeholder}
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-              textContentType="name"
-            />
-          </View>
+          <Text style={styles.title}>Welcome Back!</Text>
+          <Text style={styles.subtitle}>Login to continue your journey.</Text>
 
           <View style={styles.inputContainer}>
             <Ionicons name="mail-outline" size={22} color={colors.placeholder} style={styles.inputIcon} />
@@ -145,41 +87,29 @@ const RegisterScreen = ({ navigation }) => {
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
-              textContentType="newPassword" // Helps with password managers
+              textContentType="password"
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
               <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.placeholder} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={22} color={colors.placeholder} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm Password"
-              placeholderTextColor={colors.placeholder}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              textContentType="newPassword"
-            />
-            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.showPasswordButton}>
-              <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.placeholder} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
 
           {loading ? (
             <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
           ) : (
-            <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-              <Text style={styles.registerButtonText}>Register</Text>
+            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+              <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
           )}
 
           <View style={styles.footerContainer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.signInText}>Sign In</Text>
+            <Text style={styles.footerText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.signUpText}>Sign Up</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -202,22 +132,14 @@ const getStyles = (colors, fonts) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 30,
-    paddingTop: Platform.OS === 'ios' ? 20 : 10, // Adjust top padding
-    paddingBottom: 20,
+    paddingBottom: 20, // Ensure space for footer
     backgroundColor: colors.background,
   },
-  backButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 30,
-    left: 20,
-    zIndex: 1, // Ensure it's tappable
-    padding: 5,
-  },
   logo: {
-    width: 100,
-    height: 100,
+    width: 120,
+    height: 120,
     resizeMode: 'contain',
-    marginBottom: 15,
+    marginBottom: 20,
   },
   title: {
     fontSize: 28,
@@ -230,7 +152,7 @@ const getStyles = (colors, fonts) => StyleSheet.create({
     fontSize: 16,
     fontFamily: fonts.regular,
     color: colors.subtext,
-    marginBottom: 25,
+    marginBottom: 30,
     textAlign: 'center',
   },
   inputContainer: {
@@ -261,7 +183,7 @@ const getStyles = (colors, fonts) => StyleSheet.create({
   showPasswordButton: {
     padding: 5,
   },
-  registerButton: {
+  loginButton: {
     backgroundColor: colors.primary,
     paddingVertical: 15,
     borderRadius: 12,
@@ -274,10 +196,18 @@ const getStyles = (colors, fonts) => StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  registerButtonText: {
+  loginButtonText: {
     color: colors.buttonText,
     fontSize: 18,
     fontFamily: fonts.bold,
+  },
+  forgotPasswordText: {
+    color: colors.link,
+    fontSize: 14,
+    fontFamily: fonts.medium,
+    textAlign: 'right',
+    width: '100%',
+    marginBottom: 20,
   },
   footerContainer: {
     flexDirection: 'row',
@@ -290,7 +220,7 @@ const getStyles = (colors, fonts) => StyleSheet.create({
     fontFamily: fonts.regular,
     color: colors.subtext,
   },
-  signInText: {
+  signUpText: {
     fontSize: 15,
     fontFamily: fonts.bold,
     color: colors.primary,
@@ -301,4 +231,4 @@ const getStyles = (colors, fonts) => StyleSheet.create({
   },
 });
 
-export default RegisterScreen;
+export default LoginScreen;

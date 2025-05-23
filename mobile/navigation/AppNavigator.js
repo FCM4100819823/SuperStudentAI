@@ -2,8 +2,6 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext';
-import { Platform } from 'react-native'; // Ensure Platform is imported
 
 import LoginScreen from '../screens/Login';
 import RegisterScreen from '../screens/Register';
@@ -23,52 +21,45 @@ import WellbeingScreen from '../screens/WellbeingScreen'; // Placeholder
 import FinanceScreen from '../screens/FinanceScreen'; // Placeholder
 import ProfileScreen from '../screens/ProfileScreen'; // Placeholder for Profile tab
 import AppSettingsScreen from '../screens/AppSettingsScreen'; // Import AppSettingsScreen
-import ThemeSettingsScreen from '../screens/ThemeSettingsScreen'; // Import ThemeSettingsScreen
 import SpacedRepetitionScreen from '../screens/SpacedRepetitionScreen'; // Import SpacedRepetitionScreen
 
-// Define default colors as a fallback
-const defaultThemeColors = {
-  primary: '#6A11CB',
-  subtext: '#5A6B7C',
-  card: '#FFFFFF',
-  border: '#E0E6F0',
-  text: '#1A2B4D',
-  // Add other necessary fallbacks if accessed from theme.colors
-  background: '#F0F4F8', // Example, ensure all accessed colors have fallbacks
-};
-
-// Define default fonts as a fallback
-const defaultThemeFonts = {
-  regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
-  medium: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium', // Corrected for consistency, ensure this font is available or use fontWeight
-  light: Platform.OS === 'ios' ? 'System' : 'sans-serif-light',
-  thin: Platform.OS === 'ios' ? 'System' : 'sans-serif-thin',
-  bold: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
-};
-
+const RootStackNav = createStackNavigator();
 const AuthStackNav = createStackNavigator();
 const AppTabsNav = createBottomTabNavigator();
-const RootStackNav = createStackNavigator();
+const HomeStackNav = createStackNavigator();
+const StudyStackNav = createStackNavigator();
+const SettingsStackNav = createStackNavigator();
+
+// Define some default colors here if needed for navigator styling, or rely on component-level styling
+const DEFAULT_TAB_BAR_ACTIVE_TINT = '#6A11CB'; // Example: Deep Purple
+const DEFAULT_TAB_BAR_INACTIVE_TINT = '#8E8E93'; // Example: Grey
+const DEFAULT_TAB_BAR_BACKGROUND = '#FFFFFF'; // Example: White
+const DEFAULT_HEADER_TINT = '#000000'; // Example: Black for header text
 
 // Stack for screens within the Home Tab
-const HomeStackNav = createStackNavigator();
 const HomeStack = () => (
-  <HomeStackNav.Navigator screenOptions={{ headerShown: false }}>
-    <HomeStackNav.Screen name="HomeMain" component={HomeScreen} />
-    {/* Add other screens navigable from Home tab here, e.g., AI, FileUpload, CreateStudyPlan */}
+  <HomeStackNav.Navigator 
+    screenOptions={{
+      headerShown: false, 
+    }}
+  >
+    <HomeStackNav.Screen name="Home" component={HomeScreen} />
     <HomeStackNav.Screen name="AI" component={AIScreen} />
     <HomeStackNav.Screen name="FileUpload" component={FileUploadScreen} />
     <HomeStackNav.Screen name="CreateStudyPlan" component={CreateStudyPlanScreen} />
     <HomeStackNav.Screen name="FocusTimer" component={FocusTimerScreen} />
-     <HomeStackNav.Screen name="StudyPlanDetail" component={StudyPlanDetailScreen} />
+    <HomeStackNav.Screen name="StudyPlanDetail" component={StudyPlanDetailScreen} />
   </HomeStackNav.Navigator>
 );
 
 // Stack for screens within the Study Tab
-const StudyStackNav = createStackNavigator();
 const StudyStack = () => (
-  <StudyStackNav.Navigator screenOptions={{ headerShown: false }}>
-    <StudyStackNav.Screen name="StudyPlansDashboard" component={StudyPlansDashboardScreen} />
+  <StudyStackNav.Navigator 
+    screenOptions={{
+      headerShown: false,
+    }}
+  >
+    <StudyStackNav.Screen name="StudyDashboard" component={StudyPlansDashboardScreen} />
     <StudyStackNav.Screen name="StudyPlanList" component={StudyPlanListScreen} />
     <StudyStackNav.Screen name="CreateStudyPlan" component={CreateStudyPlanScreen} />
     <StudyStackNav.Screen name="StudyPlanDetail" component={StudyPlanDetailScreen} />
@@ -77,23 +68,21 @@ const StudyStack = () => (
 );
 
 // Stack for screens within the Settings Tab
-const SettingsStackNav = createStackNavigator();
 const SettingsStack = () => (
-    <SettingsStackNav.Navigator screenOptions={{ headerShown: false }}>
-        <SettingsStackNav.Screen name="SettingsMain" component={AppSettingsScreen} />
-        <SettingsStackNav.Screen name="ProfileSettings" component={ProfileScreen} /> 
-        <SettingsStackNav.Screen name="ProfileEdit" component={ProfileEditScreen} />
-        <SettingsStackNav.Screen name="ThemeSettings" component={ThemeSettingsScreen} />
-        {/* Add other specific settings screens here, e.g., Notifications, Account */}
-    </SettingsStackNav.Navigator>
+  <SettingsStackNav.Navigator 
+    screenOptions={{
+      headerShown: false,
+    }}
+  >
+    <SettingsStackNav.Screen name="AppSettings" component={AppSettingsScreen} />
+    <SettingsStackNav.Screen name="Profile" component={ProfileScreen} /> 
+    <SettingsStackNav.Screen name="ProfileEdit" component={ProfileEditScreen} />
+  </SettingsStackNav.Navigator>
 );
 
 
 const AuthStack = () => (
-  <AuthStackNav.Navigator
-    initialRouteName="Intro"
-    screenOptions={{ headerShown: false }}
-  >
+  <AuthStackNav.Navigator screenOptions={{ headerShown: false }}>
     <AuthStackNav.Screen name="Intro" component={IntroScreen} />
     <AuthStackNav.Screen name="Splash" component={SplashScreen} />
     <AuthStackNav.Screen name="Login" component={LoginScreen} />
@@ -103,15 +92,6 @@ const AuthStack = () => (
 );
 
 const AppTabs = () => {
-  const themeContext = useTheme();
-
-  // Safely get colors and fonts, falling back to defaults
-  const colors = themeContext?.colors ?? defaultThemeColors;
-  const fonts = themeContext?.fonts ?? defaultThemeFonts;
-
-  // Ensure fonts object and fonts.medium are valid, otherwise provide a final fallback for fontFamily
-  const tabBarFontFamily = fonts?.medium ?? defaultThemeFonts.medium;
-
   return (
     <AppTabsNav.Navigator
       screenOptions={({ route }) => ({
@@ -121,30 +101,20 @@ const AppTabs = () => {
           if (route.name === 'HomeTab') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'StudyTab') {
-            iconName = focused ? 'library' : 'library-outline';
+            iconName = focused ? 'book' : 'book-outline';
           } else if (route.name === 'WellbeingTab') {
-            iconName = focused ? 'heart-circle' : 'heart-circle-outline';
+            iconName = focused ? 'heart' : 'heart-outline';
           } else if (route.name === 'FinanceTab') {
             iconName = focused ? 'cash' : 'cash-outline';
           } else if (route.name === 'SettingsTab') {
             iconName = focused ? 'settings' : 'settings-outline';
           }
-          return <Ionicons name={iconName} size={size} color={focused ? colors.primary : colors.subtext} />;
+          return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.subtext,
+        tabBarActiveTintColor: DEFAULT_TAB_BAR_ACTIVE_TINT, // Use default or remove for system default
+        tabBarInactiveTintColor: DEFAULT_TAB_BAR_INACTIVE_TINT, // Use default or remove for system default
         tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopWidth: 0,
-          elevation: 5,
-          shadowOpacity: 0.1,
-          borderTopColor: colors.border,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          paddingBottom: 3,
-          fontFamily: tabBarFontFamily, // Use the safely derived font family
-          color: colors.text,
+          backgroundColor: DEFAULT_TAB_BAR_BACKGROUND, // Use default or remove for system default
         },
       })}
     >

@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions, Platform, FlatList, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient'; // For a smoother gradient
 import { Ionicons } from '@expo/vector-icons'; // For icons
-import { useTheme } from '../context/ThemeContext'; // Import useTheme
 
 const { width, height } = Dimensions.get('window');
 
@@ -13,9 +12,32 @@ const FEATURES = [
   { key: '4', icon: 'people-outline', text: 'Community & Peer Collaboration' },
 ];
 
+const STATIC_COLORS = {
+  primary: '#6A1B9A', // Deep Purple
+  secondary: '#4CAF50', // Green
+  background: 'transparent', // Transparent for LinearGradient to show through
+  card: '#FFFFFF', // White
+  text: '#333333', // Dark Grey
+  subtext: '#757575', // Medium Grey
+  buttonText: '#FFFFFF', // White
+  error: '#D32F2F', // Red
+  success: '#388E3C', // Green
+  warning: '#FFA000', // Amber
+  info: '#1976D2', // Blue
+  border: '#E0E0E0', // Light Grey Border
+  shadow: '#000000', // Black for shadow
+  // Specific colors used in this screen (ensure they are defined or replaced)
+  featureIconColor: '#4A90E2',
+  featureTextColor: '#5D6D7E',
+  splashButtonBackground: '#4A90E2',
+  signupButtonBackground: '#34C759',
+  footerColor: '#AEB6BF',
+  linearGradientColors: ['#E0EFFF', '#F2F7FF', '#E0EFFF'],
+};
+
 const SplashScreen = ({ navigation }) => {
-  const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
+  const colors = STATIC_COLORS; // Use static colors
+
   const appNameAnim = useRef(new Animated.Value(0)).current;
   const taglineAnim = useRef(new Animated.Value(0)).current;
   const featuresAnim = useRef(new Animated.Value(0)).current;
@@ -74,7 +96,7 @@ const SplashScreen = ({ navigation }) => {
         })
       }]
     }]}>
-      <Ionicons name={item.icon} size={22} color="#4A90E2" style={styles.featureIcon} />
+      <Ionicons name={item.icon} size={22} color={colors.featureIconColor} style={styles.featureIcon} />
       <Text style={styles.featureText}>{item.text}</Text>
     </Animated.View>
   );
@@ -83,7 +105,7 @@ const SplashScreen = ({ navigation }) => {
 
   return (
     <LinearGradient
-      colors={['#E0EFFF', '#F2F7FF', '#E0EFFF']} // Subtle blueish gradient
+      colors={colors.linearGradientColors} // Subtle blueish gradient
       style={styles.absoluteFill}
     >
       <Animated.View style={[styles.container, { opacity: appNameAnim }]}>
@@ -142,7 +164,7 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
     justifyContent: 'center',
     paddingHorizontal: 30,
     paddingBottom: 50, // Space for footer
-    backgroundColor: colors.background, // Use theme background
+    backgroundColor: colors.background, // Use theme background (now static)
   },
   logo: {
     width: Platform.OS === 'web' ? 130 : 110,
@@ -183,7 +205,7 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
   },
   featureText: {
     fontSize: Platform.OS === 'web' ? 16 : 14.5,
-    color: '#5D6D7E', // Softer color for feature text
+    color: colors.featureTextColor, // Softer color for feature text
     fontFamily: Platform.OS === 'ios' ? 'AvenirNext-Regular' : 'sans-serif',
     flexShrink: 1, // Allow text to wrap
   },
@@ -195,7 +217,7 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
     marginTop: 20,
   },
   splashButton: {
-    backgroundColor: '#4A90E2', // A slightly more modern blue
+    backgroundColor: colors.splashButtonBackground, // A slightly more modern blue
     paddingVertical: Platform.OS === 'web' ? 16 : 14,
     paddingHorizontal: 30,
     borderRadius: 30, // More rounded buttons
@@ -209,7 +231,7 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
     alignItems: 'center', // Center text in button
   },
   signupButton: {
-    backgroundColor: '#34C759', // A vibrant green for signup
+    backgroundColor: colors.signupButtonBackground, // A vibrant green for signup
   },
   splashButtonText: {
     color: '#fff',
@@ -222,7 +244,7 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
     position: 'absolute',
     bottom: Platform.OS === 'web' ? 20 : 30,
     fontSize: Platform.OS === 'web' ? 14 : 12,
-    color: '#AEB6BF', // Lighter grey for footer
+    color: colors.footerColor, // Lighter grey for footer
     textAlign: 'center',
     width: '100%',
     fontFamily: Platform.OS === 'ios' ? 'AvenirNext-Regular' : 'sans-serif',

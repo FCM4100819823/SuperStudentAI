@@ -1,246 +1,384 @@
-// Placeholder for ProfileScreen.js
-import React, { useState, useEffect, useContext } from 'react'; // Added useContext
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Image,
   ScrollView,
-  ActivityIndicator
+  Image,
+  TouchableOpacity,
+  Alert,
+  RefreshControl,
+  Platform,
+  ActivityIndicator,
+  Share
 } from 'react-native';
-import { auth, db } from '../firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
-import { Ionicons } from '@expo/vector-icons'; // Assuming Expo for icons
-import { useTheme } from '../context/ThemeContext'; // Import useTheme
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { ref, deleteObject } from 'firebase/storage';
+import { auth, db, storage } from '../firebaseConfig'; // Ensure this path is correct
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
-// A default profile image if user has no image or it fails to load
-const defaultProfileImage = require('../assets/superstudentlogo.png'); // Replace with a generic user icon if you have one
+// Define static colors and fonts directly
+const STATIC_COLORS = {
+  background: '#F0F4F8',
+  surface: '#FFFFFF',
+  primary: '#6A11CB',
+  secondary: '#2575FC',
+  text: '#1A2B4D',
+  subtext: '#5A6B7C',
+  border: '#E0E6F0',
+  error: '#D32F2F',
+  buttonText: '#FFFFFF',
+  icon: '#1A2B4D',
+  card: '#FFFFFF',
+  shadow: 'rgba(0, 0, 0, 0.1)',
+  headerBackground: '#6A11CB', // Primary color for header
+  headerText: '#FFFFFF',
+};
 
-const ProfileScreen = ({ navigation, route }) => {
-  const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
-  const styles = getStyles(colors); // Get styles based on theme
+const STATIC_FONTS = {
+  regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  medium: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+  bold: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
+};
+
+const ProfileScreen = ({ navigation }) => {
+  const colors = STATIC_COLORS; // USE STATIC
+  const fonts = STATIC_FONTS; // USE STATIC
+  const styles = getStyles(colors, fonts);
+
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      setLoading(true); // Set loading true at the start of fetch
-      if (auth.currentUser) {
-        const userDocRef = doc(db, 'users', auth.currentUser.uid);
-        try {
-          const docSnap = await getDoc(userDocRef);
-          if (docSnap.exists()) {
-            setUserData(docSnap.data());
-          } else {
-            console.log("No such user document!");
-            setUserData(null); // Clear data if not found
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          setUserData(null); // Clear data on error
-        }
-      }
+  const fetchUserProfile = useCallback(async () => {
+    setLoading(true);
+    const userId = auth.currentUser?.uid;
+    if (!userId) {
       setLoading(false);
-    };
+      return;
+    }
 
-    fetchUserData(); // Initial fetch
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        setUserData(userDoc.data());
+      } else {
+        console.log('No such document!');
+        setUserData(null);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      setUserData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    // Refresh data when the screen comes into focus or when refreshTimestamp changes
-    const unsubscribeFocus = navigation.addListener('focus', () => {
-      fetchUserData();
-    });
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserProfile();
+    }, [fetchUserProfile])
+  );
 
-    return () => {
-      unsubscribeFocus();
-    };
-  }, [navigation, route.params?.refreshTimestamp]); // Added route.params?.refreshTimestamp to dependencies
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchUserProfile().then(() => setRefreshing(false));
+  }, [fetchUserProfile]);
 
   const handleLogout = async () => {
     try {
       await auth.signOut();
       // Navigation to Auth stack is handled by the main AppNavigator logic
     } catch (error) {
-      console.error("Logout Error: ", error);
-      alert("Logout failed: " + error.message);
+      console.error('Logout Error: ', error);
+      alert('Logout failed: ' + error.message);
     }
   };
 
-  if (loading) {
+  const handleDeleteAccount = async () => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    const userDocRef = doc(db, 'users', userId);
+    const userStorageRef = ref(storage, `profilePictures/${userId}`);
+
+    try {
+      // Delete user document from Firestore
+      await deleteDoc(userDocRef);
+      // Delete user profile picture from Storage
+      await deleteObject(userStorageRef);
+      // Sign out the user
+      await auth.signOut();
+      // Navigate to Auth screen or show a logged-out state
+      navigation.navigate('Auth');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Error deleting account: ' + error.message);
+    }
+  };
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      'Confirm Delete Account',
+      'This action cannot be undone. Do you really want to delete your account?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: handleDeleteAccount },
+      ]
+    );
+  };
+
+  const handleShareProfile = async () => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    const shareOptions = {
+      message: `Check out my profile on SuperStudent AI! ${userData?.bio || ''}`,
+      url: `https://www.superstudentai.com/profile/${userId}`, // Assuming this is the profile URL
+    };
+
+    try {
+      await Share.share(shareOptions);
+    } catch (error) {
+      console.error('Error sharing profile:', error);
+      alert('Error sharing profile: ' + error.message);
+    }
+  };
+
+  if (loading && !refreshing) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color={colors.primary} /> {/* Fix: Use colors.primary instead of theme.colors.primary */}
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading Profile...</Text>
       </View>
     );
   }
 
-  const ProfileInfoItem = ({ icon, label, value }) => (
-    <View style={styles.infoItem}>
-      <Ionicons name={icon} size={22} color={colors.icon} style={styles.infoIcon} /> {/* Fix: Use colors.icon instead of theme.colors.icon */}
-      <View>
-        <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={styles.infoValue}>{value || 'Not set'}</Text>
+  if (!userData && !loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorText}>Could not load profile. Please try again.</Text>
+        <TouchableOpacity onPress={fetchUserProfile} style={styles.retryButton}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
       </View>
-    </View>
-  );
+    );
+  }
 
   return (
-    <ScrollView style={styles.screenContainer}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      contentContainerStyle={styles.contentContainer}
+    >
       <View style={styles.headerContainer}>
         <Image 
-          source={userData?.profilePictureUrl ? { uri: userData.profilePictureUrl } : defaultProfileImage} 
-          style={styles.profileImage}
+          source={userData?.profilePicture ? { uri: userData.profilePicture } : require('../assets/default-avatar.png')}
+          style={styles.profilePic}
         />
         <Text style={styles.userName}>{userData?.name || 'Super Student'}</Text>
-        <Text style={styles.userEmail}>{userData?.email || 'No email'}</Text>
+        <Text style={styles.userEmail}>{userData?.email || 'No email provided'}</Text>
+        {userData?.bio && <Text style={styles.userBio}>{userData.bio}</Text>}
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardHeader}>Academic Information</Text>
-        <ProfileInfoItem icon="school-outline" label="University" value={userData?.university} />
-        <ProfileInfoItem icon="book-outline" label="Field of Study" value={userData?.fieldOfStudy} />
-        <ProfileInfoItem icon="calendar-outline" label="Current Year" value={userData?.currentYear} />
-        <ProfileInfoItem icon="ribbon-outline" label="Expected Graduation" value={userData?.expectedGraduationYear} />
+      <View style={styles.menuContainer}>
+        <MenuItem 
+          icon="person-circle-outline" 
+          text="Edit Profile" 
+          onPress={() => navigation.navigate('ProfileEdit')} 
+          colors={colors} 
+          fonts={fonts} 
+        />
+        <MenuItem 
+          icon="settings-outline" 
+          text="App Settings" 
+          onPress={() => navigation.navigate('AppSettings')} 
+          colors={colors} 
+          fonts={fonts} 
+        />
+        <MenuItem 
+          icon="share-social-outline" 
+          text="Share Profile" 
+          onPress={handleShareProfile} 
+          colors={colors} 
+          fonts={fonts} 
+        />
+        <MenuItem 
+          icon="information-circle-outline" 
+          text="About SuperStudent AI" 
+          onPress={() => Alert.alert("About", "SuperStudent AI v1.0.0\nYour ultimate study companion.")} 
+          colors={colors} 
+          fonts={fonts} 
+        />
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardHeader}>Study Preferences</Text>
-        <ProfileInfoItem icon="bulb-outline" label="Study Goals" value={userData?.studyGoals} />
-        <ProfileInfoItem icon="options-outline" label="Learning Style" value={userData?.preferredLearningStyle} />
+      <View style={styles.actionsContainer}>
+        <TouchableOpacity style={[styles.actionButton, styles.logoutButton]} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={22} color={colors.buttonText} style={styles.actionButtonIcon} />
+          <Text style={styles.actionButtonText}>Logout</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={confirmDeleteAccount}>
+          <Ionicons name="trash-bin-outline" size={22} color={colors.buttonText} style={styles.actionButtonIcon} />
+          <Text style={styles.actionButtonText}>Delete Account</Text>
+        </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('ProfileEdit', { userData })}>
-        <Ionicons name="pencil-outline" size={20} color={theme.colors.buttonText} />
-        <Text style={styles.buttonText}>Edit Profile</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
-        <Ionicons name="log-out-outline" size={20} color={theme.colors.buttonText} />
-        <Text style={styles.buttonText}>Logout</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 };
 
-const getStyles = (colors) => StyleSheet.create({
-  screenContainer: {
+const MenuItem = ({ icon, text, onPress, colors, fonts }) => (
+  <TouchableOpacity style={getMenuItemStyles(colors).menuItem} onPress={onPress}>
+    <Ionicons name={icon} size={24} color={colors.primary} style={getMenuItemStyles(colors).menuItemIcon} />
+    <Text style={getMenuItemStyles(colors, fonts).menuItemText}>{text}</Text>
+    <Ionicons name="chevron-forward-outline" size={22} color={colors.subtext} />
+  </TouchableOpacity>
+);
+
+const getMenuItemStyles = (colors, fonts) => StyleSheet.create({
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 15,
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    marginBottom: 10,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  menuItemIcon: {
+    marginRight: 15,
+  },
+  menuItemText: {
     flex: 1,
-    backgroundColor: colors.background, 
+    fontSize: 17,
+    fontFamily: fonts?.medium || 'sans-serif-medium',
+    color: colors.text,
+  },
+});
+
+const getStyles = (colors, fonts) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  contentContainer: {
+    paddingBottom: 30,
   },
   loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background, // Added for consistency
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: colors.primary,
+    fontFamily: fonts.medium,
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.error,
+    fontFamily: fonts.regular,
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: colors.buttonText,
+    fontSize: 16,
+    fontFamily: fonts.medium,
   },
   headerContainer: {
-    backgroundColor: colors.card, // Use theme color
-    paddingVertical: 30,
+    backgroundColor: colors.headerBackground,
     alignItems: 'center',
+    paddingTop: Platform.OS === 'android' ? 40 : 60,
+    paddingBottom: 30,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     marginBottom: 20,
-    shadowColor: colors.shadow, // Use theme color
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 5,
-    elevation: 3,
+    elevation: 4,
   },
-  profileImage: {
+  profilePic: {
     width: 120,
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: colors.primary, // Use theme color
+    borderColor: colors.surface, // White border around pic
     marginBottom: 15,
   },
   userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text, // Use theme color
+    fontSize: 26,
+    fontFamily: fonts.bold,
+    color: colors.headerText,
     marginBottom: 5,
   },
   userEmail: {
     fontSize: 16,
-    color: colors.textSecondary, // Use theme color
+    fontFamily: fonts.regular,
+    color: colors.headerText,
+    opacity: 0.85,
+    marginBottom: 10,
   },
-  card: {
-    backgroundColor: colors.card, // Use theme color
-    borderRadius: 15,
-    padding: 20,
-    marginHorizontal: 15,
-    marginBottom: 20,
-    shadowColor: colors.shadow, // Use theme color
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+  userBio: {
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    color: colors.headerText,
+    opacity: 0.75,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    fontStyle: 'italic',
+  },
+  menuContainer: {
+    paddingHorizontal: 20,
+    marginTop: 10, // Add some space if header is not curved or less padding
+  },
+  actionsContainer: {
+    marginTop: 30,
+    paddingHorizontal: 20,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    borderRadius: 10,
+    marginBottom: 15,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
   },
-  cardHeader: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text, // Use theme color
-    marginBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border, // Use theme color
-    paddingBottom: 10,
+  actionButtonIcon: {
+    marginRight: 10,
   },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 15,
-  },
-  infoIcon: {
-    marginRight: 15,
-    marginTop: 2, // Align icon with first line of text
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: colors.textSecondary, // Use theme color
-    marginBottom: 3,
-  },
-  infoValue: {
-    fontSize: 16,
-    color: colors.text, // Use theme color
-    fontWeight: '500',
-  },
-  button: {
-    flexDirection: 'row',
-    backgroundColor: colors.primary, // Use theme color
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 15,
-    marginBottom: 15,
-    shadowColor: colors.shadow, // Use theme color
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  buttonText: {
-    color: colors.buttonText, // Use theme color
+  actionButtonText: {
     fontSize: 17,
-    fontWeight: '600',
-    marginLeft: 10,
+    fontFamily: fonts.medium,
+    color: colors.buttonText,
   },
   logoutButton: {
-    backgroundColor: colors.error, // Use theme color for error/destructive action
+    backgroundColor: colors.secondary, 
   },
-  container: { // Kept for loading state, ensure it uses theme background
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: colors.background,
-  },
-  text: { // General text style if needed, ensure it uses theme text color
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: colors.text,
+  deleteButton: {
+    backgroundColor: colors.error,
   },
 });
 

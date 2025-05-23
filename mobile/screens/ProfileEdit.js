@@ -1,91 +1,92 @@
-import React, { useState, useEffect, useContext } from 'react'; // Added useContext
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
+  TouchableOpacity,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
   Alert,
   Image,
-  Modal // Added Modal
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { auth, db, storage } from '../firebaseConfig';
-import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import DateTimePicker from '@react-native-community/datetimepicker'; // Added DateTimePicker
-import { Picker } from '@react-native-picker/picker'; // Added Picker
-import { useTheme } from '../context/ThemeContext'; // Import useTheme
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { auth, db, storage } from '../firebaseConfig'; // Ensure this path is correct
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Define static colors and fonts directly
+const STATIC_COLORS = {
+  background: '#F0F4F8',
+  surface: '#FFFFFF',
+  primary: '#6A11CB',
+  secondary: '#2575FC',
+  text: '#1A2B4D',
+  subtext: '#5A6B7C',
+  placeholder: '#A0A0A0',
+  border: '#E0E6F0',
+  error: '#D32F2F',
+  buttonText: '#FFFFFF',
+  disabled: '#BDBDBD',
+  inputBackground: '#F7F9FC',
+  shadow: 'rgba(0, 0, 0, 0.1)',
+};
+
+const STATIC_FONTS = {
+  regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  medium: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+  bold: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
+};
 
 const ProfileEditScreen = ({ navigation }) => {
-  const themeContext = useTheme() || {};
-  const colors = themeContext.colors || {};
-  const styles = getStyles(colors);
-  const [profileData, setProfileData] = useState({
+  const colors = STATIC_COLORS; // USE STATIC
+  const fonts = STATIC_FONTS; // USE STATIC
+  const styles = getStyles(colors, fonts);
+
+  const [userData, setUserData] = useState({
     name: '',
     email: '',
-    dateOfBirth: new Date(0), // Initialize with a default or null, handle string conversion for display
-    gender: '',
-    university: '',
-    fieldOfStudy: '',
-    currentYear: '',
-    expectedGraduationYear: '',
-    studyGoals: '',
-    preferredLearningStyle: '',
-    profilePictureUrl: null,
+    bio: '',
+    profilePicture: null,
   });
-  const [imageUri, setImageUri] = useState(null);
-  const [uploading, setUploading] = useState(false); // For the overall update process
-  const [imageUploading, setImageUploading] = useState(false); // Specifically for image upload progress
-  const [loading, setLoading] = useState(true); // For initial data load
+  const [newProfilePic, setNewProfilePic] = useState(null); // URI of the new image
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [tempDate, setTempDate] = useState(new Date()); // Temporary date for iOS modal
-  const [showGenderPicker, setShowGenderPicker] = useState(false);
+
+  const fetchUserProfile = useCallback(async () => {
+    setLoading(true);
+    const user = auth.currentUser;
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(userDocRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setUserData({
+          name: data.name || '',
+          email: data.email || '',
+          bio: data.bio || '',
+          profilePicture: data.profilePicture || null,
+        });
+      } else {
+        setError("No profile data found. Please complete your profile.");
+      }
+    } else {
+      setError("User not logged in.");
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      setLoading(true);
-      const user = auth.currentUser;
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(userDocRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setProfileData({
-            name: data.name || '',
-            email: data.email || '',
-            dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : new Date(0), // Convert string to Date
-            gender: data.gender || '',
-            university: data.university || '',
-            fieldOfStudy: data.fieldOfStudy || '',
-            currentYear: data.currentYear?.toString() || '',
-            expectedGraduationYear: data.expectedGraduationYear?.toString() || '',
-            studyGoals: data.studyGoals || '',
-            preferredLearningStyle: data.preferredLearningStyle || '',
-            profilePictureUrl: data.profilePictureUrl || null,
-          });
-          if (data.profilePictureUrl) {
-            setImageUri(data.profilePictureUrl);
-          }
-        } else {
-          setError("No profile data found. Please complete your profile.");
-        }
-      } else {
-        setError("User not logged in.");
-        // Consider navigating to Login if critical, or let ProfileScreen handle it
-        // navigation.navigate('Login'); 
-      }
-      setLoading(false);
-    };
-    fetchUserData();
-  }, []); // Removed navigation from deps as it's stable, add if lint complains
+    fetchUserProfile();
+  }, [fetchUserProfile]);
+
+  const handleInputChange = (field, value) => {
+    setUserData(prev => ({ ...prev, [field]: value }));
+  };
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -96,7 +97,7 @@ const ProfileEditScreen = ({ navigation }) => {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImageUri(result.assets[0].uri);
+      setNewProfilePic(result.assets[0].uri);
     }
   };
 
@@ -107,7 +108,6 @@ const ProfileEditScreen = ({ navigation }) => {
       setError("User not authenticated for image upload.");
       return null;
     }
-    setImageUploading(true);
 
     const blob = await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -124,108 +124,74 @@ const ProfileEditScreen = ({ navigation }) => {
     });
 
     const storageRef = ref(storage, `profile_pictures/${user.uid}/${Date.now()}_${Math.random().toString(36).substring(7)}`);
-    const uploadTask = uploadBytesResumable(storageRef, blob);
+    const uploadTask = uploadBytes(storageRef, blob);
 
     return new Promise((resolve, reject) => {
-      const handleProgress = (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        console.log('Upload is ' + progress + '% done');
-        // Optionally, update a progress state here
-      };
-
-      const handleError = (uploadError) => {
-        console.error("Upload failed:", uploadError);
-        // It's important to close the blob if the XHR request created it and it's still open,
-        // but XHR blobs are typically managed by the browser/runtime.
-        // For React Native, direct manipulation like blob.close() is not standard for XHR responses.
-        setImageUploading(false);
-        reject(uploadError);
-      };
-
-      const handleComplete = async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          setImageUploading(false);
-          resolve(downloadURL);
-        } catch (e) {
-          console.error("Failed to get download URL:", e);
-          setImageUploading(false);
-          reject(e);
+      uploadTask.on("state_changed", 
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log('Upload is ' + progress + '% done');
+        }, 
+        (uploadError) => {
+          console.error("Upload failed:", uploadError);
+          reject(uploadError);
+        }, 
+        async () => {
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(downloadURL);
+          } catch (e) {
+            console.error("Failed to get download URL:", e);
+            reject(e);
+          }
         }
-      };
-
-      uploadTask.on("state_changed", handleProgress, handleError, handleComplete);
+      );
     });
   };
 
-  const handleUpdateProfile = async () => {
+  const handleSaveProfile = async () => {
     setError('');
     setSuccess('');
     
-    if (!profileData.name || !profileData.university || !profileData.fieldOfStudy || !profileData.currentYear || !profileData.expectedGraduationYear) {
-      setError('Please fill in all required fields (Name, University, Field of Study, Current Year, Expected Graduation Year).');
+    if (!userData.name) {
+      setError('Please enter your name.');
       return;
     }
     
-    setUploading(true);
+    setSaving(true);
     
     try {
       const user = auth.currentUser;
       if (!user) {
         setError('You must be logged in to update your profile');
-        setUploading(false);
+        setSaving(false);
         return;
       }
 
-      let newProfilePictureUrl = profileData.profilePictureUrl;
-      // Check if a new image was selected AND it's different from the current one
-      if (imageUri && imageUri !== profileData.profilePictureUrl) {
-        const uploadedUrl = await uploadImageAsync(imageUri);
+      let profilePictureUrl = userData.profilePicture;
+      if (newProfilePic && newProfilePic !== userData.profilePicture) {
+        const uploadedUrl = await uploadImageAsync(newProfilePic);
         if (uploadedUrl) {
-          newProfilePictureUrl = uploadedUrl;
+          profilePictureUrl = uploadedUrl;
         } else {
-          // Error during image upload would have been set by uploadImageAsync or caught here
           if (!error) setError("Failed to upload new profile picture. Previous picture retained.");
-          // Decide if to proceed without new image or stop
         }
       }
       
       const userDocRef = doc(db, 'users', user.uid);
-      const currentYearNum = parseInt(profileData.currentYear, 10);
-      const gradYearNum = parseInt(profileData.expectedGraduationYear, 10);
-
-      if (isNaN(currentYearNum) || currentYearNum <= 0) {
-        setError("Invalid Current Year of Study.");
-        setUploading(false);
-        return;
-      }
-      if (isNaN(gradYearNum) || gradYearNum <= 2000) { // Basic validation for grad year
-        setError("Invalid Expected Graduation Year.");
-        setUploading(false);
-        return;
-      }
 
       const updatedData = {
-        name: profileData.name,
-        dateOfBirth: profileData.dateOfBirth.toISOString().split('T')[0], // Store as YYYY-MM-DD string
-        gender: profileData.gender,
-        university: profileData.university,
-        fieldOfStudy: profileData.fieldOfStudy,
-        currentYear: currentYearNum,
-        expectedGraduationYear: gradYearNum,
-        studyGoals: profileData.studyGoals,
-        preferredLearningStyle: profileData.preferredLearningStyle,
-        profilePictureUrl: newProfilePictureUrl,
-        // email is updated via Firebase Auth methods, not directly in Firestore profile usually
+        name: userData.name,
+        bio: userData.bio,
+        profilePicture: profilePictureUrl,
       };
 
       await updateDoc(userDocRef, updatedData);
       
       setSuccess('Profile updated successfully!');
-      setProfileData(prev => ({...prev, profilePictureUrl: newProfilePictureUrl}));
+      setUserData(prev => ({...prev, profilePicture: profilePictureUrl}));
       
       setTimeout(() => {
-        // Navigate back to ProfileScreen, passing a param to trigger refresh
         navigation.navigate('Settings', { 
           screen: 'ProfileScreen', 
           params: { refreshTimestamp: Date.now() } 
@@ -236,128 +202,102 @@ const ProfileEditScreen = ({ navigation }) => {
       console.error('Error updating profile:', err);
       setError(err.message || 'Failed to update profile. Please try again.');
     } finally {
-      setUploading(false);
-      setImageUploading(false); // Ensure this is reset
+      setSaving(false);
     }
   };
-
-  const handleInputChange = (field, value) => {
-    setProfileData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const onDateChange = (event, selectedDate) => {
-    const currentDate = selectedDate || (Platform.OS === 'ios' ? tempDate : profileData.dateOfBirth);
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-      if (event.type === 'set' && selectedDate) { // 'set' means a date was selected
-        setProfileData(prev => ({ ...prev, dateOfBirth: currentDate }));
-      }
-    } else { // For iOS, we update a temporary date
-      if (selectedDate) {
-        setTempDate(currentDate);
-      }
-    }
-  };
-
-  const handleDoneIOSDate = () => {
-    setProfileData(prev => ({ ...prev, dateOfBirth: tempDate }));
-    setShowDatePicker(false);
-  };
-
-  const handleCancelIOSDate = () => {
-    setTempDate(profileData.dateOfBirth); // Reset temp date to original if cancelled
-    setShowDatePicker(false);
-  };
-
-  const genderOptions = [
-    { label: 'Select Gender', value: '' },
-    { label: 'Male', value: 'male' },
-    { label: 'Female', value: 'female' },
-    { label: 'Non-binary', value: 'non-binary' },
-    { label: 'Prefer not to say', value: 'prefer-not-to-say' },
-    { label: 'Other', value: 'other' },
-  ];
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading Profile...</Text>
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => console.log("Change profile picture")} style={styles.avatarContainer}>
-            <Image 
-              source={{ uri: profileData.profilePictureUrl || 'https://via.placeholder.com/150' }} 
-              style={styles.avatar}
-            />
-            <View style={styles.cameraIconContainer}>
-              <Ionicons name="camera-outline" size={20} color={theme.colors.buttonText} />
-            </View>
-          </TouchableOpacity>
-        </View>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={28} color={colors.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <View style={{ width: 28 }} />{/* Spacer */}
+      </View>
 
-        <Text style={styles.label}>Full Name</Text>
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      <View style={styles.profilePicContainer}>
+        <TouchableOpacity onPress={pickImage} style={styles.profilePicButton}>
+          <Image 
+            source={newProfilePic ? { uri: newProfilePic } : (userData.profilePicture ? { uri: userData.profilePicture } : require('../assets/default-avatar.png'))}
+            style={styles.profilePic}
+          />
+          <View style={styles.cameraIconContainer}>
+            <Ionicons name="camera" size={20} color={colors.surface} />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Name</Text>
         <TextInput
           style={styles.input}
-          value={profileData.name}
-          onChangeText={(val) => handleInputChange('name', val)}
-          placeholder="Enter your full name"
-          placeholderTextColor={theme.colors.subtext}
+          placeholder="Enter your name"
+          placeholderTextColor={colors.placeholder}
+          value={userData.name}
+          onChangeText={(text) => handleInputChange('name', text)}
         />
+      </View>
 
-        <Text style={styles.label}>Email Address</Text>
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Email</Text>
         <TextInput
-          style={styles.input}
-          value={profileData.email}
-          onChangeText={(val) => handleInputChange('email', val)}
-          keyboardType="email-address"
-          placeholder="Enter your email address"
-          placeholderTextColor={theme.colors.subtext}
-          // editable={false} // If email is not editable after creation
+          style={[styles.input, styles.disabledInput]} // Apply disabled style
+          placeholder="Enter your email"
+          placeholderTextColor={colors.placeholder}
+          value={userData.email}
+          editable={false} // Email is not editable
+          selectTextOnFocus={false}
         />
+      </View>
 
+      <View style={styles.inputGroup}>
         <Text style={styles.label}>Bio</Text>
         <TextInput
-          style={[styles.input, styles.textArea]}
-          value={profileData.bio}
-          onChangeText={(val) => handleInputChange('bio', val)}
-          placeholder="Tell us a bit about yourself"
+          style={[styles.input, styles.bioInput]}
+          placeholder="Tell us about yourself"
+          placeholderTextColor={colors.placeholder}
+          value={userData.bio}
+          onChangeText={(text) => handleInputChange('bio', text)}
           multiline
           numberOfLines={4}
-          placeholderTextColor={theme.colors.subtext}
         />
+      </View>
 
-        {/* Add more fields as needed, e.g., change password */} 
-
-        <TouchableOpacity style={styles.saveButton} onPress={handleUpdateProfile} disabled={uploading}>
-          {uploading ? (
-            <ActivityIndicator size="small" color={theme.colors.buttonText} />
-          ) : (
-            <Text style={styles.saveButtonText}>Save Changes</Text>
-          )}
-        </TouchableOpacity>
-
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <TouchableOpacity 
+        style={[styles.saveButton, saving && styles.disabledButton]}
+        onPress={handleSaveProfile} 
+        disabled={saving}
+      >
+        {saving ? (
+          <ActivityIndicator size="small" color={colors.buttonText} />
+        ) : (
+          <Text style={styles.saveButtonText}>Save Changes</Text>
+        )}
+      </TouchableOpacity>
+    </ScrollView>
   );
 };
 
-const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
+const getStyles = (colors, fonts) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  scrollContainer: {
-    paddingBottom: 30, // Space for save button
+  contentContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
   },
   loadingContainer: {
     flex: 1,
@@ -368,72 +308,112 @@ const getStyles = (colors) => StyleSheet.create({ // Wrap styles in a function
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: colors.text,
+    color: colors.primary,
+    fontFamily: fonts.medium,
   },
   header: {
-    backgroundColor: colors.primary, // Use primary color for header background
-    paddingVertical: 30,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    paddingTop: Platform.OS === 'android' ? 30 : 40,
+    paddingBottom: 20,
+    marginBottom: 10,
   },
-  avatarContainer: {
-    position: 'relative',
+  backButton: {
+    padding: 5, // Easier to tap
   },
-  avatar: {
+  headerTitle: {
+    fontSize: 22,
+    fontFamily: fonts.bold,
+    color: colors.text,
+  },
+  profilePicContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  profilePicButton: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    borderWidth: 3,
-    borderColor: colors.card, // Border color for avatar
+    backgroundColor: colors.border, // Placeholder background
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  profilePic: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
   },
   cameraIconContainer: {
     position: 'absolute',
     bottom: 5,
     right: 5,
-    backgroundColor: colors.secondary, // Or primary, depending on desired look
+    backgroundColor: colors.primary,
     padding: 8,
     borderRadius: 15,
+    borderWidth: 2,
+    borderColor: colors.surface,
+  },
+  inputGroup: {
+    marginBottom: 20,
   },
   label: {
     fontSize: 16,
+    fontFamily: fonts.medium,
     color: colors.text,
-    marginLeft: 20,
-    marginBottom: 5,
-    fontWeight: '500',
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: colors.card,
-    color: colors.text,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 10,
-    fontSize: 16,
-    marginHorizontal: 20,
-    marginBottom: 20,
+    backgroundColor: colors.inputBackground,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: Platform.OS === 'ios' ? 15 : 12,
+    fontSize: 16,
+    fontFamily: fonts.regular,
+    color: colors.text,
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
+  bioInput: {
+    height: 100, // For multiline
+    textAlignVertical: 'top', // Android specific
+  },
+  disabledInput: {
+    backgroundColor: colors.border, // Slightly different background for disabled
+    color: colors.subtext,
   },
   saveButton: {
     backgroundColor: colors.primary,
-    padding: 18,
+    paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginHorizontal: 20,
-    marginTop: 10,
+    marginTop: 20,
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 3,
   },
+  disabledButton: {
+    backgroundColor: colors.disabled,
+  },
   saveButtonText: {
     color: colors.buttonText,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    textAlign: 'center',
+    marginBottom: 15,
   },
 });
 

@@ -1,12 +1,11 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import axios from 'axios';
-import { ThemeContext } from '../context/ThemeContext';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons'; // Assuming you use Expo for icons
 import { API_BASE_URL } from '../config'; // Assuming you have a config file for your API base URL
 
 const AddSpacedRepetitionItemScreen = ({ navigation }) => {
-    const themeContext = useTheme() || {};
-    const colors = themeContext.colors || {};
     const [front, setFront] = useState('');
     const [back, setBack] = useState('');
     const [deck, setDeck] = useState(''); // Optional: for categorizing items
@@ -55,62 +54,6 @@ const AddSpacedRepetitionItemScreen = ({ navigation }) => {
         }
     };
 
-    const styles = StyleSheet.create({
-        container: {
-            flex: 1,
-            backgroundColor: colors.background,
-            padding: 20,
-        },
-        scrollContainer: {
-            flexGrow: 1,
-            justifyContent: 'center',
-        },
-        title: {
-            fontSize: 28,
-            fontWeight: 'bold',
-            color: colors.text,
-            marginBottom: 30,
-            textAlign: 'center',
-        },
-        inputContainer: {
-            marginBottom: 20,
-        },
-        label: {
-            fontSize: 16,
-            color: colors.text,
-            marginBottom: 8,
-        },
-        input: {
-            backgroundColor: colors.cardBackground,
-            color: colors.text,
-            paddingHorizontal: 15,
-            paddingVertical: 12,
-            borderRadius: 10,
-            fontSize: 16,
-            borderWidth: 1,
-            borderColor: colors.borderColor,
-        },
-        textArea: {
-            minHeight: 100,
-            textAlignVertical: 'top',
-        },
-        button: {
-            backgroundColor: colors.primary,
-            paddingVertical: 15,
-            borderRadius: 10,
-            alignItems: 'center',
-            marginTop: 20,
-        },
-        buttonText: {
-            color: colors.buttonText,
-            fontSize: 18,
-            fontWeight: 'bold',
-        },
-        disabledButton: {
-            backgroundColor: colors.disabled,
-        }
-    });
-
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -126,7 +69,7 @@ const AddSpacedRepetitionItemScreen = ({ navigation }) => {
                         value={front}
                         onChangeText={setFront}
                         placeholder="e.g., What is the capital of France?"
-                        placeholderTextColor={colors.placeholder}
+                        placeholderTextColor={'#A0A0A0'}
                     />
                 </View>
 
@@ -137,7 +80,7 @@ const AddSpacedRepetitionItemScreen = ({ navigation }) => {
                         value={back}
                         onChangeText={setBack}
                         placeholder="e.g., Paris"
-                        placeholderTextColor={colors.placeholder}
+                        placeholderTextColor={'#A0A0A0'}
                         multiline
                     />
                 </View>
@@ -149,7 +92,7 @@ const AddSpacedRepetitionItemScreen = ({ navigation }) => {
                         value={deck}
                         onChangeText={setDeck}
                         placeholder="e.g., Geography, Programming"
-                        placeholderTextColor={colors.placeholder}
+                        placeholderTextColor={'#A0A0A0'}
                     />
                 </View>
 
@@ -160,7 +103,7 @@ const AddSpacedRepetitionItemScreen = ({ navigation }) => {
                         value={tags}
                         onChangeText={setTags}
                         placeholder="e.g., europe, capitals, javascript"
-                        placeholderTextColor={colors.placeholder}
+                        placeholderTextColor={'#A0A0A0'}
                     />
                 </View>
 
@@ -175,5 +118,82 @@ const AddSpacedRepetitionItemScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        padding: 20,
+    },
+    scrollContainer: {
+        flexGrow: 1,
+        justifyContent: 'center',
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#007AFF',
+        textAlign: 'center',
+        marginBottom: 30,
+    },
+    inputContainer: {
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 16,
+        marginBottom: 8,
+        fontWeight: 'bold',
+        color: '#333333',
+    },
+    input: {
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 12,
+        fontSize: 16,
+        marginBottom: 20,
+        backgroundColor: '#FFFFFF',
+        color: '#333333',
+        borderColor: '#CCCCCC',
+    },
+    textArea: {
+        height: 100,
+        textAlignVertical: 'top',
+    },
+    button: {
+        backgroundColor: '#007AFF',
+        paddingVertical: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    buttonText: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    disabledButton: {
+        backgroundColor: '#CCCCCC',
+    },
+    datePickerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 10,
+        padding: 15,
+        borderWidth: 1,
+        borderColor: '#CCCCCC',
+        marginBottom: 20,
+    },
+    dateText: {
+        fontSize: 16,
+        color: '#333333',
+    },
+    errorText: {
+        color: '#FF3B30',
+        fontSize: 14,
+        marginTop: 5,
+        textAlign: 'center',
+    },
+});
 
 export default AddSpacedRepetitionItemScreen;
