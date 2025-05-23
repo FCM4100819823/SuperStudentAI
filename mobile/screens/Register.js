@@ -66,29 +66,11 @@ const RegisterScreen = ({ navigation }) => {
   // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerValue, setDatePickerValue] = useState(new Date());
-  
-  // University picker
-  const [showUniversityPicker, setShowUniversityPicker] = useState(false);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
   const progressAnim = useRef(new Animated.Value(0.333)).current;
-
-  // Sample university list
-  const universities = [
-    { label: "Select University", value: "" },
-    { label: "University of Ghana", value: "University of Ghana" },
-    { label: "Kwame Nkrumah University of Science and Technology", value: "Kwame Nkrumah University of Science and Technology" },
-    { label: "University of Cape Coast", value: "University of Cape Coast" },
-    { label: "Ghana Institute of Management and Public Administration", value: "Ghana Institute of Management and Public Administration" },
-    { label: "Ashesi University", value: "Ashesi University" },
-    { label: "University of Education, Winneba", value: "University of Education, Winneba" },
-    { label: "University for Development Studies", value: "University for Development Studies" },
-    { label: "Accra Technical University", value: "Accra Technical University" },
-    { label: "Central University", value: "Central University" },
-    { label: "Other", value: "Other" }
-  ];
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -171,12 +153,12 @@ const RegisterScreen = ({ navigation }) => {
         isValid = false;
       }
       
-      if (!university) {
+      if (!university.trim()) { // Changed to check trimmed university input
         stepErrors.university = 'University is required';
         isValid = false;
       }
       
-      if (!major) {
+      if (!major.trim()) { // Changed to check trimmed major input
         stepErrors.major = 'Field of study is required';
         isValid = false;
       }
@@ -273,11 +255,14 @@ const RegisterScreen = ({ navigation }) => {
 
   const onChangeDatePicker = (event, selectedDate) => {
     const currentDate = selectedDate || datePickerValue;
-    setShowDatePicker(Platform.OS === 'ios');
+    // For iOS, hide the picker after selection or cancellation.
+    // For Android, the picker is modal and dismissed automatically.
+    if (Platform.OS === 'ios') {
+        setShowDatePicker(false);
+    }
     
-    if (event.type === 'set') {
+    if (event.type === 'set' && currentDate) { // ensure currentDate is not null (if user cancels on Android)
       setDatePickerValue(currentDate);
-      // Calculate age from date of birth
       const today = new Date();
       let ageValue = today.getFullYear() - currentDate.getFullYear();
       const m = today.getMonth() - currentDate.getMonth();
@@ -285,6 +270,10 @@ const RegisterScreen = ({ navigation }) => {
         ageValue--;
       }
       setAge(ageValue.toString());
+      if (errors.age) setErrors({ ...errors, age: undefined });
+    } else if (event.type === 'dismissed' && Platform.OS === 'android') {
+        // Handle explicit dismissal on Android if needed, though usually not required for this logic
+        setShowDatePicker(false); // Ensure picker is hidden if dismissed
     }
   };
 
@@ -414,15 +403,20 @@ const RegisterScreen = ({ navigation }) => {
             
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>University</Text>
-              <TouchableOpacity 
-                style={[styles.inputContainer, errors.university && styles.inputError]}
-                onPress={() => setShowUniversityPicker(true)}
-              >
+              {/* Changed from TouchableOpacity to TextInput */}
+              <View style={[styles.inputContainer, errors.university && styles.inputError]}>
                 <Ionicons name="school-outline" size={20} color={colors.icon || colors.placeholder} style={styles.inputIcon} />
-                <Text style={[styles.input, !university && styles.placeholderText]}>
-                  {university || "Select your university"}
-                </Text>
-              </TouchableOpacity>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Your university name"
+                  placeholderTextColor={colors.placeholder}
+                  value={university}
+                  onChangeText={(text) => {
+                    setUniversity(text);
+                    if (errors.university) setErrors({ ...errors, university: undefined });
+                  }}
+                />
+              </View>
               {errors.university && <Text style={styles.errorText}>{errors.university}</Text>}
             </View>
             
@@ -508,43 +502,6 @@ const RegisterScreen = ({ navigation }) => {
         return null;
     }
   };
-
-  // University picker modal
-  const renderUniversityPicker = () => (
-    <Modal
-      visible={showUniversityPicker}
-      animationType="slide"
-      transparent={true}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.pickerModal}>
-          <View style={styles.pickerHeader}>
-            <TouchableOpacity onPress={() => setShowUniversityPicker(false)}>
-              <Text style={styles.pickerCancel}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={styles.pickerTitle}>Select University</Text>
-            <TouchableOpacity onPress={() => setShowUniversityPicker(false)}>
-              <Text style={styles.pickerDone}>Done</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={university}
-              onValueChange={(itemValue) => {
-                setUniversity(itemValue);
-                if (errors.university) setErrors({ ...errors, university: undefined });
-              }}
-            >
-              {universities.map((item, index) => (
-                <Picker.Item key={index} label={item.label} value={item.value} />
-              ))}
-            </Picker>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -671,8 +628,6 @@ const RegisterScreen = ({ navigation }) => {
             </ScrollView>
           </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
-        
-        {renderUniversityPicker()}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -962,46 +917,6 @@ const getStyles = (colors) => StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  pickerModal: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  pickerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
-  },
-  pickerCancel: {
-    fontSize: 16,
-    color: colors.subtext || colors.placeholder,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
-  },
-  pickerDone: {
-    fontSize: 16,
-    color: colors.primary,
-    fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
-  },
-  pickerContainer: {
-    paddingVertical: 10,
   },
 });
 

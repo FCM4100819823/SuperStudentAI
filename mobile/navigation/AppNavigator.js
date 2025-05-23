@@ -2,8 +2,8 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext'; // Import useTheme
-import { Platform } from 'react-native'; // Import Platform
+import { useTheme } from '../context/ThemeContext';
+import { Platform } from 'react-native'; // Ensure Platform is imported
 
 import LoginScreen from '../screens/Login';
 import RegisterScreen from '../screens/Register';
@@ -28,18 +28,19 @@ import SpacedRepetitionScreen from '../screens/SpacedRepetitionScreen'; // Impor
 
 // Define default colors as a fallback
 const defaultThemeColors = {
-  primary: '#6A11CB', // Default primary color (e.g., a purple)
-  subtext: '#5A6B7C', // Default subtext color
-  card: '#FFFFFF',    // Default card background
-  border: '#E0E6F0',  // Default border color
-  text: '#1A2B4D',     // Default text color
-  // Add any other colors that AppTabs might try to access from theme.colors
+  primary: '#6A11CB',
+  subtext: '#5A6B7C',
+  card: '#FFFFFF',
+  border: '#E0E6F0',
+  text: '#1A2B4D',
+  // Add other necessary fallbacks if accessed from theme.colors
+  background: '#F0F4F8', // Example, ensure all accessed colors have fallbacks
 };
 
 // Define default fonts as a fallback
 const defaultThemeFonts = {
   regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
-  medium: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+  medium: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium', // Corrected for consistency, ensure this font is available or use fontWeight
   light: Platform.OS === 'ios' ? 'System' : 'sans-serif-light',
   thin: Platform.OS === 'ios' ? 'System' : 'sans-serif-thin',
   bold: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
@@ -102,15 +103,14 @@ const AuthStack = () => (
 );
 
 const AppTabs = () => {
-  const themeContext = useTheme(); // Get theme context
+  const themeContext = useTheme();
 
-  // More robust fallback for the entire theme object
-  const theme = themeContext && themeContext.colors && themeContext.fonts 
-                ? themeContext 
-                : { colors: defaultThemeColors, fonts: defaultThemeFonts, dark: false, themeName: 'light' };
-  
-  const colors = theme.colors;
-  const fonts = theme.fonts; // Ensure fonts are destructured or accessed from the resolved theme
+  // Safely get colors and fonts, falling back to defaults
+  const colors = themeContext?.colors ?? defaultThemeColors;
+  const fonts = themeContext?.fonts ?? defaultThemeFonts;
+
+  // Ensure fonts object and fonts.medium are valid, otherwise provide a final fallback for fontFamily
+  const tabBarFontFamily = fonts?.medium ?? defaultThemeFonts.medium;
 
   return (
     <AppTabsNav.Navigator
@@ -129,23 +129,22 @@ const AppTabs = () => {
           } else if (route.name === 'SettingsTab') {
             iconName = focused ? 'settings' : 'settings-outline';
           }
-          // Use colors.primary and colors.subtext from the resolved theme
           return <Ionicons name={iconName} size={size} color={focused ? colors.primary : colors.subtext} />;
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.subtext,
-        tabBarStyle: { 
+        tabBarStyle: {
           backgroundColor: colors.card,
-          borderTopWidth: 0, 
-          elevation: 5, 
+          borderTopWidth: 0,
+          elevation: 5,
           shadowOpacity: 0.1,
-          borderTopColor: colors.border, // Use colors.border from the resolved theme
+          borderTopColor: colors.border,
         },
-        tabBarLabelStyle: { 
-          fontSize: 11, 
+        tabBarLabelStyle: {
+          fontSize: 11,
           paddingBottom: 3,
-          fontFamily: fonts.medium, // Use fonts.medium from the resolved theme
-          color: colors.text, // Use colors.text from the resolved theme
+          fontFamily: tabBarFontFamily, // Use the safely derived font family
+          color: colors.text,
         },
       })}
     >
