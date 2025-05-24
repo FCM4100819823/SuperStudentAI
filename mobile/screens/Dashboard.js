@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
   RefreshControl,
   ActivityIndicator,
-  Alert
+  Alert,
 } from 'react-native';
-import { collection, doc, onSnapshot } from 'firebase/firestore'; 
-import { auth, firestore } from '../firebaseConfig'; 
+import { collection, doc, onSnapshot } from 'firebase/firestore';
+import { auth, firestore } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -33,9 +33,9 @@ const Dashboard = ({ navigation, route }) => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
+          Authorization: `Bearer ${idToken}`,
         },
-        timeout: 10000 // 10 seconds
+        timeout: 10000, // 10 seconds
       });
       const data = await response.json();
       if (!response.ok) {
@@ -44,7 +44,9 @@ const Dashboard = ({ navigation, route }) => {
       setProfileData(data.user);
     } catch (err) {
       if (err.message && err.message.includes('Network request failed')) {
-        setError('Cannot connect to backend. Make sure your server is running and accessible from the emulator.');
+        setError(
+          'Cannot connect to backend. Make sure your server is running and accessible from the emulator.',
+        );
       } else if (err.message && err.message.includes('timeout')) {
         setError('Network request timed out. Check your backend connection.');
       } else {
@@ -75,17 +77,21 @@ const Dashboard = ({ navigation, route }) => {
     const user = auth.currentUser;
     if (user) {
       // Ensure 'firestore' is used directly, not 'db' if you changed the import alias
-      unsubscribeFirestore = onSnapshot(doc(firestore, "users", user.uid), (docSnap) => {
-        if (docSnap.exists()) {
-          setProfileData(docSnap.data());
-        } else {
-          console.log("No such document in Firestore!");
-          // setError('User profile not found.'); // Optionally set an error
-        }
-      }, (err) => {
-        console.error("Firestore snapshot error:", err);
-        setError('Error fetching profile updates.');
-      });
+      unsubscribeFirestore = onSnapshot(
+        doc(firestore, 'users', user.uid),
+        (docSnap) => {
+          if (docSnap.exists()) {
+            setProfileData(docSnap.data());
+          } else {
+            console.log('No such document in Firestore!');
+            // setError('User profile not found.'); // Optionally set an error
+          }
+        },
+        (err) => {
+          console.error('Firestore snapshot error:', err);
+          setError('Error fetching profile updates.');
+        },
+      );
     }
     fetchUserProfile(); // Initial fetch
 
@@ -124,10 +130,14 @@ const Dashboard = ({ navigation, route }) => {
   }
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#007AFF']} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={['#007AFF']}
+        />
       }
     >
       <View style={styles.header}>
@@ -137,57 +147,69 @@ const Dashboard = ({ navigation, route }) => {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
-
       <View style={styles.profileContainer}>
         <View style={styles.avatarContainer}>
           <Text style={styles.avatarText}>
-            {profileData?.name ? profileData.name.substring(0, 2).toUpperCase() : 'ST'}
+            {profileData?.name
+              ? profileData.name.substring(0, 2).toUpperCase()
+              : 'ST'}
           </Text>
         </View>
-        <Text style={styles.welcomeText}>Welcome, {profileData?.name || 'Student'}!</Text>
+        <Text style={styles.welcomeText}>
+          Welcome, {profileData?.name || 'Student'}!
+        </Text>
       </View>
-
       <View style={styles.infoSection}>
         <Text style={styles.sectionTitle}>Your Profile</Text>
-        
+
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <MaterialIcons name="person" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Name</Text>
-              <Text style={styles.infoValue}>{profileData?.name || 'Not available'}</Text>
+              <Text style={styles.infoValue}>
+                {profileData?.name || 'Not available'}
+              </Text>
             </View>
           </View>
-          
+
           <View style={styles.infoRow}>
             <MaterialIcons name="email" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValue}>{profileData?.email || 'Not available'}</Text>
+              <Text style={styles.infoValue}>
+                {profileData?.email || 'Not available'}
+              </Text>
             </View>
           </View>
-          
+
           <View style={styles.infoRow}>
             <MaterialIcons name="school" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>University</Text>
-              <Text style={styles.infoValue}>{profileData?.university || 'Not available'}</Text>
+              <Text style={styles.infoValue}>
+                {profileData?.university || 'Not available'}
+              </Text>
             </View>
           </View>
-          
+
           <View style={styles.infoRow}>
             <MaterialIcons name="class" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Major</Text>
-              <Text style={styles.infoValue}>{profileData?.major || 'Not available'}</Text>
+              <Text style={styles.infoValue}>
+                {profileData?.major || 'Not available'}
+              </Text>
             </View>
           </View>
-          
+
           <View style={styles.infoRow}>
             <MaterialIcons name="looks-one" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Level</Text>
-              <Text style={styles.infoValue}>{profileData?.level || 'Not available'}</Text>
+              <Text style={styles.infoValue}>
+                {profileData?.level || 'Not available'}
+              </Text>
             </View>
           </View>
 
@@ -195,66 +217,85 @@ const Dashboard = ({ navigation, route }) => {
             <MaterialIcons name="event" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Graduation Year</Text>
-              <Text style={styles.infoValue}>{profileData?.graduationYear || 'Not available'}</Text>
+              <Text style={styles.infoValue}>
+                {profileData?.graduationYear || 'Not available'}
+              </Text>
             </View>
           </View>
-          
+
           <View style={styles.infoRow}>
             <MaterialIcons name="cake" size={24} color="#007AFF" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Age</Text>
-              <Text style={styles.infoValue}>{profileData?.age || 'Not available'}</Text>
+              <Text style={styles.infoValue}>
+                {profileData?.age || 'Not available'}
+              </Text>
             </View>
           </View>
         </View>
-      </View>      <TouchableOpacity 
+      </View>{' '}
+      <TouchableOpacity
         style={styles.editButton}
         onPress={() => navigation.navigate('ProfileEdit', { profileData })}
       >
         <MaterialIcons name="edit" size={20} color="#FFFFFF" />
         <Text style={styles.editButtonText}>Edit Profile</Text>
       </TouchableOpacity>
-
       <View style={styles.infoSection}>
         <Text style={styles.sectionTitle}>Academic Dashboard</Text>
         <View style={styles.gridContainer}>
           {/* Study Plans Card */}
-          <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('StudyPlanList')}>
+          <TouchableOpacity
+            style={styles.gridItem}
+            onPress={() => navigation.navigate('StudyPlanList')}
+          >
             <MaterialIcons name="library-books" size={30} color="#007AFF" />
             <Text style={styles.gridItemText}>Study Plans</Text>
           </TouchableOpacity>
 
           {/* Spaced Repetition Card */}
-          <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('SpacedRepetition')}>
+          <TouchableOpacity
+            style={styles.gridItem}
+            onPress={() => navigation.navigate('SpacedRepetition')}
+          >
             <MaterialIcons name="cached" size={30} color="#007AFF" />
             <Text style={styles.gridItemText}>SRS Review</Text>
           </TouchableOpacity>
 
           {/* Focus Timer Card */}
-          <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('FocusTimer')}>
+          <TouchableOpacity
+            style={styles.gridItem}
+            onPress={() => navigation.navigate('FocusTimer')}
+          >
             <MaterialIcons name="timer" size={30} color="#007AFF" />
             <Text style={styles.gridItemText}>Focus Timer</Text>
           </TouchableOpacity>
 
           {/* Placeholder for Calendar/Schedule */}
-          <TouchableOpacity style={styles.gridItem} onPress={() => Alert.alert("Coming Soon!", "Calendar and schedule integration is under development.")}>
+          <TouchableOpacity
+            style={styles.gridItem}
+            onPress={() =>
+              Alert.alert(
+                'Coming Soon!',
+                'Calendar and schedule integration is under development.',
+              )
+            }
+          >
             <MaterialIcons name="calendar-today" size={30} color="#007AFF" />
             <Text style={styles.gridItemText}>Schedule</Text>
           </TouchableOpacity>
         </View>
       </View>
-
       {/* File Upload Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.uploadButton}
         onPress={() => navigation.navigate('FileUpload')}
       >
         <MaterialIcons name="cloud-upload" size={22} color="#FFFFFF" />
         <Text style={styles.uploadButtonText}>Upload File for AI Parsing</Text>
       </TouchableOpacity>
-
       {/* AI Assistant Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.aiButton}
         onPress={() => navigation.navigate('AI')}
       >
@@ -419,7 +460,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-   
+
     borderRadius: 10,
     padding: 15,
     margin: 5,
@@ -473,7 +514,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     marginLeft: 10,
-  }
+  },
 });
 
 export default Dashboard;

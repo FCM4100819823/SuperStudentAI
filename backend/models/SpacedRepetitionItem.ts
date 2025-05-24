@@ -19,23 +19,46 @@ export interface ISpacedRepetitionItem extends Document {
   updatedAt: Date;
 }
 
-const SpacedRepetitionItemSchema: Schema = new Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  studyPlanId: { type: mongoose.Schema.Types.ObjectId, ref: 'StudyPlan', index: true },
-  taskId: { type: mongoose.Schema.Types.ObjectId, ref: 'StudyPlan.tasks', index: true }, // Assuming tasks are sub-documents or have their own collection
-  originalContent: { type: String, required: true, trim: true },
-  answerContent: { type: String, trim: true },
-  lastReviewedAt: { type: Date },
-  nextReviewAt: { type: Date, required: true, index: true },
-  currentInterval: { type: Number, required: true, default: 1 }, // Initial interval (e.g., 1 day)
-  easeFactor: { type: Number, required: true, default: 2.5 }, // Standard initial E-Factor
-  repetitions: { type: Number, required: true, default: 0 },
-  lapses: { type: Number, required: true, default: 0 },
-  source: { type: String, enum: ['manual', 'syllabus', 'task', 'note'], default: 'manual' },
-  tags: [{ type: String, trim: true }],
-}, { timestamps: true });
+const SpacedRepetitionItemSchema: Schema = new Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
+    studyPlanId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'StudyPlan',
+      index: true,
+    },
+    taskId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'StudyPlan.tasks',
+      index: true,
+    }, // Assuming tasks are sub-documents or have their own collection
+    originalContent: { type: String, required: true, trim: true },
+    answerContent: { type: String, trim: true },
+    lastReviewedAt: { type: Date },
+    nextReviewAt: { type: Date, required: true, index: true },
+    currentInterval: { type: Number, required: true, default: 1 }, // Initial interval (e.g., 1 day)
+    easeFactor: { type: Number, required: true, default: 2.5 }, // Standard initial E-Factor
+    repetitions: { type: Number, required: true, default: 0 },
+    lapses: { type: Number, required: true, default: 0 },
+    source: {
+      type: String,
+      enum: ['manual', 'syllabus', 'task', 'note'],
+      default: 'manual',
+    },
+    tags: [{ type: String, trim: true }],
+  },
+  { timestamps: true },
+);
 
 // Index to efficiently query items due for review for a user
 SpacedRepetitionItemSchema.index({ userId: 1, nextReviewAt: 1 });
 
-export default mongoose.model<ISpacedRepetitionItem>('SpacedRepetitionItem', SpacedRepetitionItemSchema);
+export default mongoose.model<ISpacedRepetitionItem>(
+  'SpacedRepetitionItem',
+  SpacedRepetitionItemSchema,
+);

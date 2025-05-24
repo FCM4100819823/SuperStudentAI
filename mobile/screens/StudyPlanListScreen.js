@@ -8,7 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  RefreshControl
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -59,7 +59,7 @@ const StudyPlanListScreen = () => {
       setLoading(true);
       const user = auth.currentUser;
       if (!user) {
-        Alert.alert("Authentication Error", "No user logged in.");
+        Alert.alert('Authentication Error', 'No user logged in.');
         setLoading(false);
         return;
       }
@@ -69,8 +69,15 @@ const StudyPlanListScreen = () => {
       });
       setStudyPlans(response.data);
     } catch (error) {
-      console.error("Error fetching study plans:", error.response?.data || error.message);
-      Alert.alert("Error", "Failed to fetch study plans. " + (error.response?.data?.message || error.message));
+      console.error(
+        'Error fetching study plans:',
+        error.response?.data || error.message,
+      );
+      Alert.alert(
+        'Error',
+        'Failed to fetch study plans. ' +
+          (error.response?.data?.message || error.message),
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -80,7 +87,7 @@ const StudyPlanListScreen = () => {
   useFocusEffect(
     React.useCallback(() => {
       fetchStudyPlans();
-    }, [])
+    }, []),
   );
 
   const onRefresh = React.useCallback(() => {
@@ -92,61 +99,79 @@ const StudyPlanListScreen = () => {
     try {
       const user = auth.currentUser;
       if (!user) {
-        Alert.alert("Authentication Error", "No user logged in. Please log in again.");
+        Alert.alert(
+          'Authentication Error',
+          'No user logged in. Please log in again.',
+        );
         return;
       }
       const token = await user.getIdToken();
-      e
+      e;
       const response = await axios.delete(`${API_URL}/study-plans/${planId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.status === 200 || response.status === 204) {
-        Alert.alert("Success", "Study plan deleted successfully.");
+        Alert.alert('Success', 'Study plan deleted successfully.');
         fetchStudyPlans(); // Refresh the list
       } else {
         // Attempt to parse backend error message if available
-        const errorMessage = response.data?.message || "Failed to delete study plan. Please try again.";
-        Alert.alert("Deletion Failed", errorMessage);
+        const errorMessage =
+          response.data?.message ||
+          'Failed to delete study plan. Please try again.';
+        Alert.alert('Deletion Failed', errorMessage);
       }
     } catch (error) {
-      console.error("Error deleting study plan:", error.response?.data || error.message);
-      const errorMessage = error.response?.data?.message || "An unexpected error occurred. Please try again.";
-      Alert.alert("Error", errorMessage);
+      console.error(
+        'Error deleting study plan:',
+        error.response?.data || error.message,
+      );
+      const errorMessage =
+        error.response?.data?.message ||
+        'An unexpected error occurred. Please try again.';
+      Alert.alert('Error', errorMessage);
     }
   };
 
   const confirmDelete = (planId) => {
     Alert.alert(
-      "Confirm Deletion",
-      "Are you sure you want to delete this study plan? This action cannot be undone.",
+      'Confirm Deletion',
+      'Are you sure you want to delete this study plan? This action cannot be undone.',
       [
         {
-          text: "Cancel",
-          style: "cancel",
+          text: 'Cancel',
+          style: 'cancel',
         },
         {
-          text: "Delete",
+          text: 'Delete',
           onPress: () => handleDeletePlan(planId),
-          style: "destructive",
+          style: 'destructive',
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   };
 
   const renderStudyPlanItem = ({ item }) => (
     <TouchableOpacity
       style={styles.itemContainer}
-      onPress={() => navigation.navigate('StudyPlanDetailScreen', { planId: item.id })} // Navigate to detail screen
+      onPress={() =>
+        navigation.navigate('StudyPlanDetailScreen', { planId: item.id })
+      } // Navigate to detail screen
     >
       <View style={styles.itemIconContainer}>
         <Ionicons name="book-outline" size={24} color={colors.primary} />
       </View>
       <View style={styles.itemContent}>
         <Text style={styles.itemTitle}>{item.title}</Text>
-        {item.subject && <Text style={styles.itemSubtitle}>Subject: {item.subject}</Text>}
-        {item.goal && <Text style={styles.itemSubtitle} numberOfLines={2}>Goal: {item.goal}</Text>}
+        {item.subject && (
+          <Text style={styles.itemSubtitle}>Subject: {item.subject}</Text>
+        )}
+        {item.goal && (
+          <Text style={styles.itemSubtitle} numberOfLines={2}>
+            Goal: {item.goal}
+          </Text>
+        )}
         {item.startDate && (
           <Text style={styles.itemDate}>
             Starts: {format(parseISO(item.startDate), 'MMM dd, yyyy')}
@@ -158,7 +183,10 @@ const StudyPlanListScreen = () => {
           </Text>
         )}
       </View>
-      <TouchableOpacity onPress={() => confirmDelete(item.id)} style={styles.deleteButton}>
+      <TouchableOpacity
+        onPress={() => confirmDelete(item.id)}
+        style={styles.deleteButton}
+      >
         <Ionicons name="trash-outline" size={24} color={colors.error} />
       </TouchableOpacity>
     </TouchableOpacity>
@@ -176,20 +204,32 @@ const StudyPlanListScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={28} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Study Plans</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('CreateStudyPlan')} style={styles.addButton}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('CreateStudyPlan')}
+          style={styles.addButton}
+        >
           <Ionicons name="add-circle" size={32} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
       {studyPlans.length === 0 && !loading ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="documents-outline" size={80} color={colors.placeholder} />
+          <Ionicons
+            name="documents-outline"
+            size={80}
+            color={colors.placeholder}
+          />
           <Text style={styles.emptyText}>No study plans yet.</Text>
-          <Text style={styles.emptySubText}>Tap the '+' button to create your first plan!</Text>
+          <Text style={styles.emptySubText}>
+            Tap the '+' button to create your first plan!
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -199,7 +239,11 @@ const StudyPlanListScreen = () => {
           contentContainerStyle={styles.listContentContainer}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+            />
           }
         />
       )}
@@ -207,122 +251,123 @@ const StudyPlanListScreen = () => {
   );
 };
 
-const getStyles = (colors, fonts) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    fontFamily: fonts.medium,
-    color: colors.primary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingTop: Platform.OS === 'android' ? 35 : 50,
-    paddingBottom: 15,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  backButton: {
-    padding: 5,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontFamily: fonts.bold,
-    color: colors.text,
-  },
-  addButton: {
-    padding: 5,
-  },
-  listContentContainer: {
-    paddingHorizontal: 15,
-    paddingTop: 15,
-    paddingBottom: 20,
-  },
-  itemContainer: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  itemIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.primary + '20', // Light primary background
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  itemContent: {
-    flex: 1,
-  },
-  itemTitle: {
-    fontSize: 17,
-    fontFamily: fonts.bold,
-    color: colors.text,
-    marginBottom: 3,
-  },
-  itemSubtitle: {
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: colors.subtext,
-    marginBottom: 2,
-  },
-  itemDate: {
-    fontSize: 12,
-    fontFamily: fonts.medium,
-    color: colors.secondary,
-    marginTop: 4,
-  },
-  deleteButton: {
-    padding: 8, // Make it easier to tap
-    marginLeft: 10,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 20,
-    fontFamily: fonts.medium,
-    color: colors.placeholder,
-    marginTop: 15,
-    textAlign: 'center',
-  },
-  emptySubText: {
-    fontSize: 15,
-    fontFamily: fonts.regular,
-    color: colors.subtext,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-});
+const getStyles = (colors, fonts) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    loadingText: {
+      marginTop: 10,
+      fontSize: 16,
+      fontFamily: fonts.medium,
+      color: colors.primary,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 15,
+      paddingTop: Platform.OS === 'android' ? 35 : 50,
+      paddingBottom: 15,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 3,
+    },
+    backButton: {
+      padding: 5,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontFamily: fonts.bold,
+      color: colors.text,
+    },
+    addButton: {
+      padding: 5,
+    },
+    listContentContainer: {
+      paddingHorizontal: 15,
+      paddingTop: 15,
+      paddingBottom: 20,
+    },
+    itemContainer: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 15,
+      marginBottom: 15,
+      flexDirection: 'row',
+      alignItems: 'center',
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    itemIconContainer: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: colors.primary + '20', // Light primary background
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 15,
+    },
+    itemContent: {
+      flex: 1,
+    },
+    itemTitle: {
+      fontSize: 17,
+      fontFamily: fonts.bold,
+      color: colors.text,
+      marginBottom: 3,
+    },
+    itemSubtitle: {
+      fontSize: 14,
+      fontFamily: fonts.regular,
+      color: colors.subtext,
+      marginBottom: 2,
+    },
+    itemDate: {
+      fontSize: 12,
+      fontFamily: fonts.medium,
+      color: colors.secondary,
+      marginTop: 4,
+    },
+    deleteButton: {
+      padding: 8, // Make it easier to tap
+      marginLeft: 10,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    emptyText: {
+      fontSize: 20,
+      fontFamily: fonts.medium,
+      color: colors.placeholder,
+      marginTop: 15,
+      textAlign: 'center',
+    },
+    emptySubText: {
+      fontSize: 15,
+      fontFamily: fonts.regular,
+      color: colors.subtext,
+      marginTop: 8,
+      textAlign: 'center',
+    },
+  });
 
 export default StudyPlanListScreen;

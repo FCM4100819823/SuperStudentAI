@@ -44,7 +44,10 @@ const STATIC_FONTS = {
   regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   medium: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   bold: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
-  logo: Platform.OS === 'ios' ? 'HelveticaNeue-CondensedBold' : 'sans-serif-condensed-bold', // Example for a distinct logo font
+  logo:
+    Platform.OS === 'ios'
+      ? 'HelveticaNeue-CondensedBold'
+      : 'sans-serif-condensed-bold', // Example for a distinct logo font
 };
 
 const LoginScreen = ({ navigation }) => {
@@ -66,13 +69,13 @@ const LoginScreen = ({ navigation }) => {
       'keyboardDidShow',
       () => {
         setKeyboardVisible(true);
-      }
+      },
     );
     const keyboardDidHideListener = Keyboard.addListener(
       'keyboardDidHide',
       () => {
         setKeyboardVisible(false);
-      }
+      },
     );
 
     return () => {
@@ -80,7 +83,6 @@ const LoginScreen = ({ navigation }) => {
       keyboardDidShowListener.remove();
     };
   }, []);
-
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -96,7 +98,11 @@ const LoginScreen = ({ navigation }) => {
       console.error('Login error:', error);
       let errorMessage = 'An unexpected error occurred. Please try again.';
       // Updated to include auth/invalid-credential
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      if (
+        error.code === 'auth/user-not-found' ||
+        error.code === 'auth/wrong-password' ||
+        error.code === 'auth/invalid-credential'
+      ) {
         errorMessage = 'Invalid email or password. Please try again.';
       } else if (error.code === 'auth/invalid-email') {
         errorMessage = 'Please enter a valid email address.';
@@ -113,7 +119,7 @@ const LoginScreen = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingContainer}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -124,7 +130,9 @@ const LoginScreen = ({ navigation }) => {
           >
             <View style={styles.container}>
               {!isKeyboardVisible && (
-                <Animated.View style={styles.logoContainer /* Add animation if desired */}>
+                <Animated.View
+                  style={styles.logoContainer /* Add animation if desired */}
+                >
                   <Image
                     source={require('../assets/superstudentlogo.png')} // Ensure path is correct
                     style={styles.logo}
@@ -134,13 +142,20 @@ const LoginScreen = ({ navigation }) => {
               )}
 
               <Text style={styles.title}>Welcome Back!</Text>
-              <Text style={styles.subtitle}>Sign in to continue your journey.</Text>
+              <Text style={styles.subtitle}>
+                Sign in to continue your journey.
+              </Text>
 
               <View style={styles.formContainer}>
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Email Address</Text>
                   <View style={styles.inputContainer}>
-                    <Ionicons name="mail-outline" size={22} color={colors.icon} style={styles.inputIcon} />
+                    <Ionicons
+                      name="mail-outline"
+                      size={22}
+                      color={colors.icon}
+                      style={styles.inputIcon}
+                    />
                     <TextInput
                       ref={emailInputRef}
                       style={styles.input}
@@ -161,12 +176,19 @@ const LoginScreen = ({ navigation }) => {
                 <View style={styles.inputGroup}>
                   <View style={styles.labelRow}>
                     <Text style={styles.inputLabel}>Password</Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate('ForgotPassword')}
+                    >
                       <Text style={styles.forgotPasswordText}>Forgot?</Text>
                     </TouchableOpacity>
                   </View>
                   <View style={styles.inputContainer}>
-                    <Ionicons name="lock-closed-outline" size={22} color={colors.icon} style={styles.inputIcon} />
+                    <Ionicons
+                      name="lock-closed-outline"
+                      size={22}
+                      color={colors.icon}
+                      style={styles.inputIcon}
+                    />
                     <TextInput
                       ref={passwordInputRef}
                       style={styles.input}
@@ -180,14 +202,24 @@ const LoginScreen = ({ navigation }) => {
                       returnKeyType="done"
                       onSubmitEditing={handleLogin}
                     />
-                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
-                      <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={24} color={colors.icon} />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.showPasswordButton}
+                    >
+                      <Ionicons
+                        name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={24}
+                        color={colors.icon}
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
 
                 <TouchableOpacity
-                  style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                  style={[
+                    styles.loginButton,
+                    loading && styles.loginButtonDisabled,
+                  ]}
                   onPress={handleLogin}
                   disabled={loading}
                 >
@@ -201,11 +233,12 @@ const LoginScreen = ({ navigation }) => {
 
               <View style={styles.footerContainer}>
                 <Text style={styles.footerText}>Don't have an account?</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Register')}
+                >
                   <Text style={styles.signUpText}>Sign Up</Text>
                 </TouchableOpacity>
               </View>
-
             </View>
           </ScrollView>
         </TouchableWithoutFeedback>

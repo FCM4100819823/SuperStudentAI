@@ -26,7 +26,7 @@ const StudyTaskSchema: Schema = new Schema(
     },
     relatedTopic: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Interface for the StudyPlan document
@@ -38,7 +38,7 @@ export interface IStudyPlan extends Document {
   tasks: IStudyTask[];
   aiSuggestions?: string; // To store suggestions from AI optimization or generation
   startDate?: Date; // Added for plan duration
-  endDate?: Date;   // Added for plan duration
+  endDate?: Date; // Added for plan duration
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,9 +52,9 @@ const StudyPlanSchema: Schema = new Schema(
     tasks: [StudyTaskSchema], // Array of embedded tasks
     aiSuggestions: { type: String }, // To store suggestions from AI
     startDate: { type: Date }, // Added for plan duration
-    endDate: { type: Date },   // Added for plan duration
+    endDate: { type: Date }, // Added for plan duration
   },
-  { timestamps: true } // Adds createdAt and updatedAt automatically
+  { timestamps: true }, // Adds createdAt and updatedAt automatically
 );
 
 const StudyPlan = mongoose.model<IStudyPlan>('StudyPlan', StudyPlanSchema);

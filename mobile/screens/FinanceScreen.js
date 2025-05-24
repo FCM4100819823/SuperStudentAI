@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   Modal,
   Platform,
-  RefreshControl
+  RefreshControl,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -41,11 +41,11 @@ const FinanceScreen = ({ navigation }) => {
 
   // Define totalIncome and totalExpenses in the component scope
   const totalIncome = transactions
-    .filter(item => item.type === 'income')
+    .filter((item) => item.type === 'income')
     .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0); // Added || 0 for safety
 
   const totalExpenses = transactions
-    .filter(item => item.type === 'expense')
+    .filter((item) => item.type === 'expense')
     .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0); // Added || 0 for safety
 
   const fetchTransactions = async () => {
@@ -63,7 +63,11 @@ const FinanceScreen = ({ navigation }) => {
   };
 
   const handleAddTransaction = async () => {
-    if (!newTransactionData.description || !newTransactionData.amount || !newTransactionData.category) {
+    if (
+      !newTransactionData.description ||
+      !newTransactionData.amount ||
+      !newTransactionData.category
+    ) {
       return Alert.alert('Missing Fields', 'Please fill in all fields');
     }
 
@@ -88,17 +92,25 @@ const FinanceScreen = ({ navigation }) => {
   };
 
   const handleUpdateTransaction = async () => {
-    if (!editingTransaction || !newTransactionData.description || !newTransactionData.amount || !newTransactionData.category) {
+    if (
+      !editingTransaction ||
+      !newTransactionData.description ||
+      !newTransactionData.amount ||
+      !newTransactionData.category
+    ) {
       return Alert.alert('Missing Fields', 'Please fill in all fields');
     }
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/transactions/${editingTransaction._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTransactionData),
-      });
+      const response = await fetch(
+        `${API_URL}/transactions/${editingTransaction._id}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newTransactionData),
+        },
+      );
       if (!response.ok) throw new Error('Failed to update transaction');
       Alert.alert('Success', 'Transaction updated!');
       fetchTransactions();
@@ -118,9 +130,12 @@ const FinanceScreen = ({ navigation }) => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/transactions/${editingTransaction._id}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `${API_URL}/transactions/${editingTransaction._id}`,
+        {
+          method: 'DELETE',
+        },
+      );
       if (!response.ok) throw new Error('Failed to delete transaction');
       Alert.alert('Success', 'Transaction deleted!');
       fetchTransactions();
@@ -152,7 +167,7 @@ const FinanceScreen = ({ navigation }) => {
 
   const categoryData = transactions.reduce((acc, transaction) => {
     const { category, amount } = transaction;
-    const existingCategory = acc.find(item => item.name === category);
+    const existingCategory = acc.find((item) => item.name === category);
     if (existingCategory) {
       existingCategory.amount += parseFloat(amount);
     } else {
@@ -169,53 +184,126 @@ const FinanceScreen = ({ navigation }) => {
   const handleDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || newTransactionData.date;
     setShowDatePicker(Platform.OS === 'ios');
-    setNewTransactionData({ ...newTransactionData, date: currentDate.toISOString().split('T')[0] });
+    setNewTransactionData({
+      ...newTransactionData,
+      date: currentDate.toISOString().split('T')[0],
+    });
   };
 
   if (isLoading && transactions.length === 0) {
     return (
-      <View style={[styles.centered, { backgroundColor: '#F0F0F0' /* formerly colors.background */ }]}>
-        <ActivityIndicator size="large" color="#007AFF" /* formerly colors.primary */ />
-        <Text style={textStyle('label', '#333333' /* formerly colors.text */)}>Loading Finances...</Text>
+      <View
+        style={[
+          styles.centered,
+          { backgroundColor: '#F0F0F0' /* formerly colors.background */ },
+        ]}
+      >
+        <ActivityIndicator
+          size="large"
+          color="#007AFF" /* formerly colors.primary */
+        />
+        <Text style={textStyle('label', '#333333' /* formerly colors.text */)}>
+          Loading Finances...
+        </Text>
       </View>
     );
   }
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: '#F0F0F0' /* formerly colors.background */ }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#007AFF' /* colors.primary */]} />}
+      style={[
+        styles.container,
+        { backgroundColor: '#F0F0F0' /* formerly colors.background */ },
+      ]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={['#007AFF' /* colors.primary */]}
+        />
+      }
     >
       <View style={styles.headerContainer}>
-        <Text style={[textStyle('header'), { fontSize: 24, color: '#333333' /* formerly colors.text */ }]}>Financial Overview</Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={buttonStyle()}>
+        <Text
+          style={[
+            textStyle('header'),
+            { fontSize: 24, color: '#333333' /* formerly colors.text */ },
+          ]}
+        >
+          Financial Overview
+        </Text>
+        <TouchableOpacity
+          onPress={() => setModalVisible(true)}
+          style={buttonStyle()}
+        >
           <Text style={buttonTextStyle}>Add Transaction</Text>
         </TouchableOpacity>
       </View>
 
       {/* Summary Cards */}
       <View style={styles.summaryContainer}>
-        <View style={[cardStyle('#E6F3FF' /* a light blue, or colors.primary + opacity */), styles.summaryCard]}>
-          <Icon name="wallet-outline" size={28} color="#007AFF" /* formerly colors.primary */ />
-          <Text style={textStyle('label', '#007AFF' /* formerly colors.primary */)}>Total Balance</Text>
-          <Text style={[textStyle('header'), { fontSize: 20, color: '#007AFF' /* formerly colors.primary */ }]}>${calculateTotalBalance().toFixed(2)}</Text>
+        <View
+          style={[
+            cardStyle(
+              '#E6F3FF' /* a light blue, or colors.primary + opacity */,
+            ),
+            styles.summaryCard,
+          ]}
+        >
+          <Icon
+            name="wallet-outline"
+            size={28}
+            color="#007AFF" /* formerly colors.primary */
+          />
+          <Text
+            style={textStyle('label', '#007AFF' /* formerly colors.primary */)}
+          >
+            Total Balance
+          </Text>
+          <Text
+            style={[
+              textStyle('header'),
+              { fontSize: 20, color: '#007AFF' /* formerly colors.primary */ },
+            ]}
+          >
+            ${calculateTotalBalance().toFixed(2)}
+          </Text>
         </View>
-        <View style={[cardStyle('#E6FFED' /* a light green */), styles.summaryCard]}>
+        <View
+          style={[cardStyle('#E6FFED' /* a light green */), styles.summaryCard]}
+        >
           <Icon name="arrow-up-circle-outline" size={28} color="#34C759" />
           <Text style={textStyle('label', '#34C759')}>Total Income</Text>
-          <Text style={[textStyle('header'), { fontSize: 20, color: '#34C759' }]}>${totalIncome.toFixed(2)}</Text>
+          <Text
+            style={[textStyle('header'), { fontSize: 20, color: '#34C759' }]}
+          >
+            ${totalIncome.toFixed(2)}
+          </Text>
         </View>
-        <View style={[cardStyle('#FFF0F0' /* a light red */), styles.summaryCard]}>
+        <View
+          style={[cardStyle('#FFF0F0' /* a light red */), styles.summaryCard]}
+        >
           <Icon name="arrow-down-circle-outline" size={28} color="#FF3B30" />
           <Text style={textStyle('label', '#FF3B30')}>Total Expenses</Text>
-          <Text style={[textStyle('header'), { fontSize: 20, color: '#FF3B30' }]}>${totalExpenses.toFixed(2)}</Text>
+          <Text
+            style={[textStyle('header'), { fontSize: 20, color: '#FF3B30' }]}
+          >
+            ${totalExpenses.toFixed(2)}
+          </Text>
         </View>
       </View>
 
       {/* Charts */}
       {transactions.length > 0 && (
         <View style={cardStyle()}>
-          <Text style={[textStyle('header'), { marginBottom: 10, color: '#333333' /* formerly colors.text */ }]}>Spending Categories</Text>
+          <Text
+            style={[
+              textStyle('header'),
+              { marginBottom: 10, color: '#333333' /* formerly colors.text */ },
+            ]}
+          >
+            Spending Categories
+          </Text>
           {categoryData.length > 0 ? (
             <PieChart
               data={categoryData}
@@ -230,33 +318,90 @@ const FinanceScreen = ({ navigation }) => {
               textBackgroundColor="transparent" // Ensure text is visible
               textBackgroundRadius={10}
             />
-          ) : <Text style={textStyle('muted', '#555555' /* formerly colors.textMuted */)}>No spending data for categories yet.</Text>}
+          ) : (
+            <Text
+              style={textStyle(
+                'muted',
+                '#555555' /* formerly colors.textMuted */,
+              )}
+            >
+              No spending data for categories yet.
+            </Text>
+          )}
         </View>
       )}
 
       {/* Recent Transactions */}
       <View style={cardStyle()}>
-        <Text style={[textStyle('header'), { marginBottom: 10, color: '#333333' /* formerly colors.text */ }]}>Recent Transactions</Text>
-        {transactions.length > 0 ? transactions.slice(0, 5).map(item => (
-          <TouchableOpacity key={item._id} style={styles.transactionItem} onPress={() => {
-            setEditingTransaction(item);
-            setNewTransactionData({ ...item, date: new Date(item.date).toISOString().split('T')[0] });
-            setModalVisible(true);
-          }}>
-            <Icon
-              name={item.type === 'income' ? 'trending-up-outline' : 'trending-down-outline'}
-              size={24}
-              color={item.type === 'income' ? '#34C759' : '#FF3B30'}
-            />
-            <View style={styles.transactionDetails}>
-              <Text style={textStyle('label', '#333333' /* formerly colors.text */)}>{item.description}</Text>
-              <Text style={textStyle('muted', '#555555' /* formerly colors.textMuted */)}>{item.category} - {new Date(item.date).toLocaleDateString()}</Text>
-            </View>
-            <Text style={textStyle('label', item.type === 'income' ? '#34C759' : '#FF3B30')}>
-              {item.type === 'income' ? '+' : '-'}${item.amount.toFixed(2)}
-            </Text>
-          </TouchableOpacity>
-        )) : <Text style={textStyle('muted', '#555555' /* formerly colors.textMuted */)}>No transactions yet. Add one!</Text>}
+        <Text
+          style={[
+            textStyle('header'),
+            { marginBottom: 10, color: '#333333' /* formerly colors.text */ },
+          ]}
+        >
+          Recent Transactions
+        </Text>
+        {transactions.length > 0 ? (
+          transactions.slice(0, 5).map((item) => (
+            <TouchableOpacity
+              key={item._id}
+              style={styles.transactionItem}
+              onPress={() => {
+                setEditingTransaction(item);
+                setNewTransactionData({
+                  ...item,
+                  date: new Date(item.date).toISOString().split('T')[0],
+                });
+                setModalVisible(true);
+              }}
+            >
+              <Icon
+                name={
+                  item.type === 'income'
+                    ? 'trending-up-outline'
+                    : 'trending-down-outline'
+                }
+                size={24}
+                color={item.type === 'income' ? '#34C759' : '#FF3B30'}
+              />
+              <View style={styles.transactionDetails}>
+                <Text
+                  style={textStyle(
+                    'label',
+                    '#333333' /* formerly colors.text */,
+                  )}
+                >
+                  {item.description}
+                </Text>
+                <Text
+                  style={textStyle(
+                    'muted',
+                    '#555555' /* formerly colors.textMuted */,
+                  )}
+                >
+                  {item.category} - {new Date(item.date).toLocaleDateString()}
+                </Text>
+              </View>
+              <Text
+                style={textStyle(
+                  'label',
+                  item.type === 'income' ? '#34C759' : '#FF3B30',
+                )}
+              >
+                {item.type === 'income' ? '+' : '-'}${item.amount.toFixed(2)}
+              </Text>
+            </TouchableOpacity>
+          ))
+        ) : (
+          <Text
+            style={textStyle(
+              'muted',
+              '#555555' /* formerly colors.textMuted */,
+            )}
+          >
+            No transactions yet. Add one!
+          </Text>
+        )}
       </View>
 
       {/* Add/Edit Transaction Modal */}
@@ -271,68 +416,170 @@ const FinanceScreen = ({ navigation }) => {
         }}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: '#F8F8F8' /* formerly colors.background */, borderColor: '#CCCCCC' /* formerly colors.border */ }]}
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: '#F8F8F8' /* formerly colors.background */,
+                borderColor: '#CCCCCC' /* formerly colors.border */,
+              },
+            ]}
           >
-            <Text style={[textStyle('header'), { marginBottom: 20, fontSize: 20, color: '#333333' /* formerly colors.text */ }]}>
+            <Text
+              style={[
+                textStyle('header'),
+                {
+                  marginBottom: 20,
+                  fontSize: 20,
+                  color: '#333333' /* formerly colors.text */,
+                },
+              ]}
+            >
               {editingTransaction ? 'Edit' : 'Add New'} Transaction
             </Text>
 
-            <Text style={textStyle('label', '#333333' /* formerly colors.text */)}>Description:</Text>
+            <Text
+              style={textStyle('label', '#333333' /* formerly colors.text */)}
+            >
+              Description:
+            </Text>
             <TextInput
               style={inputStyle}
               placeholder="e.g., Textbooks, Coffee"
               value={newTransactionData.description}
-              onChangeText={(text) => setNewTransactionData({ ...newTransactionData, description: text })}
+              onChangeText={(text) =>
+                setNewTransactionData({
+                  ...newTransactionData,
+                  description: text,
+                })
+              }
               placeholderTextColor="#AAAAAA" // formerly colors.placeholder
             />
 
-            <Text style={textStyle('label', '#333333' /* formerly colors.text */)}>Amount:</Text>
+            <Text
+              style={textStyle('label', '#333333' /* formerly colors.text */)}
+            >
+              Amount:
+            </Text>
             <TextInput
               style={inputStyle}
               placeholder="0.00"
               value={newTransactionData.amount}
-              onChangeText={(text) => setNewTransactionData({ ...newTransactionData, amount: text })}
+              onChangeText={(text) =>
+                setNewTransactionData({ ...newTransactionData, amount: text })
+              }
               keyboardType="numeric"
               placeholderTextColor="#AAAAAA" // formerly colors.placeholder
             />
 
-            <Text style={textStyle('label', '#333333' /* formerly colors.text */)}>Type:</Text>
+            <Text
+              style={textStyle('label', '#333333' /* formerly colors.text */)}
+            >
+              Type:
+            </Text>
             <View style={styles.typeSelector}>
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  { backgroundColor: newTransactionData.type === 'income' ? '#34C759' : '#EFEFEF' /* formerly colors.card */ },
-                  { borderColor: newTransactionData.type === 'income' ? '#34C759' : '#CCCCCC' /* formerly colors.border */ }
+                  {
+                    backgroundColor:
+                      newTransactionData.type === 'income'
+                        ? '#34C759'
+                        : '#EFEFEF' /* formerly colors.card */,
+                  },
+                  {
+                    borderColor:
+                      newTransactionData.type === 'income'
+                        ? '#34C759'
+                        : '#CCCCCC' /* formerly colors.border */,
+                  },
                 ]}
-                onPress={() => setNewTransactionData({ ...newTransactionData, type: 'income' })}
+                onPress={() =>
+                  setNewTransactionData({
+                    ...newTransactionData,
+                    type: 'income',
+                  })
+                }
               >
-                <Text style={textStyle('label', newTransactionData.type === 'income' ? '#FFFFFF' /* formerly colors.buttonText */ : '#333333' /* formerly colors.text */)}>Income</Text>
+                <Text
+                  style={textStyle(
+                    'label',
+                    newTransactionData.type === 'income'
+                      ? '#FFFFFF' /* formerly colors.buttonText */
+                      : '#333333' /* formerly colors.text */,
+                  )}
+                >
+                  Income
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  { backgroundColor: newTransactionData.type === 'expense' ? '#FF3B30' : '#EFEFEF' /* formerly colors.card */ },
-                  { borderColor: newTransactionData.type === 'expense' ? '#FF3B30' : '#CCCCCC' /* formerly colors.border */ }
+                  {
+                    backgroundColor:
+                      newTransactionData.type === 'expense'
+                        ? '#FF3B30'
+                        : '#EFEFEF' /* formerly colors.card */,
+                  },
+                  {
+                    borderColor:
+                      newTransactionData.type === 'expense'
+                        ? '#FF3B30'
+                        : '#CCCCCC' /* formerly colors.border */,
+                  },
                 ]}
-                onPress={() => setNewTransactionData({ ...newTransactionData, type: 'expense' })}
+                onPress={() =>
+                  setNewTransactionData({
+                    ...newTransactionData,
+                    type: 'expense',
+                  })
+                }
               >
-                <Text style={textStyle('label', newTransactionData.type === 'expense' ? '#FFFFFF' /* formerly colors.buttonText */ : '#333333' /* formerly colors.text */)}>Expense</Text>
+                <Text
+                  style={textStyle(
+                    'label',
+                    newTransactionData.type === 'expense'
+                      ? '#FFFFFF' /* formerly colors.buttonText */
+                      : '#333333' /* formerly colors.text */,
+                  )}
+                >
+                  Expense
+                </Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={textStyle('label', '#333333' /* formerly colors.text */)}>Category:</Text>
+            <Text
+              style={textStyle('label', '#333333' /* formerly colors.text */)}
+            >
+              Category:
+            </Text>
             <TextInput
               style={inputStyle}
               placeholder="e.g., Education, Food, Bills"
               value={newTransactionData.category}
-              onChangeText={(text) => setNewTransactionData({ ...newTransactionData, category: text })}
+              onChangeText={(text) =>
+                setNewTransactionData({ ...newTransactionData, category: text })
+              }
               placeholderTextColor="#AAAAAA" // formerly colors.placeholder
             />
 
-            <Text style={textStyle('label', '#333333' /* formerly colors.text */)}>Date:</Text>
-            <TouchableOpacity onPress={() => setShowDatePicker(true)} style={[inputStyle, styles.datePickerButton]}>
-                <Text style={{color: '#333333' /* formerly colors.text */}}>{newTransactionData.date || 'Select Date'}</Text>
-                <Icon name="calendar-outline" size={20} color={'#333333' /* formerly colors.text */} />
+            <Text
+              style={textStyle('label', '#333333' /* formerly colors.text */)}
+            >
+              Date:
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
+              style={[inputStyle, styles.datePickerButton]}
+            >
+              <Text style={{ color: '#333333' /* formerly colors.text */ }}>
+                {newTransactionData.date || 'Select Date'}
+              </Text>
+              <Icon
+                name="calendar-outline"
+                size={20}
+                color={'#333333' /* formerly colors.text */}
+              />
             </TouchableOpacity>
             {showDatePicker && (
               <DateTimePicker
@@ -346,24 +593,52 @@ const FinanceScreen = ({ navigation }) => {
 
             <TouchableOpacity
               style={[buttonStyle(), { opacity: isSubmitting ? 0.7 : 1 }]} // Use primary button style
-              onPress={editingTransaction ? handleUpdateTransaction : handleAddTransaction}
+              onPress={
+                editingTransaction
+                  ? handleUpdateTransaction
+                  : handleAddTransaction
+              }
               disabled={isSubmitting}
             >
-              {isSubmitting ? <ActivityIndicator color="#FFFFFF" /* formerly colors.buttonText */ /> : <Text style={buttonTextStyle}>{editingTransaction ? 'Update' : 'Add'} Transaction</Text>}
+              {isSubmitting ? (
+                <ActivityIndicator
+                  color="#FFFFFF" /* formerly colors.buttonText */
+                />
+              ) : (
+                <Text style={buttonTextStyle}>
+                  {editingTransaction ? 'Update' : 'Add'} Transaction
+                </Text>
+              )}
             </TouchableOpacity>
 
             {editingTransaction && (
-                <TouchableOpacity
-                    style={[buttonStyle('danger'), { marginTop: 10, opacity: isSubmitting ? 0.7 : 1 }]} // Danger button style
-                    onPress={handleDeleteTransaction}
-                    disabled={isSubmitting}
-                >
-                    {isSubmitting ? <ActivityIndicator color="#FFFFFF" /* formerly colors.buttonText */ /> : <Text style={buttonTextStyle}>Delete Transaction</Text>}
-                </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  buttonStyle('danger'),
+                  { marginTop: 10, opacity: isSubmitting ? 0.7 : 1 },
+                ]} // Danger button style
+                onPress={handleDeleteTransaction}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator
+                    color="#FFFFFF" /* formerly colors.buttonText */
+                  />
+                ) : (
+                  <Text style={buttonTextStyle}>Delete Transaction</Text>
+                )}
+              </TouchableOpacity>
             )}
 
             <TouchableOpacity
-              style={[buttonStyle('cancel'), { backgroundColor: '#AAAAAA' /* formerly colors.border or a neutral grey */, marginTop: 10 }]} // Cancel button style
+              style={[
+                buttonStyle('cancel'),
+                {
+                  backgroundColor:
+                    '#AAAAAA' /* formerly colors.border or a neutral grey */,
+                  marginTop: 10,
+                },
+              ]} // Cancel button style
               onPress={() => {
                 setModalVisible(false);
                 setEditingTransaction(null);
@@ -375,7 +650,6 @@ const FinanceScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
-
     </ScrollView>
   );
 };
@@ -393,10 +667,10 @@ const cardStyle = (customBackgroundColor) => ({
 });
 
 const textStyle = (type = 'primary', customColor) => ({
-    // fontFamily: type === 'header' || type === 'label' ? fonts.bold : fonts.regular,
-    fontWeight: type === 'header' || type === 'label' ? 'bold' : 'normal',
-    color: customColor || (type === 'muted' ? '#555555' : '#333333'), // formerly colors.textMuted or colors.text
-    fontSize: type === 'header' ? 18 : (type === 'label' ? 16 : 14),
+  // fontFamily: type === 'header' || type === 'label' ? fonts.bold : fonts.regular,
+  fontWeight: type === 'header' || type === 'label' ? 'bold' : 'normal',
+  color: customColor || (type === 'muted' ? '#555555' : '#333333'), // formerly colors.textMuted or colors.text
+  fontSize: type === 'header' ? 18 : type === 'label' ? 16 : 14,
 });
 
 const inputStyle = {
@@ -494,10 +768,10 @@ const styles = StyleSheet.create({
     // backgroundColor and borderColor are set dynamically
   },
   datePickerButton: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      // inputStyle is applied
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    // inputStyle is applied
   },
   // Other styles remain unchanged if they are not theme-dependent
 });

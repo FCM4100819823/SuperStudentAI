@@ -38,44 +38,64 @@ const DEFAULT_HEADER_TINT = '#000000'; // Example: Black for header text
 
 // Stack for screens within the Home Tab
 const HomeStack = () => (
-  <HomeStackNav.Navigator 
+  <HomeStackNav.Navigator
     screenOptions={{
-      headerShown: false, 
+      headerShown: false,
     }}
   >
     <HomeStackNav.Screen name="Home" component={HomeScreen} />
     <HomeStackNav.Screen name="AI" component={AIScreen} />
     <HomeStackNav.Screen name="FileUpload" component={FileUploadScreen} />
-    <HomeStackNav.Screen name="CreateStudyPlan" component={CreateStudyPlanScreen} />
+    <HomeStackNav.Screen
+      name="CreateStudyPlan"
+      component={CreateStudyPlanScreen}
+    />
     <HomeStackNav.Screen name="FocusTimer" component={FocusTimerScreen} />
-    <HomeStackNav.Screen name="StudyPlanDetail" component={StudyPlanDetailScreen} />
+    <HomeStackNav.Screen
+      name="StudyPlanDetail"
+      component={StudyPlanDetailScreen}
+    />
   </HomeStackNav.Navigator>
 );
 
 // Stack for screens within the Study Tab
 const StudyStack = () => (
   <StudyStackNav.Navigator screenOptions={{ headerShown: false }}>
-    <StudyStackNav.Screen name="StudyDashboard" component={StudyPlansDashboardScreen} />
-    <StudyStackNav.Screen name="StudyPlanList" component={StudyPlanListScreen} />
-    <StudyStackNav.Screen name="CreateStudyPlan" component={CreateStudyPlanScreen} />
-    <StudyStackNav.Screen name="StudyPlanDetail" component={StudyPlanDetailScreen} />
-    <StudyStackNav.Screen name="SpacedRepetition" component={SpacedRepetitionScreen} />
+    <StudyStackNav.Screen
+      name="StudyDashboard"
+      component={StudyPlansDashboardScreen}
+    />
+    <StudyStackNav.Screen
+      name="StudyPlanList"
+      component={StudyPlanListScreen}
+    />
+    <StudyStackNav.Screen
+      name="CreateStudyPlan"
+      component={CreateStudyPlanScreen}
+    />
+    <StudyStackNav.Screen
+      name="StudyPlanDetail"
+      component={StudyPlanDetailScreen}
+    />
+    <StudyStackNav.Screen
+      name="SpacedRepetition"
+      component={SpacedRepetitionScreen}
+    />
   </StudyStackNav.Navigator>
 );
 
 // Stack for screens within the Settings Tab
 const SettingsStack = () => (
-  <SettingsStackNav.Navigator 
+  <SettingsStackNav.Navigator
     screenOptions={{
       headerShown: false,
     }}
   >
     <SettingsStackNav.Screen name="AppSettings" component={AppSettingsScreen} />
-    <SettingsStackNav.Screen name="Profile" component={ProfileScreen} /> 
+    <SettingsStackNav.Screen name="Profile" component={ProfileScreen} />
     <SettingsStackNav.Screen name="ProfileEdit" component={ProfileEditScreen} />
   </SettingsStackNav.Navigator>
 );
-
 
 const AuthStack = () => (
   <AuthStackNav.Navigator screenOptions={{ headerShown: false }}>
@@ -83,7 +103,10 @@ const AuthStack = () => (
     <AuthStackNav.Screen name="Splash" component={SplashScreen} />
     <AuthStackNav.Screen name="Login" component={LoginScreen} />
     <AuthStackNav.Screen name="Register" component={RegisterScreen} />
-    <AuthStackNav.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    <AuthStackNav.Screen
+      name="ForgotPassword"
+      component={ForgotPasswordScreen}
+    />
   </AuthStackNav.Navigator>
 );
 
@@ -114,11 +137,31 @@ const AppTabs = () => {
         },
       })}
     >
-      <AppTabsNav.Screen name="HomeTab" component={HomeStack} options={{ tabBarLabel: 'Home' }} />
-      <AppTabsNav.Screen name="StudyTab" component={StudyStack} options={{ tabBarLabel: 'Study' }} />
-      <AppTabsNav.Screen name="WellbeingTab" component={WellbeingScreen} options={{ tabBarLabel: 'Wellbeing' }} />
-      <AppTabsNav.Screen name="FinanceTab" component={FinanceScreen} options={{ tabBarLabel: 'Finance' }} />
-      <AppTabsNav.Screen name="SettingsTab" component={SettingsStack} options={{ tabBarLabel: 'Settings' }} />
+      <AppTabsNav.Screen
+        name="HomeTab"
+        component={HomeStack}
+        options={{ tabBarLabel: 'Home' }}
+      />
+      <AppTabsNav.Screen
+        name="StudyTab"
+        component={StudyStack}
+        options={{ tabBarLabel: 'Study' }}
+      />
+      <AppTabsNav.Screen
+        name="WellbeingTab"
+        component={WellbeingScreen}
+        options={{ tabBarLabel: 'Wellbeing' }}
+      />
+      <AppTabsNav.Screen
+        name="FinanceTab"
+        component={FinanceScreen}
+        options={{ tabBarLabel: 'Finance' }}
+      />
+      <AppTabsNav.Screen
+        name="SettingsTab"
+        component={SettingsStack}
+        options={{ tabBarLabel: 'Settings' }}
+      />
     </AppTabsNav.Navigator>
   );
 };

@@ -23,7 +23,7 @@ const MONGO_URI = process.env.MONGO_URI; // Added
 
 // Middleware
 // Option 1: Basic CORS setup (allow all origins)
-app.use(cors()); 
+app.use(cors());
 
 // Option 2: More specific CORS configuration (if needed later)
 // const corsOptions = {
@@ -41,12 +41,16 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // Connect to MongoDB
-if (!MONGO_URI) { // Added check
-  console.error('MongoDB connection URI not found. Please set MONGO_URI in your .env file.');
+if (!MONGO_URI) {
+  // Added check
+  console.error(
+    'MongoDB connection URI not found. Please set MONGO_URI in your .env file.',
+  );
   process.exit(1); // Exit if URI is not found
 }
 mongoose
-  .connect(MONGO_URI, { // Changed to use MONGO_URI variable
+  .connect(MONGO_URI, {
+    // Changed to use MONGO_URI variable
   } as ConnectOptions)
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));

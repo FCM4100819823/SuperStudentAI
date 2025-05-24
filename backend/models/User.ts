@@ -7,7 +7,7 @@ interface IUser extends Document {
   age: number;
   level: number;
   university?: string; // Added
-  major?: string;      // Added
+  major?: string; // Added
   graduationYear?: string; // Added
 }
 
@@ -18,7 +18,7 @@ const UserSchema: Schema = new Schema({
   age: { type: Number, required: true },
   level: { type: Number, required: true },
   university: { type: String }, // Added
-  major: { type: String },      // Added
+  major: { type: String }, // Added
   graduationYear: { type: String }, // Added
 });
 

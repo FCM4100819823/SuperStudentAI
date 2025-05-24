@@ -28,7 +28,7 @@ const BottomTabNavigator = () => {
   // Replace with static values:
   const tabBarActiveTintColor = '#007AFF'; // Example static color
   const tabBarInactiveTintColor = '#8e8e93'; // Example static color
-  const tabBarBackgroundColor = '#FFFFFF';   // Example static color
+  const tabBarBackgroundColor = '#FFFFFF'; // Example static color
 
   return (
     <Tab.Navigator
@@ -40,7 +40,7 @@ const BottomTabNavigator = () => {
           backgroundColor: tabBarBackgroundColor,
           // Add other static styles as needed
         },
-        tabBarLabelStyle: { 
+        tabBarLabelStyle: {
           fontFamily: defaultFallbackFonts.medium, // Use the more robust mediumFont
           fontSize: 10,
         },
@@ -62,7 +62,7 @@ const BottomTabNavigator = () => {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar" color={color} size={size} />
           ),
-          title: "Study Plans"
+          title: 'Study Plans',
         }}
       />
       <Tab.Screen

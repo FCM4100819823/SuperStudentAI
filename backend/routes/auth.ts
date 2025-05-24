@@ -3,7 +3,10 @@ import mongoose from 'mongoose';
 import admin, { firestore } from '../firebase'; // Import from our centralized Firebase init
 import { getAuth } from 'firebase-admin/auth';
 import User from '../models/User'; // Ensure the User model is imported
-import { Request as ExpressRequest, Response as ExpressResponse } from 'express';
+import {
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+} from 'express';
 
 const router = Router(); // Use Router directly to avoid type mismatches
 
@@ -25,15 +28,35 @@ router.post('/login', async (req: ExpressRequest, res: ExpressResponse) => {
 
 // Signup route
 router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
-  const { email, password, name, age, level, university, major, graduationYear } = req.body;
+  const {
+    email,
+    password,
+    name,
+    age,
+    level,
+    university,
+    major,
+    graduationYear,
+  } = req.body;
 
-  if (!email || !password || !name || !age || !level || !university || !major || !graduationYear) {
+  if (
+    !email ||
+    !password ||
+    !name ||
+    !age ||
+    !level ||
+    !university ||
+    !major ||
+    !graduationYear
+  ) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
   // Validate level (Ghana university levels: 100 to 600)
   if (level < 100 || level > 600) {
-    return res.status(400).json({ message: 'Invalid level. Level must be between 100 and 600.' });
+    return res
+      .status(400)
+      .json({ message: 'Invalid level. Level must be between 100 and 600.' });
   }
 
   let userRecord; // Declare userRecord here to access it in catch block
@@ -46,10 +69,14 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
       password,
       displayName: name,
     });
-    console.log(`Successfully created Firebase Auth user with UID: ${userRecord.uid} for email: ${email}`);
+    console.log(
+      `Successfully created Firebase Auth user with UID: ${userRecord.uid} for email: ${email}`,
+    );
 
     // Store additional user data in MongoDB
-    console.log(`Attempting to save user data to MongoDB for UID: ${userRecord.uid}`);
+    console.log(
+      `Attempting to save user data to MongoDB for UID: ${userRecord.uid}`,
+    );
     const newUser = new User({
       username: userRecord.uid, // Use Firebase UID as username
       email,
@@ -57,14 +84,18 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
       age,
       level,
       university, // Added
-      major,      // Added
+      major, // Added
       graduationYear, // Added
     });
     await newUser.save();
-    console.log(`Successfully saved user data to MongoDB for UID: ${userRecord.uid}`);
-    
+    console.log(
+      `Successfully saved user data to MongoDB for UID: ${userRecord.uid}`,
+    );
+
     // Sync to Firestore
-    console.log(`Attempting to save user data to Firestore for UID: ${userRecord.uid}`);
+    console.log(
+      `Attempting to save user data to Firestore for UID: ${userRecord.uid}`,
+    );
     await firestore.collection('users').doc(userRecord.uid).set({
       email,
       name,
@@ -75,10 +106,27 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
       graduationYear,
       createdAt: new Date(),
     });
-    console.log(`Successfully saved user data to Firestore for UID: ${userRecord.uid}`);
+    console.log(
+      `Successfully saved user data to Firestore for UID: ${userRecord.uid}`,
+    );
 
-    res.status(201).json({ message: 'Signup successful', user: { uid: userRecord.uid, email, name, age, level, university, major, graduationYear } });
-  } catch (error: any) { // Ensure 'any' type for error object
+    res
+      .status(201)
+      .json({
+        message: 'Signup successful',
+        user: {
+          uid: userRecord.uid,
+          email,
+          name,
+          age,
+          level,
+          university,
+          major,
+          graduationYear,
+        },
+      });
+  } catch (error: any) {
+    // Ensure 'any' type for error object
     console.error('Error during signup process:', error); // Log the full error object
 
     let errorMessage = 'An unexpected error occurred during signup.';
@@ -89,31 +137,39 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
       errorMessage = error.message;
     }
     if (error.code) {
-      errorCode = error.code; 
+      errorCode = error.code;
     }
-    
+
     if (userRecord && userRecord.uid) {
-      console.error(`Firebase Auth user ${userRecord.uid} (email: ${email}) was created, but a subsequent step failed.`);
+      console.error(
+        `Firebase Auth user ${userRecord.uid} (email: ${email}) was created, but a subsequent step failed.`,
+      );
       // If Auth user was created but DB write failed, this log confirms it.
       // The client will still receive an error because the overall process failed.
     } else {
-      console.error(`Firebase Auth user creation failed for email: ${email} or error occurred before creation.`);
-    }
-    
-    // Specifically check for gRPC status code 5 (NOT_FOUND) which Firestore uses
-    if (error.code === 5 && error.details !== undefined) { 
-        errorMessage = 'Failed to save user details to the database. The user authentication record might have been created, but profile data is missing. Please contact support or try again later.';
-        errorCode = 'FIRESTORE_SAVE_FAILED';
-        // Safely access error.metadata and convert to string if it exists
-        const metadataString = error.metadata && typeof error.metadata.toString === 'function' ? error.metadata.toString() : 'No metadata';
-        errorDetails = { details: error.details, metadata: metadataString };
+      console.error(
+        `Firebase Auth user creation failed for email: ${email} or error occurred before creation.`,
+      );
     }
 
-    res.status(500).json({ 
-        message: 'Error creating user', 
-        error: errorMessage, 
-        errorCode,
-        errorDetails 
+    // Specifically check for gRPC status code 5 (NOT_FOUND) which Firestore uses
+    if (error.code === 5 && error.details !== undefined) {
+      errorMessage =
+        'Failed to save user details to the database. The user authentication record might have been created, but profile data is missing. Please contact support or try again later.';
+      errorCode = 'FIRESTORE_SAVE_FAILED';
+      // Safely access error.metadata and convert to string if it exists
+      const metadataString =
+        error.metadata && typeof error.metadata.toString === 'function'
+          ? error.metadata.toString()
+          : 'No metadata';
+      errorDetails = { details: error.details, metadata: metadataString };
+    }
+
+    res.status(500).json({
+      message: 'Error creating user',
+      error: errorMessage,
+      errorCode,
+      errorDetails,
     });
   }
 });
@@ -143,7 +199,7 @@ router.get('/profile', async (req: ExpressRequest, res: ExpressResponse) => {
         age: user.age,
         level: user.level,
         university: user.university, // Added
-        major: user.major,          // Added
+        major: user.major, // Added
         graduationYear: user.graduationYear, // Added
       },
     });
@@ -155,7 +211,8 @@ router.get('/profile', async (req: ExpressRequest, res: ExpressResponse) => {
 // Update profile route
 router.put('/profile', async (req: ExpressRequest, res: ExpressResponse) => {
   const idToken = req.headers.authorization?.split(' ')[1];
-  const { name, age, level, university, major, graduationYear, email } = req.body;
+  const { name, age, level, university, major, graduationYear, email } =
+    req.body;
 
   if (!idToken) {
     return res.status(401).json({ message: 'Unauthorized' });
@@ -165,10 +222,12 @@ router.put('/profile', async (req: ExpressRequest, res: ExpressResponse) => {
     // Verify Firebase ID token
     const decodedToken = await getAuth().verifyIdToken(idToken);
     const uid = decodedToken.uid;
-    
+
     // Validate fields
     if (level && (level < 100 || level > 600)) {
-      return res.status(400).json({ message: 'Invalid level. Level must be between 100 and 600.' });
+      return res
+        .status(400)
+        .json({ message: 'Invalid level. Level must be between 100 and 600.' });
     }
 
     if (age && (typeof age !== 'number' || age <= 0)) {
@@ -180,7 +239,7 @@ router.put('/profile', async (req: ExpressRequest, res: ExpressResponse) => {
       const updateParams: any = {};
       if (email) updateParams.email = email;
       if (name) updateParams.displayName = name;
-      
+
       await getAuth().updateUser(uid, updateParams);
     }
 
@@ -199,23 +258,26 @@ router.put('/profile', async (req: ExpressRequest, res: ExpressResponse) => {
       const updatedUser = await User.findOneAndUpdate(
         { username: uid },
         { $set: updateData },
-        { new: true }
+        { new: true },
       );
 
       if (!updatedUser) {
         return res.status(404).json({ message: 'User not found' });
       }
       // Sync to Firestore
-      await firestore.collection('users').doc(uid).set({
-        email: updatedUser.email,
-        name: updatedUser.name,
-        age: updatedUser.age,
-        level: updatedUser.level,
-        university: updatedUser.university,
-        major: updatedUser.major,
-        graduationYear: updatedUser.graduationYear,
-        updatedAt: new Date(),
-      }, { merge: true });
+      await firestore.collection('users').doc(uid).set(
+        {
+          email: updatedUser.email,
+          name: updatedUser.name,
+          age: updatedUser.age,
+          level: updatedUser.level,
+          university: updatedUser.university,
+          major: updatedUser.major,
+          graduationYear: updatedUser.graduationYear,
+          updatedAt: new Date(),
+        },
+        { merge: true },
+      );
 
       return res.status(200).json({
         message: 'Profile updated successfully',

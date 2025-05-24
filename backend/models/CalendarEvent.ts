@@ -6,7 +6,13 @@ export interface ICalendarEvent extends Document {
   description?: string;
   startDate: Date;
   endDate?: Date; // Optional, for events that span multiple days or have a duration
-  eventType: 'assignment' | 'exam' | 'lecture' | 'meeting' | 'personal' | 'other';
+  eventType:
+    | 'assignment'
+    | 'exam'
+    | 'lecture'
+    | 'meeting'
+    | 'personal'
+    | 'other';
   sourceSyllabusAnalysisId?: mongoose.Schema.Types.ObjectId | string; // Optional: to link to a specific syllabus analysis
   allDay?: boolean; // Optional: for all-day events
   location?: string; // Optional
@@ -52,17 +58,20 @@ const CalendarEventSchema: Schema = new Schema(
       default: false,
     },
     location: {
-        type: String,
-        trim: true,
+      type: String,
+      trim: true,
     },
     courseId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Course', // Assuming you might have a Course model
-    }
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Course', // Assuming you might have a Course model
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt timestamps
-  }
+  },
 );
 
-export default mongoose.model<ICalendarEvent>('CalendarEvent', CalendarEventSchema);
+export default mongoose.model<ICalendarEvent>(
+  'CalendarEvent',
+  CalendarEventSchema,
+);

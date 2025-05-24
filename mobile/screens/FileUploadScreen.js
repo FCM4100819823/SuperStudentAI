@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Image, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  Image,
+  Platform,
+} from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -79,13 +89,14 @@ const FileUploadScreen = ({ navigation, route }) => {
         body: formData,
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Syllabus upload failed');
+      if (!response.ok)
+        throw new Error(data.message || 'Syllabus upload failed');
       setResult(data);
       // Navigate to CreateStudyPlanScreen on successful syllabus OCR
       if (data.syllabusAnalysisId && data.syllabusTitle) {
-        navigation.navigate('CreateStudyPlan', { 
+        navigation.navigate('CreateStudyPlan', {
           syllabusAnalysisId: data.syllabusAnalysisId,
-          syllabusTitle: data.syllabusTitle 
+          syllabusTitle: data.syllabusTitle,
         });
       }
     } catch (e) {
@@ -98,30 +109,49 @@ const FileUploadScreen = ({ navigation, route }) => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back-outline" size={28} color="#333333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Upload Files</Text>
       </View>
 
       <View style={styles.contentContainer}>
-        <Image source={require('../assets/superstudentlogo.png')} style={styles.logo} />
+        <Image
+          source={require('../assets/superstudentlogo.png')}
+          style={styles.logo}
+        />
         <Text style={styles.title}>Share Your Study Materials</Text>
         <Text style={styles.subtitle}>
           Upload documents, notes, or presentations.
-          {studyPlanId ? " They will be linked to your study plan." : ""}
+          {studyPlanId ? ' They will be linked to your study plan.' : ''}
         </Text>
 
-        <TouchableOpacity style={styles.uploadButton} onPress={pickFile} disabled={uploading}>
-          <Ionicons name="cloud-upload-outline" size={28} color="#FFFFFF" style={styles.uploadIcon} />
+        <TouchableOpacity
+          style={styles.uploadButton}
+          onPress={pickFile}
+          disabled={uploading}
+        >
+          <Ionicons
+            name="cloud-upload-outline"
+            size={28}
+            color="#FFFFFF"
+            style={styles.uploadIcon}
+          />
           <Text style={styles.uploadButtonText}>Select File to Upload</Text>
         </TouchableOpacity>
 
         {uploading && (
           <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>Uploading: {progress.toFixed(2)}%</Text>
+            <Text style={styles.progressText}>
+              Uploading: {progress.toFixed(2)}%
+            </Text>
             <View style={styles.progressBarBackground}>
-              <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
+              <View
+                style={[styles.progressBarFill, { width: `${progress}%` }]}
+              />
             </View>
           </View>
         )}
@@ -130,11 +160,18 @@ const FileUploadScreen = ({ navigation, route }) => {
           <View style={styles.successContainer}>
             <Ionicons name="checkmark-circle-outline" size={60} color="green" />
             <Text style={styles.successText}>File uploaded successfully!</Text>
-            <TouchableOpacity onPress={() => Alert.alert("File URL", result.url)}>
+            <TouchableOpacity
+              onPress={() => Alert.alert('File URL', result.url)}
+            >
               <Text style={styles.linkText}>View Uploaded File (URL)</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.uploadAnotherButton} onPress={pickFile}>
-              <Text style={styles.uploadAnotherButtonText}>Upload Another File</Text>
+            <TouchableOpacity
+              style={styles.uploadAnotherButton}
+              onPress={pickFile}
+            >
+              <Text style={styles.uploadAnotherButtonText}>
+                Upload Another File
+              </Text>
             </TouchableOpacity>
           </View>
         )}

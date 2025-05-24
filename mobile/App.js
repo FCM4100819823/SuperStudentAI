@@ -12,7 +12,10 @@ function AppContent({ user }) {
   return (
     <NavigationContainer>
       {/* Use a default status bar style or make it configurable elsewhere */}
-      <StatusBar barStyle="dark-content" backgroundColor={DEFAULT_BACKGROUND_COLOR} />
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={DEFAULT_BACKGROUND_COLOR}
+      />
       <AppNavigator user={user} />
     </NavigationContainer>
   );
@@ -38,9 +41,7 @@ export default function App() {
     );
   }
 
-  return (
-    <AppContent user={user} />
-  );
+  return <AppContent user={user} />;
 }
 
 const styles = StyleSheet.create({

@@ -110,6 +110,7 @@ const AIScreen = ({ navigation }) => {
       if (isSyllabusTextAnalysis) {
         endpoint = SYLLABUS_TEXT_ANALYSIS_ENDPOINT;
         const syllabusText = currentInput.substring(currentInput.toLowerCase().indexOf('syllabus text:') + 'syllabus text:'.length).trim();
+      }
 
       console.log(`Sending to ${endpoint} with payload:`, payload);
 
@@ -145,6 +146,7 @@ const AIScreen = ({ navigation }) => {
       setLoading(false);
       setIsTyping(false);
     }
+
   };
 
   const renderMessage = ({ item }) => {
