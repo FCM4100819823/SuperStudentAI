@@ -4,84 +4,101 @@ import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 
 // Import your screens
-import HomeScreen from '../screens/HomeScreen';
-import StudyPlanScreen from '../screens/StudyPlanScreen';
-import FlashcardsScreen from '../screens/FlashcardsScreen';
-import SettingsScreen from '../screens/SettingsScreen';
+import Dashboard from '../screens/Dashboard'; // Changed from HomeScreen to Dashboard
+import StudyScreen from '../screens/StudyScreen'; // New comprehensive Study screen
+import AIScreen from '../screens/AIScreen'; // Assuming you have an AIScreen
+import AppSettingsScreen from '../screens/AppSettingsScreen'; // Changed from SettingsScreen to AppSettingsScreen
+import FocusTimerScreen from '../screens/FocusTimerScreen'; // Added FocusTimerScreen
 
 const Tab = createBottomTabNavigator();
+
+// Define static colors for the tab bar for a professional look
+const STATIC_COLORS = {
+  primary: '#6A11CB', // Deep purple - primary brand color
+  inactive: '#8E8E93', // Standard inactive color
+  background: '#FFFFFF', // Tab bar background
+  activeAccent: '#2575FC', // A secondary color for active tab, if desired (or use primary)
+  // Add more if needed
+};
 
 const BottomTabNavigator = () => {
   const defaultFallbackFonts = {
     regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
     medium: Platform.OS === 'ios' ? 'System-Medium' : 'sans-serif-medium',
-    bold: Platform.OS === 'ios' ? 'System-Bold' : 'sans-serif-bold',
   };
-
-  // Ensure fonts object and specific font weights have fallbacks
-  // Define static styles here if needed, or rely on screen-specific styles
-  // For example, if you had tab bar styling dependent on theme:
-  // const tabBarActiveTintColor = themeContext.colors?.primary || '#007AFF';
-  // const tabBarInactiveTintColor = themeContext.colors?.text || '#8e8e93';
-  // const tabBarBackgroundColor = themeContext.colors?.background || '#FFFFFF';
-
-  // Replace with static values:
-  const tabBarActiveTintColor = '#007AFF'; // Example static color
-  const tabBarInactiveTintColor = '#8e8e93'; // Example static color
-  const tabBarBackgroundColor = '#FFFFFF'; // Example static color
 
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: tabBarActiveTintColor,
-        tabBarInactiveTintColor: tabBarInactiveTintColor,
+        tabBarActiveTintColor: STATIC_COLORS.primary,
+        tabBarInactiveTintColor: STATIC_COLORS.inactive,
         tabBarStyle: {
-          backgroundColor: tabBarBackgroundColor,
-          // Add other static styles as needed
+          backgroundColor: STATIC_COLORS.background,
+          borderTopWidth: Platform.OS === 'ios' ? 0 : 1, // No top border on iOS, subtle on Android
+          borderTopColor: '#E0E0E0',
+          height: Platform.OS === 'ios' ? 90 : 60, // Adjust height for different platforms
+          paddingBottom: Platform.OS === 'ios' ? 30 : 5, // Padding for notch/home indicator
+          paddingTop: 5,
         },
         tabBarLabelStyle: {
-          fontFamily: defaultFallbackFonts.medium, // Use the more robust mediumFont
+          fontFamily: defaultFallbackFonts.medium,
           fontSize: 10,
+          marginBottom: Platform.OS === 'ios' ? -5 : 0, // Adjust label position
         },
-      }}
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+          const iconSize = focused ? size + 2 : size; // Slightly larger icon when focused
+
+          if (route.name === 'Dashboard') {
+            iconName = focused ? 'home' : 'home-outline';
+            return <Ionicons name={iconName} size={iconSize} color={color} />;
+          } else if (route.name === 'Study') {
+            iconName = focused ? 'library' : 'library-outline'; // Changed icon
+            return <Ionicons name={iconName} size={iconSize} color={color} />;
+          } else if (route.name === 'Focus') {
+            iconName = focused ? 'timer' : 'timer-outline';
+            return <Ionicons name={iconName} size={iconSize} color={color} />;
+          } else if (route.name === 'AI') {
+            iconName = focused ? 'sparkles' : 'sparkles-outline'; // Using sparkles for AI
+            return <Ionicons name={iconName} size={iconSize} color={color} />;
+          } else if (route.name === 'Settings') {
+            iconName = focused ? 'settings' : 'settings-outline';
+            return <Ionicons name={iconName} size={iconSize} color={color} />;
+          }
+        },
+      })}
     >
       <Tab.Screen
-        name="Home"
-        component={HomeScreen}
+        name="Dashboard"
+        component={Dashboard}
+        // Options can be kept minimal if defaults are good
+      />
+      <Tab.Screen
+        name="Study"
+        component={StudyScreen} // New comprehensive Study screen
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" color={color} size={size} />
-          ),
+          title: 'Study Universe', // Updated title
         }}
       />
       <Tab.Screen
-        name="StudyPlans"
-        component={StudyPlanScreen}
+        name="Focus"
+        component={FocusTimerScreen} // Added Focus Timer screen
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar" color={color} size={size} />
-          ),
-          title: 'Study Plans',
+          title: 'Focus Timer',
         }}
       />
       <Tab.Screen
-        name="Flashcards"
-        component={FlashcardsScreen}
+        name="AI"
+        component={AIScreen} // Added AI screen
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="layers" color={color} size={size} />
-          ),
+          title: 'AI Tutor',
         }}
       />
       <Tab.Screen
         name="Settings"
-        component={SettingsScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings" color={color} size={size} />
-          ),
-        }}
+        component={AppSettingsScreen} // Updated component
+        // Options can be kept minimal
       />
     </Tab.Navigator>
   );

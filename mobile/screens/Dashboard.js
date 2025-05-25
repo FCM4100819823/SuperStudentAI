@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,512 +8,701 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Image,
+  Platform,
+  StatusBar,
+  Dimensions,
 } from 'react-native';
-import { collection, doc, onSnapshot } from 'firebase/firestore';
-import { auth, firestore } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
-import { MaterialIcons } from '@expo/vector-icons';
+import { auth, firestore } from '../firebaseConfig';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width, height } = Dimensions.get('window');
+
+const COLORS = {
+  primary: '#6366F1',
+  primaryDark: '#4F46E5',
+  secondary: '#8B5CF6',
+  accent: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  background: '#FAFBFC',
+  surface: '#FFFFFF',
+  text: '#0F172A',
+  textSecondary: '#475569',
+  textTertiary: '#94A3B8',
+  border: '#E2E8F0',
+  success: '#059669',
+  gradient: {
+    primary: ['#667EEA', '#764BA2'],
+    success: ['#10B981', '#059669'],
+    warning: ['#F59E0B', '#D97706'],
+    blue: ['#3B82F6', '#1D4ED8'],
+    purple: ['#8B5CF6', '#7C3AED'],
+  },
+  shadow: {
+    light: 'rgba(0, 0, 0, 0.05)',
+    medium: 'rgba(0, 0, 0, 0.1)',
+  }
+};
+
+const FONTS = {
+  regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  medium: Platform.OS === 'ios' ? 'System-Medium' : 'sans-serif-medium',
+  semibold: Platform.OS === 'ios' ? 'System-Semibold' : 'sans-serif-medium',
+  bold: Platform.OS === 'ios' ? 'System-Bold' : 'sans-serif-bold',
+};
+
+const QuickActionCard = ({ icon, title, subtitle, onPress, gradient, iconColor }) => (
+  <TouchableOpacity style={styles.quickActionCard} onPress={onPress} activeOpacity={0.9}>
+    <LinearGradient colors={gradient} style={styles.quickActionGradient}>
+      <View style={styles.quickActionContent}>
+        <View style={[styles.quickActionIcon, { backgroundColor: iconColor }]}>
+          <Ionicons name={icon} size={24} color="#FFFFFF" />
+        </View>
+        <Text style={styles.quickActionTitle}>{title}</Text>
+        <Text style={styles.quickActionSubtitle}>{subtitle}</Text>
+      </View>
+    </LinearGradient>
+  </TouchableOpacity>
+);
+
+const ProgressCard = ({ title, value, total, percentage, color, icon }) => (
+  <View style={styles.progressCard}>
+    <View style={styles.progressHeader}>
+      <View style={[styles.progressIcon, { backgroundColor: `${color}20` }]}>
+        <Ionicons name={icon} size={20} color={color} />
+      </View>
+      <Text style={styles.progressTitle}>{title}</Text>
+    </View>
+    <View style={styles.progressContent}>
+      <Text style={styles.progressValue}>{value}</Text>
+      <Text style={styles.progressTotal}>/ {total}</Text>
+    </View>
+    <View style={styles.progressBarContainer}>
+      <View style={[styles.progressBar, { backgroundColor: `${color}20` }]}>
+        <View 
+          style={[
+            styles.progressBarFill, 
+            { 
+              width: `${Math.min(percentage, 100)}%`,
+              backgroundColor: color 
+            }
+          ]} 
+        />
+      </View>
+      <Text style={styles.progressPercentage}>{percentage.toFixed(0)}%</Text>
+    </View>
+  </View>
+);
 
 const Dashboard = ({ navigation, route }) => {
   const [profileData, setProfileData] = useState(null);
+  const [studyStats, setStudyStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [greeting, setGreeting] = useState('');
 
-  const fetchUserProfile = async () => {
+  const getApiUrl = async () => {
+    try {
+      return await AsyncStorage.getItem('apiUrl') || 'http://192.168.1.100:3000';
+    } catch (error) {
+      console.error('Error getting API URL:', error);
+      return 'http://192.168.1.100:3000';
+    }
+  };
+
+  const getAuthToken = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        return await user.getIdToken();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+      return null;
+    }
+  };
+
+  const fetchDashboardData = async () => {
+    try {
+      const apiUrl = await getApiUrl();
+      const token = await getAuthToken();
+      
+      if (!token) {
+        setError('Authentication required');
+        return;
+      }
+
+      const statsResponse = await axios.get(`${apiUrl}/study-plans/stats/overview`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      });
+
+      setStudyStats(statsResponse.data);
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      if (!studyStats) {
+        setError('Failed to load dashboard data. Please check your connection.');
+      }
+    }
+  };
+
+  const fetchUserProfile = useCallback(async () => {
     try {
       const user = auth.currentUser;
       if (!user) {
         setError('You are not logged in. Please log in again.');
+        setLoading(false);
         return;
       }
-      const idToken = await user.getIdToken();
-      const backendUrl = 'http://172.20.10.2:3000';
-      const response = await fetch(`${backendUrl}/auth/profile`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        timeout: 10000, // 10 seconds
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Error fetching profile');
-      }
-      setProfileData(data.user);
-    } catch (err) {
-      if (err.message && err.message.includes('Network request failed')) {
-        setError(
-          'Cannot connect to backend. Make sure your server is running and accessible from the emulator.',
-        );
-      } else if (err.message && err.message.includes('timeout')) {
-        setError('Network request timed out. Check your backend connection.');
-      } else {
-        setError(err.message || 'Failed to load profile data');
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchUserProfile();
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigation.replace('Login');
-    } catch (err) {
-      Alert.alert('Logout Failed', err.message);
-    }
-  };
-
-  useEffect(() => {
-    let unsubscribeFirestore;
-    const user = auth.currentUser;
-    if (user) {
-      // Ensure 'firestore' is used directly, not 'db' if you changed the import alias
-      unsubscribeFirestore = onSnapshot(
-        doc(firestore, 'users', user.uid),
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const unsubscribe = onSnapshot(
+        userDocRef,
         (docSnap) => {
           if (docSnap.exists()) {
             setProfileData(docSnap.data());
           } else {
-            console.log('No such document in Firestore!');
-            // setError('User profile not found.'); // Optionally set an error
+            setError('User profile not found.');
           }
+          setLoading(false);
+          setRefreshing(false);
         },
         (err) => {
-          console.error('Firestore snapshot error:', err);
-          setError('Error fetching profile updates.');
+          console.error('Firestore error:', err);
+          setError('Error fetching profile data.');
+          setLoading(false);
+          setRefreshing(false);
         },
       );
+      return unsubscribe;
+    } catch (err) {
+      setError(err.message || 'Failed to load profile data');
+      setLoading(false);
+      setRefreshing(false);
     }
-    fetchUserProfile(); // Initial fetch
+  }, []);
 
-    // Refresh profile when returning from profile edit screen
-    const unsubscribeNav = navigation.addListener('focus', () => {
-      if (route.params?.refreshProfile) {
-        fetchUserProfile();
-        navigation.setParams({ refreshProfile: undefined });
-      }
-    });
-    return () => {
-      if (unsubscribeFirestore) unsubscribeFirestore();
-      unsubscribeNav();
+  useEffect(() => {
+    const hours = new Date().getHours();
+    if (hours < 12) setGreeting('Good Morning');
+    else if (hours < 18) setGreeting('Good Afternoon');
+    else setGreeting('Good Evening');
+  }, []);
+
+  useEffect(() => {
+    let unsubscribe;
+    const initializeDashboard = async () => {
+      unsubscribe = await fetchUserProfile();
+      await fetchDashboardData();
     };
-  }, [navigation, route]);
+
+    initializeDashboard();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [fetchUserProfile]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchUserProfile(),
+      fetchDashboardData()
+    ]);
+    setRefreshing(false);
+  }, [fetchUserProfile]);
+
+  const handleCreateStudyPlan = () => {
+    navigation.navigate('CreateStudyPlan');
+  };
+
+  const handleViewStudyPlans = () => {
+    navigation.navigate('StudyPlanList');
+  };
+
+  const handleViewAnalytics = () => {
+    navigation.navigate('Analytics');
+  };
+
+  const handleViewSettings = () => {
+    navigation.navigate('Settings');
+  };
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut(auth);
+              navigation.replace('Login');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const quickActions = [
+    {
+      icon: 'add-circle',
+      title: 'Create Plan',
+      subtitle: 'New study plan',
+      onPress: handleCreateStudyPlan,
+      gradient: COLORS.gradient.primary,
+      iconColor: COLORS.primary,
+    },
+    {
+      icon: 'library',
+      title: 'Study Plans',
+      subtitle: 'View all plans',
+      onPress: handleViewStudyPlans,
+      gradient: COLORS.gradient.success,
+      iconColor: COLORS.accent,
+    },
+    {
+      icon: 'stats-chart',
+      title: 'Analytics',
+      subtitle: 'Track progress',
+      onPress: handleViewAnalytics,
+      gradient: COLORS.gradient.blue,
+      iconColor: '#3B82F6',
+    },
+    {
+      icon: 'settings',
+      title: 'Settings',
+      subtitle: 'Preferences',
+      onPress: handleViewSettings,
+      gradient: COLORS.gradient.purple,
+      iconColor: COLORS.secondary,
+    },
+  ];
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading your profile...</Text>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading dashboard...</Text>
       </View>
     );
   }
 
-  if (error) {
+  if (error && !profileData) {
     return (
       <View style={styles.errorContainer}>
-        <MaterialIcons name="error-outline" size={60} color="#FF3B30" />
+        <Ionicons name="alert-circle" size={64} color={COLORS.error} />
+        <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchUserProfile}>
-          <Text style={styles.retryButtonText}>Try Again</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
+          <Text style={styles.retryText}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={['#007AFF']}
-        />
-      }
-    >
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>SuperStudent AI</Text>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <MaterialIcons name="logout" size={24} color="#FFFFFF" />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.profileContainer}>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>
-            {profileData?.name
-              ? profileData.name.substring(0, 2).toUpperCase()
-              : 'ST'}
-          </Text>
-        </View>
-        <Text style={styles.welcomeText}>
-          Welcome, {profileData?.name || 'Student'}!
-        </Text>
-      </View>
-      <View style={styles.infoSection}>
-        <Text style={styles.sectionTitle}>Your Profile</Text>
-
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <MaterialIcons name="person" size={24} color="#007AFF" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Name</Text>
-              <Text style={styles.infoValue}>
-                {profileData?.name || 'Not available'}
-              </Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        <LinearGradient colors={COLORS.gradient.primary} style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity style={styles.avatarContainer}>
+                <Image
+                  source={{
+                    uri: profileData?.profilePicture || 'https://via.placeholder.com/100'
+                  }}
+                  style={styles.avatar}
+                />
+              </TouchableOpacity>
+              <View style={styles.greetingContainer}>
+                <Text style={styles.greeting}>{greeting}!</Text>
+                <Text style={styles.userName}>
+                  {profileData?.name || 'Student'}
+                </Text>
+              </View>
             </View>
+            <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
+              <Ionicons name="log-out-outline" size={24} color={COLORS.surface} />
+            </TouchableOpacity>
           </View>
+        </LinearGradient>
 
-          <View style={styles.infoRow}>
-            <MaterialIcons name="email" size={24} color="#007AFF" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValue}>
-                {profileData?.email || 'Not available'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <MaterialIcons name="school" size={24} color="#007AFF" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>University</Text>
-              <Text style={styles.infoValue}>
-                {profileData?.university || 'Not available'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <MaterialIcons name="class" size={24} color="#007AFF" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Major</Text>
-              <Text style={styles.infoValue}>
-                {profileData?.major || 'Not available'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <MaterialIcons name="looks-one" size={24} color="#007AFF" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Level</Text>
-              <Text style={styles.infoValue}>
-                {profileData?.level || 'Not available'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <MaterialIcons name="event" size={24} color="#007AFF" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Graduation Year</Text>
-              <Text style={styles.infoValue}>
-                {profileData?.graduationYear || 'Not available'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <MaterialIcons name="cake" size={24} color="#007AFF" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Age</Text>
-              <Text style={styles.infoValue}>
-                {profileData?.age || 'Not available'}
-              </Text>
-            </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActionsGrid}>
+            {quickActions.map((action, index) => (
+              <QuickActionCard key={index} {...action} />
+            ))}
           </View>
         </View>
-      </View>{' '}
-      <TouchableOpacity
-        style={styles.editButton}
-        onPress={() => navigation.navigate('ProfileEdit', { profileData })}
-      >
-        <MaterialIcons name="edit" size={20} color="#FFFFFF" />
-        <Text style={styles.editButtonText}>Edit Profile</Text>
-      </TouchableOpacity>
-      <View style={styles.infoSection}>
-        <Text style={styles.sectionTitle}>Academic Dashboard</Text>
-        <View style={styles.gridContainer}>
-          {/* Study Plans Card */}
-          <TouchableOpacity
-            style={styles.gridItem}
-            onPress={() => navigation.navigate('StudyPlanList')}
-          >
-            <MaterialIcons name="library-books" size={30} color="#007AFF" />
-            <Text style={styles.gridItemText}>Study Plans</Text>
-          </TouchableOpacity>
 
-          {/* Spaced Repetition Card */}
-          <TouchableOpacity
-            style={styles.gridItem}
-            onPress={() => navigation.navigate('SpacedRepetition')}
-          >
-            <MaterialIcons name="cached" size={30} color="#007AFF" />
-            <Text style={styles.gridItemText}>SRS Review</Text>
-          </TouchableOpacity>
+        {studyStats && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Progress Overview</Text>
+            <View style={styles.progressGrid}>
+              <ProgressCard
+                title="Active Plans"
+                value={studyStats.activePlans || 0}
+                total={studyStats.totalPlans || 0}
+                percentage={studyStats.totalPlans > 0 ? (studyStats.activePlans / studyStats.totalPlans) * 100 : 0}
+                color={COLORS.primary}
+                icon="library"
+              />
+              <ProgressCard
+                title="Completed Tasks"
+                value={studyStats.completedTasks || 0}
+                total={studyStats.totalTasks || 0}
+                percentage={studyStats.totalTasks > 0 ? (studyStats.completedTasks / studyStats.totalTasks) * 100 : 0}
+                color={COLORS.accent}
+                icon="checkmark-circle"
+              />
+              <ProgressCard
+                title="Study Streak"
+                value={studyStats.studyStreak || 0}
+                total="days"
+                percentage={Math.min((studyStats.studyStreak || 0) * 10, 100)}
+                color={COLORS.warning}
+                icon="flame"
+              />
+              <ProgressCard
+                title="This Week"
+                value={studyStats.weeklyProgress || 0}
+                total="100"
+                percentage={studyStats.weeklyProgress || 0}
+                color={COLORS.secondary}
+                icon="trending-up"
+              />
+            </View>
+          </View>
+        )}
 
-          {/* Focus Timer Card */}
-          <TouchableOpacity
-            style={styles.gridItem}
-            onPress={() => navigation.navigate('FocusTimer')}
-          >
-            <MaterialIcons name="timer" size={30} color="#007AFF" />
-            <Text style={styles.gridItemText}>Focus Timer</Text>
-          </TouchableOpacity>
-
-          {/* Placeholder for Calendar/Schedule */}
-          <TouchableOpacity
-            style={styles.gridItem}
-            onPress={() =>
-              Alert.alert(
-                'Coming Soon!',
-                'Calendar and schedule integration is under development.',
-              )
-            }
-          >
-            <MaterialIcons name="calendar-today" size={30} color="#007AFF" />
-            <Text style={styles.gridItemText}>Schedule</Text>
-          </TouchableOpacity>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Study Plans</Text>
+            <TouchableOpacity onPress={handleViewStudyPlans}>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.emptyState}>
+            <Ionicons name="school" size={48} color={COLORS.textTertiary} />
+            <Text style={styles.emptyStateTitle}>Ready to Start Studying?</Text>
+            <Text style={styles.emptyStateText}>
+              Create your first study plan and begin your learning journey!
+            </Text>
+            <TouchableOpacity style={styles.emptyStateButton} onPress={handleCreateStudyPlan}>
+              <Text style={styles.emptyStateButtonText}>Create Study Plan</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-      {/* File Upload Button */}
-      <TouchableOpacity
-        style={styles.uploadButton}
-        onPress={() => navigation.navigate('FileUpload')}
-      >
-        <MaterialIcons name="cloud-upload" size={22} color="#FFFFFF" />
-        <Text style={styles.uploadButtonText}>Upload File for AI Parsing</Text>
-      </TouchableOpacity>
-      {/* AI Assistant Button */}
-      <TouchableOpacity
-        style={styles.aiButton}
-        onPress={() => navigation.navigate('AI')}
-      >
-        <MaterialIcons name="smart-toy" size={22} color="#FFFFFF" />
-        <Text style={styles.aiButtonText}>Ask SuperStudent AI</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: COLORS.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F0F0F0',
+    backgroundColor: COLORS.background,
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 16,
     fontSize: 16,
-    color: '#007AFF',
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.medium,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 32,
+    backgroundColor: COLORS.background,
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontFamily: FONTS.bold,
+    color: COLORS.text,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   errorText: {
-    marginTop: 10,
     fontSize: 16,
-    color: '#FF3B30',
+    color: COLORS.textSecondary,
     textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
   },
   retryButton: {
-    marginTop: 20,
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 24,
     paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
+    borderRadius: 12,
   },
-  retryButtonText: {
-    color: '#FFFFFF',
+  retryText: {
+    color: COLORS.surface,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.semibold,
   },
-  header: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontWeight: 'bold', // Added a default style property
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoutText: {
-    color: '#FFFFFF',
-    marginLeft: 5,
-  },
-  profileContainer: {
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#CCCCCC',
-  },
-  avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 30,
-    fontWeight: 'bold',
-  },
-  welcomeText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#333333',
-    marginTop: 10,
-  },
-  infoSection: {
-    padding: 16,
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 15,
-    color: '#333333',
-  },
-  infoCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#CCCCCC',
-  },
-  infoContent: {
-    marginLeft: 15,
+  scrollView: {
     flex: 1,
   },
-  infoLabel: {
-    fontSize: 14,
-    color: '#777777',
+  scrollContent: {
+    paddingBottom: 32,
   },
-  infoValue: {
-    fontSize: 16,
-    color: '#333333',
-    fontWeight: '500',
-  },
-  editButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 32,
     paddingHorizontal: 20,
-    borderRadius: 25,
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    elevation: 3,
+    justifyContent: 'space-between',
   },
-  editButtonText: {
-    color: '#FFFFFF',
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatarContainer: {
+    marginRight: 16,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 3,
+    borderColor: COLORS.surface,
+  },
+  greetingContainer: {
+    flex: 1,
+  },
+  greeting: {
     fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+    color: COLORS.surface,
+    fontFamily: FONTS.regular,
+    opacity: 0.9,
   },
-  gridContainer: {
+  userName: {
+    fontSize: 24,
+    color: COLORS.surface,
+    fontFamily: FONTS.bold,
+    marginTop: 2,
+  },
+  signOutButton: {
+    padding: 8,
+  },
+  section: {
+    marginTop: 32,
+    paddingHorizontal: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontFamily: FONTS.bold,
+    color: COLORS.text,
+  },
+  viewAllText: {
+    fontSize: 16,
+    color: COLORS.primary,
+    fontFamily: FONTS.semibold,
+  },
+  quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-
-    borderRadius: 10,
-    padding: 15,
-    margin: 5,
-    width: '48%',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginTop: 16,
+    marginHorizontal: -8,
   },
-  gridItemText: {
-    marginTop: 8,
+  quickActionCard: {
+    width: (width - 56) / 2,
+    marginHorizontal: 8,
+    marginBottom: 16,
+  },
+  quickActionGradient: {
+    borderRadius: 16,
+    padding: 1,
+  },
+  quickActionContent: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 15,
+    padding: 20,
+    alignItems: 'center',
+    minHeight: 120,
+    justifyContent: 'center',
+  },
+  quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  quickActionTitle: {
+    fontSize: 16,
+    fontFamily: FONTS.semibold,
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  quickActionSubtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    fontFamily: FONTS.regular,
+  },
+  progressGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 16,
+    marginHorizontal: -8,
+  },
+  progressCard: {
+    width: (width - 56) / 2,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 8,
+    marginBottom: 16,
+    shadowColor: COLORS.shadow.light,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  progressIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  progressTitle: {
     fontSize: 14,
-    color: '#333333',
+    fontFamily: FONTS.medium,
+    color: COLORS.textSecondary,
+    flex: 1,
+  },
+  progressContent: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 12,
+  },
+  progressValue: {
+    fontSize: 24,
+    fontFamily: FONTS.bold,
+    color: COLORS.text,
+  },
+  progressTotal: {
+    fontSize: 16,
+    fontFamily: FONTS.regular,
+    color: COLORS.textSecondary,
+    marginLeft: 4,
+  },
+  progressBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  progressBar: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 8,
+  },
+  progressBarFill: {
+    height: 6,
+    borderRadius: 3,
+  },
+  progressPercentage: {
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    color: COLORS.textSecondary,
+    minWidth: 35,
+    textAlign: 'right',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 32,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontFamily: FONTS.semibold,
+    color: COLORS.text,
+    marginTop: 16,
+    marginBottom: 8,
     textAlign: 'center',
   },
-  aiButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 25,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 30,
-    margin: 20,
-    elevation: 3,
-    shadowColor: '#000',
+  emptyStateText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
   },
-  aiButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '600',
-    marginLeft: 10,
+  emptyStateButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
-  uploadButton: {
-    backgroundColor: '#FF9500',
-    borderRadius: 25,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 30,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    elevation: 3,
-    shadowColor: '#000',
-  },
-  uploadButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '600',
-    marginLeft: 10,
+  emptyStateButtonText: {
+    color: COLORS.surface,
+    fontSize: 16,
+    fontFamily: FONTS.semibold,
   },
 });
 

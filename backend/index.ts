@@ -11,6 +11,7 @@ import aiRoutes from './routes/ai';
 import fileRoutes from './routes/file';
 import calendarRoutes from './routes/calendar'; // Added calendar routes
 import spacedRepetitionRoutes from './routes/spacedRepetition'; // Import spaced repetition routes
+import studyPlansRoutes from './routes/studyPlans'; // Import study plans routes
 
 // Load environment variables
 dotenv.config();
@@ -60,6 +61,7 @@ app.use('/ai', aiRoutes); // Changed from /api/ai to /ai
 app.use('/file', fileRoutes); // Changed from /api/file to /file
 app.use('/calendar', calendarRoutes); // Added calendar routes
 app.use('/srs', spacedRepetitionRoutes); // Add spaced repetition routes
+app.use('/study-plans', studyPlansRoutes); // Add study plans routes
 
 // Start the server
 app.listen(PORT, HOST, () => {

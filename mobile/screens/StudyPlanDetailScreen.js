@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,105 +13,217 @@ import {
   TextInput,
   Modal,
   KeyboardAvoidingView,
+  Animated,
+  Dimensions,
+  StatusBar,
+  SafeAreaView,
 } from 'react-native';
 import {
   useNavigation,
   useRoute,
   useFocusEffect,
 } from '@react-navigation/native';
-import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { MaterialIcons, FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuth } from 'firebase/auth';
-import DateTimePicker from '@react-native-community/datetimepicker'; // Import DateTimePicker
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { format, parseISO, differenceInDays, isAfter, isBefore, addDays } from 'date-fns';
 
-// Replace with your actual backend URL
-const API_URL = 'http://172.20.10.2:3000/api'; // Or your deployed backend URL
+const { width, height } = Dimensions.get('window');
 
-// Define STATIC_COLORS and STATIC_FONTS for this screen
-const STATIC_COLORS = {
-  primary: '#007AFF', // Example primary color
-  background: '#F2F2F7', // Example background color
-  card: '#FFFFFF',
-  text: '#000000',
-  subtext: '#6E6E73',
-  border: '#D1D1D6',
-  error: '#FF3B30',
-  success: '#34C759',
-  buttonText: '#FFFFFF',
-  shadow: '#000000',
-  // Add other static colors as needed by the component's styles
-  headerBar: '#4A90E2', // From CreateStudyPlanScreen for consistency
-  iconColor: '#333333',
-  completedTask: '#4CAF50',
-  pendingTask: '#757575',
-  deleteAction: '#FF6347',
-  editAction: '#4A90E2',
-  fabBackground: '#007AFF', // Example FAB color
-  modalOverlay: 'rgba(0,0,0,0.5)',
-  modalBackground: '#FFFFFF',
-  cancelButton: '#6C757D',
-  saveButton: '#007AFF',
-  aiSuggestionBackground: '#E3F2FD',
-  aiSuggestionText: '#1E88E5',
-  optimizedSuggestionBackground: '#E8F5E9',
-  optimizedSuggestionTitle: '#2E7D32',
-  loadingText: '#4A4A4A',
-  emptyMessage: '#6E6E73',
-  retryButtonBackground: '#007AFF',
-  retryButtonText: '#FFFFFF',
-  taskSeparator: '#E0E0E0',
-  inputPlaceholder: '#B0BEC5',
+// Modern Design System
+const DESIGN_TOKENS = {
+  colors: {
+    // Primary palette
+    primary: '#6366F1',
+    primaryDark: '#4F46E5',
+    primaryLight: '#818CF8',
+    secondary: '#10B981',
+    secondaryDark: '#059669',
+    accent: '#F59E0B',
+    
+    // Neutral palette
+    background: '#FAFBFC',
+    surface: '#FFFFFF',
+    surfaceElevated: '#F8FAFC',
+    
+    // Text colors
+    text: {
+      primary: '#0F172A',
+      secondary: '#475569',
+      tertiary: '#94A3B8',
+      inverse: '#FFFFFF',
+    },
+    
+    // Status colors
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    info: '#3B82F6',
+    
+    // Study-specific colors
+    study: {
+      active: '#10B981',
+      pending: '#F59E0B',
+      completed: '#6366F1',
+      overdue: '#EF4444',
+    },
+    
+    // Borders and dividers
+    border: '#E2E8F0',
+    divider: '#F1F5F9',
+    
+    // Shadows
+    shadow: {
+      light: 'rgba(15, 23, 42, 0.04)',
+      medium: 'rgba(15, 23, 42, 0.08)',
+      strong: 'rgba(15, 23, 42, 0.16)',
+    },
+  },
+  
+  typography: {
+    sizes: {
+      xs: 12,
+      sm: 14,
+      base: 16,
+      lg: 18,
+      xl: 20,
+      '2xl': 24,
+      '3xl': 30,
+      '4xl': 36,
+    },
+    weights: {
+      regular: Platform.OS === 'ios' ? '400' : 'normal',
+      medium: Platform.OS === 'ios' ? '500' : 'normal',
+      semibold: Platform.OS === 'ios' ? '600' : 'normal',
+      bold: Platform.OS === 'ios' ? '700' : 'bold',
+    },
+  },
+  
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
+    '2xl': 48,
+  },
+  
+  borderRadius: {
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 24,
+    full: 9999,
+  },
+  
+  shadows: {
+    sm: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 3,
+      elevation: 1,
+    },
+    md: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    lg: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.15,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+  },
 };
 
-const STATIC_FONTS = {
-  regular: 'System', // Default system font
-  bold: 'System-Bold',
-  // Add other static fonts as needed
-  titleSize: 22,
-  subtitleSize: 16,
-  bodySize: 14,
-  captionSize: 12,
-};
+// API Configuration
+const API_URL = __DEV__ ? 'http://localhost:3000/api' : 'https://your-production-api.com/api';
 
-const StudyPlanDetailScreen = ({ navigation }) => {
-  // REMOVE: const themeContext = useTheme() || {};
-  // REMOVE: const colors = themeContext.colors || {};
-  // USE STATIC:
-  const colors = STATIC_COLORS;
-  const fonts = STATIC_FONTS; // If your getStyles uses fonts
-  const styles = getStyles(colors, fonts); // Pass fonts if getStyles expects it
-
+const StudyPlanDetailScreen = () => {
+  const navigation = useNavigation();
   const route = useRoute();
-  const { planId } = route.params; // Removed planTitle from here, will be fetched
+  const { planId } = route.params;
   const auth = getAuth();
 
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+
+  // State management
   const [studyPlan, setStudyPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
-
-  // Add a new state for AI-generated suggestions
   const [aiOptimizedSuggestions, setAiOptimizedSuggestions] = useState(null);
 
+  // Task modal states
   const [isTaskModalVisible, setIsTaskModalVisible] = useState(false);
-  const [currentTask, setCurrentTask] = useState(null); // For editing
+  const [currentTask, setCurrentTask] = useState(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
   const [newTaskEstimatedHours, setNewTaskEstimatedHours] = useState('');
 
+  // Date picker states
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerDate, setDatePickerDate] = useState(new Date());
 
-  // Moved isValidDate outside of the component or ensure it doesn't use async/await if not needed
-  const isValidDate = (d) => {
-    return d instanceof Date && !isNaN(d.getTime()); // Use getTime() for robust validation
+  // Animation effects
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // Utility functions
+  const isValidDate = (d) => d instanceof Date && !isNaN(d.getTime());
+
+  const getTaskStatusColor = (task) => {
+    if (task.status === 'completed') return DESIGN_TOKENS.colors.success;
+    if (task.dueDate && isAfter(new Date(), new Date(task.dueDate))) {
+      return DESIGN_TOKENS.colors.error;
+    }
+    return DESIGN_TOKENS.colors.warning;
   };
 
+  const getProgressPercentage = () => {
+    if (!studyPlan?.tasks || studyPlan.tasks.length === 0) return 0;
+    const completedTasks = studyPlan.tasks.filter(task => task.status === 'completed').length;
+    return Math.round((completedTasks / studyPlan.tasks.length) * 100);
+  };
+
+  const getDaysRemaining = () => {
+    if (!studyPlan?.endDate) return null;
+    const days = differenceInDays(new Date(studyPlan.endDate), new Date());
+    return days > 0 ? days : 0;
+  };
+
+  // API functions
   const fetchStudyPlanDetail = async () => {
     try {
-      // setLoading(true); // setLoading is handled by the caller or initial state
       const user = auth.currentUser;
       if (!user) throw new Error('User not authenticated');
       const token = await user.getIdToken();
@@ -120,16 +232,11 @@ const StudyPlanDetailScreen = ({ navigation }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setStudyPlan(response.data);
-      // navigation.setOptions({ title: response.data.title || planTitle }); // Title set in custom header
     } catch (error) {
-      console.error(
-        'Error fetching study plan detail:',
-        error.response?.data || error.message,
-      );
+      console.error('Error fetching study plan detail:', error.response?.data || error.message);
       Alert.alert(
         'Error',
-        'Failed to fetch study plan details. ' +
-          (error.response?.data?.message || error.message),
+        'Failed to fetch study plan details. ' + (error.response?.data?.message || error.message),
       );
     } finally {
       setLoading(false);
@@ -139,7 +246,7 @@ const StudyPlanDetailScreen = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true); // Set loading true when screen comes into focus
+      setLoading(true);
       fetchStudyPlanDetail();
     }, [planId, auth]),
   );
@@ -149,23 +256,21 @@ const StudyPlanDetailScreen = ({ navigation }) => {
     fetchStudyPlanDetail();
   }, [planId, auth]);
 
+  // Task management functions
   const openTaskModal = (task = null) => {
     setCurrentTask(task);
     if (task) {
       setNewTaskTitle(task.title);
       setNewTaskDescription(task.description || '');
       const dueDate = task.dueDate ? new Date(task.dueDate) : new Date();
-      setNewTaskDueDate(
-        task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
-      );
-      // Ensure date is valid before setting, otherwise use current date
+      setNewTaskDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '');
       setDatePickerDate(isValidDate(dueDate) ? dueDate : new Date());
       setNewTaskEstimatedHours(task.estimatedHours?.toString() || '');
     } else {
       setNewTaskTitle('');
       setNewTaskDescription('');
       setNewTaskDueDate('');
-      setDatePickerDate(new Date()); // Reset to current date for new tasks
+      setDatePickerDate(new Date());
       setNewTaskEstimatedHours('');
     }
     setIsTaskModalVisible(true);
@@ -173,17 +278,14 @@ const StudyPlanDetailScreen = ({ navigation }) => {
 
   const onChangeDate = (event, selectedDate) => {
     const currentDate = selectedDate || datePickerDate;
-    setShowDatePicker(Platform.OS === 'ios'); // On iOS, the picker is a modal, so keep it open or handle dismissal via a button.
-    // On Android, it dismisses automatically after selection.
+    setShowDatePicker(Platform.OS === 'ios');
     if (event.type === 'set') {
-      // User confirmed the date selection
       setDatePickerDate(currentDate);
       const day = currentDate.getDate().toString().padStart(2, '0');
       const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
       const year = currentDate.getFullYear();
       setNewTaskDueDate(`${year}-${month}-${day}`);
       if (Platform.OS !== 'ios') {
-        // Auto-hide on Android after selection
         setShowDatePicker(false);
       }
     } else if (event.type === 'dismissed') {
@@ -209,37 +311,25 @@ const StudyPlanDetailScreen = ({ navigation }) => {
         title: newTaskTitle.trim(),
         description: newTaskDescription.trim(),
         dueDate: newTaskDueDate || undefined,
-        estimatedHours: newTaskEstimatedHours
-          ? parseFloat(newTaskEstimatedHours)
-          : undefined,
+        estimatedHours: newTaskEstimatedHours ? parseFloat(newTaskEstimatedHours) : undefined,
       };
 
       let response;
       if (currentTask) {
-        // Editing existing task
         response = await axios.put(
           `${API_URL}/study-plans/${planId}/tasks/${currentTask._id}`,
           payload,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
+          { headers: { Authorization: `Bearer ${token}` } },
         );
         setStudyPlan((prev) => ({
           ...prev,
-          tasks: prev.tasks.map((t) =>
-            t._id === currentTask._id ? response.data : t,
-          ),
+          tasks: prev.tasks.map((t) => (t._id === currentTask._id ? response.data : t)),
         }));
         Alert.alert('Success', 'Task updated successfully!');
       } else {
-        // Adding new task
-        response = await axios.post(
-          `${API_URL}/study-plans/${planId}/tasks`,
-          payload,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        response = await axios.post(`${API_URL}/study-plans/${planId}/tasks`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setStudyPlan((prev) => ({
           ...prev,
           tasks: [...(prev?.tasks || []), response.data],
@@ -249,14 +339,10 @@ const StudyPlanDetailScreen = ({ navigation }) => {
 
       setIsTaskModalVisible(false);
     } catch (error) {
-      console.error(
-        `Error ${currentTask ? 'updating' : 'adding'} task:`,
-        error.response?.data || error.message,
-      );
+      console.error(`Error ${currentTask ? 'updating' : 'adding'} task:`, error.response?.data || error.message);
       Alert.alert(
         'Error',
-        `Failed to ${currentTask ? 'update' : 'add'} task. ` +
-          (error.response?.data?.message || error.message),
+        `Failed to ${currentTask ? 'update' : 'add'} task. ` + (error.response?.data?.message || error.message),
       );
     }
   };
@@ -275,12 +361,9 @@ const StudyPlanDetailScreen = ({ navigation }) => {
               if (!user) throw new Error('User not authenticated');
               const token = await user.getIdToken();
 
-              await axios.delete(
-                `${API_URL}/study-plans/${planId}/tasks/${taskId}`,
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                },
-              );
+              await axios.delete(`${API_URL}/study-plans/${planId}/tasks/${taskId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
 
               setStudyPlan((prev) => ({
                 ...prev,
@@ -288,15 +371,8 @@ const StudyPlanDetailScreen = ({ navigation }) => {
               }));
               Alert.alert('Success', 'Task deleted successfully.');
             } catch (error) {
-              console.error(
-                'Error deleting task:',
-                error.response?.data || error.message,
-              );
-              Alert.alert(
-                'Error',
-                'Failed to delete task. ' +
-                  (error.response?.data?.message || error.message),
-              );
+              console.error('Error deleting task:', error.response?.data || error.message);
+              Alert.alert('Error', 'Failed to delete task. ' + (error.response?.data?.message || error.message));
             }
           },
           style: 'destructive',
@@ -331,15 +407,8 @@ const StudyPlanDetailScreen = ({ navigation }) => {
         ),
       }));
     } catch (error) {
-      console.error(
-        'Error updating task status:',
-        error.response?.data || error.message,
-      );
-      Alert.alert(
-        'Error',
-        'Failed to update task status. ' +
-          (error.response?.data?.message || error.message),
-      );
+      console.error('Error updating task status:', error.response?.data || error.message);
+      Alert.alert('Error', 'Failed to update task status. ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -354,304 +423,296 @@ const StudyPlanDetailScreen = ({ navigation }) => {
     }
 
     setOptimizing(true);
-    setAiOptimizedSuggestions(null); // Clear previous suggestions
+    setAiOptimizedSuggestions(null);
     try {
       const user = auth.currentUser;
       if (!user) throw new Error('User not authenticated');
       const token = await user.getIdToken();
 
-      // Endpoint for AI optimization
       const response = await axios.post(
         `${API_URL}/study-plans/${studyPlan._id}/optimize`,
         {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data && response.data.message) {
         Alert.alert('Optimization Started', response.data.message);
-        // Optionally, store and display more detailed suggestions or updated tasks
-        // For now, we can just show a message and maybe refresh the plan
         if (response.data.suggestions) {
           setAiOptimizedSuggestions(response.data.suggestions);
         }
         if (response.data.updatedTasks) {
-          // If the backend sends back the full updated task list
           setStudyPlan((prev) => ({
             ...prev,
             tasks: response.data.updatedTasks,
-            // Optionally update a field like aiSuggestions if the backend provides it
-            // aiSuggestions: response.data.aiOverallSuggestion || prev.aiSuggestions
           }));
         } else {
-          // If only suggestions are sent, or if we need to re-fetch to see changes
-          fetchStudyPlanDetail(); // Re-fetch to see AI-driven changes if any
+          fetchStudyPlanDetail();
         }
       } else {
         Alert.alert('Optimization', 'AI optimization process initiated.');
       }
     } catch (error) {
-      console.error(
-        'Error optimizing study plan:',
-        error.response?.data || error.message,
-      );
-      Alert.alert(
-        'Optimization Error',
-        'Failed to optimize study plan. ' +
-          (error.response?.data?.message || error.message),
-      );
+      console.error('Error optimizing study plan:', error.response?.data || error.message);
+      Alert.alert('Optimization Error', 'Failed to optimize study plan. ' + (error.response?.data?.message || error.message));
     } finally {
       setOptimizing(false);
     }
   };
 
-  const renderTaskItem = ({ item }) => (
-    <View style={styles.taskItemContainer}>
-      <TouchableOpacity
-        onPress={() => toggleTaskStatus(item._id, item.status)}
-        style={styles.taskStatusIcon}
-      >
-        <MaterialIcons
-          name={
-            item.status === 'completed'
-              ? 'check-circle'
-              : 'radio-button-unchecked'
-          }
-          size={24}
-          color={item.status === 'completed' ? '#4CAF50' : '#757575'}
-        />
-      </TouchableOpacity>
-      <View style={styles.taskTextContainer}>
-        <Text
-          style={[
-            styles.taskTitle,
-            item.status === 'completed' && styles.completedTaskTitle,
-          ]}
-        >
-          {item.title}
-        </Text>
-        {item.description ? (
-          <Text style={styles.taskDescription}>{item.description}</Text>
-        ) : null}
-        <View style={styles.taskMetaContainer}>
-          {item.dueDate && (
-            <Text style={styles.taskMeta}>
-              <MaterialIcons name="date-range" size={12} />{' '}
-              {new Date(item.dueDate).toLocaleDateString()}
-            </Text>
-          )}
-          {item.estimatedHours && (
-            <Text style={styles.taskMeta}>
-              <MaterialIcons name="timer" size={12} /> {item.estimatedHours} hrs
-            </Text>
-          )}
+  // Render components
+  const renderHeader = () => (
+    <LinearGradient
+      colors={['#6366F1', '#8B5CF6', '#A855F7']}
+      style={styles.header}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <SafeAreaView>
+        <StatusBar barStyle="light-content" backgroundColor="#6366F1" />
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <MaterialIcons name="arrow-back-ios" size={24} color={DESIGN_TOKENS.colors.text.inverse} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+            {studyPlan?.title || 'Study Plan'}
+          </Text>
+          <TouchableOpacity onPress={handleOptimizePlan} style={styles.optimizeHeaderButton} disabled={optimizing}>
+            {optimizing ? (
+              <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.text.inverse} />
+            ) : (
+              <MaterialIcons name="auto-awesome" size={24} color={DESIGN_TOKENS.colors.text.inverse} />
+            )}
+          </TouchableOpacity>
         </View>
-      </View>
-      <View style={styles.taskActionsContainer}>
-        <TouchableOpacity
-          onPress={() => openTaskModal(item)}
-          style={styles.taskActionButton}
-        >
-          <MaterialIcons name="edit" size={20} color="#4A90E2" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => handleDeleteTask(item._id)}
-          style={styles.taskActionButton}
-        >
-          <MaterialIcons name="delete" size={20} color="#FF6347" />
-        </TouchableOpacity>
-      </View>
-    </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 
-  if (loading && !refreshing && !studyPlan) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading Plan Details...</Text>
-      </View>
-    );
-  }
+  const renderProgressCard = () => {
+    const progress = getProgressPercentage();
+    const daysRemaining = getDaysRemaining();
+    const completedTasks = studyPlan?.tasks?.filter(task => task.status === 'completed').length || 0;
+    const totalTasks = studyPlan?.tasks?.length || 0;
 
-  if (!studyPlan) {
     return (
-      <View style={styles.centered}>
-        <MaterialIcons name="error-outline" size={60} color="#B0BEC5" />
-        <Text style={styles.emptyMessage}>
-          Study plan not found or failed to load.
-        </Text>
-        <TouchableOpacity
-          onPress={fetchStudyPlanDetail}
-          style={styles.retryButton}
-        >
-          <Text style={styles.retryButtonText}>Try Again</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.headerBar}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <MaterialIcons name="arrow-back-ios" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
-          {studyPlan?.title || 'Plan Details'}
-        </Text>
-      </View>
-      <ScrollView
-        contentContainerStyle={styles.scrollContentContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#4A90E2']}
-          />
-        }
-        // Added for web scroll behavior
-        {...(Platform.OS === 'web' && { style: styles.webScrollView })}
+      <Animated.View
+        style={[
+          styles.progressCard,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
       >
-        <View style={styles.headerContentContainer}>
-          {' '}
-          {/* Renamed from headerContainer to avoid conflict */}
-          <Text style={styles.planTitleText}>{studyPlan.title}</Text>
-          {studyPlan.description && (
-            <Text style={styles.planDescriptionText}>
-              {studyPlan.description}
-            </Text>
-          )}
+        <View style={styles.progressCardHeader}>
+          <Text style={styles.progressCardTitle}>Progress Overview</Text>
+          <View style={styles.progressBadge}>
+            <Text style={styles.progressBadgeText}>{progress}%</Text>
+          </View>
         </View>
 
-        {studyPlan.aiSuggestions && (
-          <View style={styles.aiSuggestionBox}>
-            <FontAwesome5
-              name="lightbulb"
-              size={18}
-              color="#FFC107"
-              style={{ marginRight: 10 }}
+        <View style={styles.progressBarContainer}>
+          <View style={styles.progressBarBackground}>
+            <Animated.View
+              style={[
+                styles.progressBarFill,
+                {
+                  width: `${progress}%`,
+                },
+              ]}
             />
-            <Text style={styles.aiSuggestionText}>
-              {studyPlan.aiSuggestions}
-            </Text>
+          </View>
+        </View>
+
+        <View style={styles.progressStats}>
+          <View style={styles.progressStat}>
+            <MaterialIcons name="check-circle" size={20} color={DESIGN_TOKENS.colors.success} />
+            <Text style={styles.progressStatText}>{completedTasks} completed</Text>
+          </View>
+          <View style={styles.progressStat}>
+            <MaterialIcons name="schedule" size={20} color={DESIGN_TOKENS.colors.warning} />
+            <Text style={styles.progressStatText}>{totalTasks - completedTasks} remaining</Text>
+          </View>
+          {daysRemaining !== null && (
+            <View style={styles.progressStat}>
+              <MaterialIcons name="event" size={20} color={DESIGN_TOKENS.colors.info} />
+              <Text style={styles.progressStatText}>{daysRemaining} days left</Text>
+            </View>
+          )}
+        </View>
+      </Animated.View>
+    );
+  };
+
+  const renderAISuggestions = () => {
+    if (!studyPlan?.aiSuggestions && !aiOptimizedSuggestions) return null;
+
+    return (
+      <Animated.View
+        style={[
+          styles.aiSuggestionCard,
+          {
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
+        <View style={styles.aiSuggestionHeader}>
+          <MaterialIcons name="lightbulb" size={24} color={DESIGN_TOKENS.colors.accent} />
+          <Text style={styles.aiSuggestionTitle}>AI Insights</Text>
+        </View>
+        
+        {studyPlan?.aiSuggestions && (
+          <Text style={styles.aiSuggestionText}>{studyPlan.aiSuggestions}</Text>
+        )}
+        
+        {aiOptimizedSuggestions && (
+          <View style={styles.optimizedSuggestionContainer}>
+            <View style={styles.optimizedSuggestionHeader}>
+              <MaterialIcons name="auto-awesome" size={20} color={DESIGN_TOKENS.colors.success} />
+              <Text style={styles.optimizedSuggestionTitle}>Latest Optimization</Text>
+            </View>
+            <Text style={styles.optimizedSuggestionText}>{aiOptimizedSuggestions}</Text>
           </View>
         )}
+      </Animated.View>
+    );
+  };
 
-        {/* Display AI Optimized Suggestions */}
-        {aiOptimizedSuggestions && (
-          <View style={[styles.aiSuggestionBox, styles.optimizedSuggestionBox]}>
-            <MaterialIcons
-              name="auto-awesome"
-              size={20}
-              color="#2ECC71"
-              style={{ marginRight: 10 }}
-            />
-            <View>
-              <Text style={styles.optimizedSuggestionTitle}>
-                AI Optimization Insights:
-              </Text>
-              <Text style={styles.aiSuggestionText}>
-                {aiOptimizedSuggestions}
+  const renderTaskItem = ({ item, index }) => {
+    const isCompleted = item.status === 'completed';
+    const isOverdue = item.dueDate && isAfter(new Date(), new Date(item.dueDate)) && !isCompleted;
+    
+    return (
+      <Animated.View
+        style={[
+          styles.taskCard,
+          {
+            opacity: fadeAnim,
+            transform: [
+              {
+                translateY: slideAnim.interpolate({
+                  inputRange: [0, 30],
+                  outputRange: [0, 30 + index * 10],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => toggleTaskStatus(item._id, item.status)}
+          style={styles.taskStatusContainer}
+        >
+          <View style={[styles.taskStatusIcon, isCompleted && styles.taskStatusIconCompleted]}>
+            {isCompleted ? (
+              <MaterialIcons name="check" size={16} color={DESIGN_TOKENS.colors.text.inverse} />
+            ) : (
+              <View style={styles.taskStatusIconEmpty} />
+            )}
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.taskContent}>
+          <Text style={[styles.taskTitle, isCompleted && styles.taskTitleCompleted]}>
+            {item.title}
+          </Text>
+          
+          {item.description && (
+            <Text style={styles.taskDescription}>{item.description}</Text>
+          )}
+
+          <View style={styles.taskMeta}>
+            {item.dueDate && (
+              <View style={[styles.taskMetaItem, isOverdue && styles.taskMetaItemOverdue]}>
+                <MaterialIcons
+                  name="schedule"
+                  size={14}
+                  color={isOverdue ? DESIGN_TOKENS.colors.error : DESIGN_TOKENS.colors.text.tertiary}
+                />
+                <Text style={[styles.taskMetaText, isOverdue && styles.taskMetaTextOverdue]}>
+                  {format(new Date(item.dueDate), 'MMM dd')}
+                </Text>
+              </View>
+            )}
+            
+            {item.estimatedHours && (
+              <View style={styles.taskMetaItem}>
+                <MaterialIcons name="timer" size={14} color={DESIGN_TOKENS.colors.text.tertiary} />
+                <Text style={styles.taskMetaText}>{item.estimatedHours}h</Text>
+              </View>
+            )}
+            
+            <View style={[styles.taskPriorityBadge, { backgroundColor: getTaskStatusColor(item) }]}>
+              <Text style={styles.taskPriorityText}>
+                {isCompleted ? 'Done' : isOverdue ? 'Overdue' : 'Active'}
               </Text>
             </View>
           </View>
-        )}
-
-        <TouchableOpacity
-          style={styles.optimizeButton}
-          onPress={handleOptimizePlan}
-          disabled={optimizing || studyPlan.tasks?.length === 0}
-        >
-          {optimizing ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <>
-              <FontAwesome5 name="magic" size={16} color="#fff" />
-              <Text style={styles.optimizeButtonText}> Optimize with AI</Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.tasksSection}>
-          <Text style={styles.sectionTitle}>
-            Tasks ({studyPlan.tasks?.length || 0})
-          </Text>
-          {studyPlan.tasks && studyPlan.tasks.length > 0 ? (
-            <FlatList
-              data={studyPlan.tasks.sort(
-                (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-              )}
-              renderItem={renderTaskItem}
-              keyExtractor={(item) => item._id.toString()}
-              scrollEnabled={false} // Disable FlatList scrolling, rely on ScrollView
-              ItemSeparatorComponent={() => (
-                <View style={styles.taskSeparator} />
-              )}
-            />
-          ) : (
-            <Text style={styles.noTasksText}>
-              No tasks in this plan yet. Add some below!
-            </Text>
-          )}
         </View>
-      </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={() => openTaskModal()}>
-        <MaterialIcons name="playlist-add" size={30} color="white" />
-      </TouchableOpacity>
+        <View style={styles.taskActions}>
+          <TouchableOpacity onPress={() => openTaskModal(item)} style={styles.taskActionButton}>
+            <MaterialIcons name="edit" size={20} color={DESIGN_TOKENS.colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDeleteTask(item._id)} style={styles.taskActionButton}>
+            <MaterialIcons name="delete" size={20} color={DESIGN_TOKENS.colors.error} />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+    );
+  };
 
-      {/* Add/Edit Task Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isTaskModalVisible} // Changed from isAddTaskModalVisible
-        onRequestClose={() => setIsTaskModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {currentTask ? 'Edit Task' : 'Add New Task'}
-            </Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Task Title*"
-              value={newTaskTitle}
-              onChangeText={setNewTaskTitle}
-              placeholderTextColor="#B0BEC5"
-            />
-            <TextInput
-              style={[styles.modalInput, styles.modalTextArea]}
-              placeholder="Description (Optional)"
-              value={newTaskDescription}
-              onChangeText={setNewTaskDescription}
-              multiline
-              numberOfLines={3}
-              placeholderTextColor="#B0BEC5"
-            />
-
-            <TouchableOpacity
-              onPress={showDatepickerMode}
-              style={styles.datePickerButton}
-            >
-              <MaterialIcons
-                name="date-range"
-                size={20}
-                color="#4A90E2"
-                style={styles.datePickerIcon}
-              />
-              <Text style={styles.datePickerText}>
-                {newTaskDueDate
-                  ? `Due: ${newTaskDueDate}`
-                  : 'Select Due Date (Optional)'}
-              </Text>
+  const renderTaskModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isTaskModalVisible}
+      onRequestClose={() => setIsTaskModalVisible(false)}
+    >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{currentTask ? 'Edit Task' : 'Add New Task'}</Text>
+            <TouchableOpacity onPress={() => setIsTaskModalVisible(false)} style={styles.modalCloseButton}>
+              <MaterialIcons name="close" size={24} color={DESIGN_TOKENS.colors.text.secondary} />
             </TouchableOpacity>
+          </View>
+
+          <View style={styles.modalForm}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Task Title *</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Enter task title"
+                value={newTaskTitle}
+                onChangeText={setNewTaskTitle}
+                placeholderTextColor={DESIGN_TOKENS.colors.text.tertiary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Description</Text>
+              <TextInput
+                style={[styles.modalInput, styles.modalTextArea]}
+                placeholder="Add task description (optional)"
+                value={newTaskDescription}
+                onChangeText={setNewTaskDescription}
+                multiline
+                numberOfLines={3}
+                placeholderTextColor={DESIGN_TOKENS.colors.text.tertiary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Due Date</Text>
+              <TouchableOpacity onPress={showDatepickerMode} style={styles.datePickerButton}>
+                <MaterialIcons name="event" size={20} color={DESIGN_TOKENS.colors.primary} />
+                <Text style={styles.datePickerText}>
+                  {newTaskDueDate ? format(new Date(newTaskDueDate), 'MMM dd, yyyy') : 'Select due date (optional)'}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {showDatePicker && (
               <DateTimePicker
@@ -660,416 +721,611 @@ const StudyPlanDetailScreen = ({ navigation }) => {
                 mode="date"
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                 onChange={onChangeDate}
-                minimumDate={new Date()} // Optional: Prevent selecting past dates
+                minimumDate={new Date()}
               />
             )}
 
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Estimated Hours (Optional)"
-              value={newTaskEstimatedHours}
-              onChangeText={setNewTaskEstimatedHours}
-              keyboardType="numeric"
-              placeholderTextColor="#B0BEC5"
-            />
-            <View style={styles.modalButtonContainer}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setIsTaskModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
-                onPress={handleSaveTask}
-              >
-                {' '}
-                // Changed from handleAddTask
-                <Text style={styles.modalButtonText}>
-                  {currentTask ? 'Save Changes' : 'Add Task'}
-                </Text>
-              </TouchableOpacity>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Estimated Hours</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="e.g., 2.5"
+                value={newTaskEstimatedHours}
+                onChangeText={setNewTaskEstimatedHours}
+                keyboardType="numeric"
+                placeholderTextColor={DESIGN_TOKENS.colors.text.tertiary}
+              />
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setIsTaskModalVisible(false)}>
+              <Text style={styles.modalCancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalSaveButton} onPress={handleSaveTask}>
+              <Text style={styles.modalSaveButtonText}>{currentTask ? 'Save Changes' : 'Add Task'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+
+  // Loading state
+  if (loading && !refreshing && !studyPlan) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={DESIGN_TOKENS.colors.primary} />
+        <Text style={styles.loadingText}>Loading study plan...</Text>
+      </View>
+    );
+  }
+
+  // Error state
+  if (!studyPlan) {
+    return (
+      <View style={styles.errorContainer}>
+        <MaterialIcons name="error-outline" size={64} color={DESIGN_TOKENS.colors.text.tertiary} />
+        <Text style={styles.errorTitle}>Study Plan Not Found</Text>
+        <Text style={styles.errorMessage}>The study plan could not be loaded. Please try again.</Text>
+        <TouchableOpacity onPress={fetchStudyPlanDetail} style={styles.retryButton}>
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {renderHeader()}
+      
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[DESIGN_TOKENS.colors.primary]} />}
+        showsVerticalScrollIndicator={false}
+      >
+        {renderProgressCard()}
+        {renderAISuggestions()}
+
+        <Animated.View
+          style={[
+            styles.tasksSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <View style={styles.tasksSectionHeader}>
+            <Text style={styles.tasksSectionTitle}>
+              Tasks ({studyPlan.tasks?.length || 0})
+            </Text>
+            <TouchableOpacity onPress={() => openTaskModal()} style={styles.addTaskButton}>
+              <MaterialIcons name="add" size={20} color={DESIGN_TOKENS.colors.primary} />
+              <Text style={styles.addTaskButtonText}>Add Task</Text>
+            </TouchableOpacity>
+          </View>
+
+          {studyPlan.tasks && studyPlan.tasks.length > 0 ? (
+            <FlatList
+              data={studyPlan.tasks.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))}
+              renderItem={renderTaskItem}
+              keyExtractor={(item) => item._id.toString()}
+              scrollEnabled={false}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.tasksList}
+            />
+          ) : (
+            <View style={styles.emptyTasksContainer}>
+              <MaterialIcons name="assignment" size={48} color={DESIGN_TOKENS.colors.text.tertiary} />
+              <Text style={styles.emptyTasksTitle}>No Tasks Yet</Text>
+              <Text style={styles.emptyTasksMessage}>Start by adding your first task to this study plan.</Text>
+              <TouchableOpacity onPress={() => openTaskModal()} style={styles.emptyTasksButton}>
+                <MaterialIcons name="add" size={20} color={DESIGN_TOKENS.colors.text.inverse} />
+                <Text style={styles.emptyTasksButtonText}>Add First Task</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </Animated.View>
+      </ScrollView>
+
+      {renderTaskModal()}
+
+      {/* Floating Action Button */}
+      <Animated.View
+        style={[
+          styles.fab,
+          {
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
+        <TouchableOpacity onPress={() => openTaskModal()} style={styles.fabButton}>
+          <MaterialIcons name="add" size={28} color={DESIGN_TOKENS.colors.text.inverse} />
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 };
 
-const getStyles = (colors, fonts) =>
-  StyleSheet.create({
-    // Wrap styles in a function
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    loadingContainer: {
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    header: {
-      backgroundColor: colors.primary,
-      padding: 20,
-      paddingTop: Platform.OS === 'ios' ? 50 : 30, // Adjust for status bar
-      alignItems: 'center',
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: colors.buttonText, // Assuming primary color has good contrast for text
-      marginBottom: 5,
-    },
-    dateRange: {
-      fontSize: 16,
-      color: colors.buttonText, // Same as title
-      opacity: 0.9,
-    },
-    card: {
-      backgroundColor: colors.card,
-      borderRadius: 10,
-      padding: 20,
-      marginHorizontal: 15,
-      marginTop: 20,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 2,
-    },
-    cardHeader: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      paddingBottom: 8,
-    },
-    description: {
-      fontSize: 16,
-      color: colors.subtext,
-      lineHeight: 22,
-    },
-    emptyText: {
-      fontSize: 15,
-      color: colors.subtext,
-      textAlign: 'center',
-      marginTop: 10,
-    },
-    editButton: {
-      flexDirection: 'row',
-      backgroundColor: colors.secondary, // Or another distinct color
-      paddingVertical: 15,
-      paddingHorizontal: 20,
-      borderRadius: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-      margin: 20,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 3,
-      elevation: 3,
-    },
-    editButtonText: {
-      color: colors.buttonText, // Ensure this contrasts with secondary
-      fontSize: 17,
-      fontWeight: '600',
-      marginLeft: 10,
-    },
-    headerBar: {
-      backgroundColor: '#4A90E2',
-      paddingTop: Platform.OS === 'android' ? 25 : 50,
-      paddingBottom: 15,
-      paddingHorizontal: 15,
-      flexDirection: 'row',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
-      zIndex: 1, // Ensure header is above scroll content on web
-    },
-    backButton: {
-      marginRight: 10, // Reduced margin for more title space
-      padding: 5,
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: '#FFFFFF',
-      flex: 1, // Allow title to take available space
-    },
-    webScrollView: {
-      height: Platform.OS === 'web' ? 'calc(100vh - 70px)' : undefined, // Adjust 70px based on headerBar height
-    },
-    scrollContentContainer: {
-      padding: 20,
-      paddingBottom: Platform.OS === 'web' ? 20 : 80, // Space for FAB, less for web if not fixed FAB
-    },
-    centered: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20,
-      // marginTop: -70, // Offset for header if it was part of this view
-    },
-    retryButton: {
-      marginTop: 20,
-      backgroundColor: '#4A90E2',
-      paddingVertical: 10,
-      paddingHorizontal: 20,
-      borderRadius: 8,
-    },
-    retryButtonText: {
-      color: '#FFFFFF',
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-    headerContentContainer: {
-      // Renamed from headerContainer
-      marginBottom: 20,
-      paddingBottom: 15,
-      borderBottomWidth: 1,
-      borderBottomColor: '#E0E0E0',
-    },
-    planTitleText: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: '#263238',
-      marginBottom: 5,
-    },
-    planDescriptionText: {
-      fontSize: 15,
-      color: '#546E7A',
-      fontStyle: 'italic',
-    },
-    aiSuggestionBox: {
-      flexDirection: 'row',
-      alignItems: 'flex-start', // Align items to the start for multi-line text
-      backgroundColor: colors.cardLight, // A slightly different background for suggestions
-      padding: 15,
-      borderRadius: 8,
-      marginVertical: 10, // Add some vertical margin
-      marginHorizontal: 15, // Match card horizontal margin
-      borderLeftWidth: 4,
-      borderLeftColor: '#FFC107', // Accent color for AI suggestions
-    },
-    aiSuggestionText: {
-      flex: 1,
-      fontSize: 14,
-      color: colors.subtext,
-      fontStyle: 'italic',
-    },
-    optimizedSuggestionBox: {
-      borderLeftColor: '#2ECC71', // Different accent for optimized suggestions
-      backgroundColor: colors.successLight, // A light green background
-    },
-    optimizedSuggestionTitle: {
-      fontSize: 15,
-      fontWeight: 'bold',
-      color: colors.successDark, // Darker green for title
-      marginBottom: 5,
-    },
-    optimizeButton: {
-      backgroundColor: '#673AB7', // Deep purple for AI actions
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 12,
-      borderRadius: 8,
-      marginBottom: 20,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 3,
-      elevation: 3,
-    },
-    optimizeButtonText: {
-      color: '#FFFFFF',
-      fontSize: 16,
-      fontWeight: 'bold',
-      marginLeft: 8,
-    },
-    tasksSection: {
-      marginTop: 10,
-    },
-    sectionTitle: {
-      fontSize: 20,
-      fontWeight: '600',
-      color: '#37474F',
-      marginBottom: 15,
-    },
-    taskItemContainer: {
-      backgroundColor: '#FFFFFF',
-      borderRadius: 10,
-      padding: 15,
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      // marginBottom: 10, // Replaced by ItemSeparatorComponent
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.08,
-      shadowRadius: 3,
-      elevation: 2,
-    },
-    taskActionsContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginLeft: 10, // Space it from the task text
-    },
-    taskActionButton: {
-      padding: 8, // Make icons easier to tap
-      marginLeft: Platform.OS === 'web' ? 8 : 4,
-    },
-    taskSeparator: {
-      height: 12, // Slightly more separation
-    },
-    taskStatusIcon: {
-      marginRight: 15,
-      paddingTop: 2, // Align icon better with text
-    },
-    taskTextContainer: {
-      flex: 1,
-    },
-    taskTitle: {
-      fontSize: 17,
-      fontWeight: '500',
-      color: '#333',
-    },
-    completedTaskTitle: {
-      textDecorationLine: 'line-through',
-      color: '#757575',
-    },
-    taskDescription: {
-      fontSize: 13,
-      color: '#666',
-      marginTop: 3,
-      marginBottom: 5,
-    },
-    taskMetaContainer: {
-      flexDirection: 'row',
-      marginTop: 5,
-    },
-    taskMeta: {
-      fontSize: 11,
-      color: '#757575',
-      marginRight: 10,
-      alignItems: 'center',
-    },
-    noTasksText: {
-      fontSize: 15,
-      color: '#78909C',
-      textAlign: 'center',
-      marginTop: 20,
-      fontStyle: 'italic',
-    },
-    fab: {
-      position: Platform.OS === 'web' ? 'fixed' : 'absolute', // Fixed for web for better UX
-      right: 30,
-      bottom: 30,
-      backgroundColor: '#4A90E2',
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      justifyContent: 'center',
-      alignItems: 'center',
-      elevation: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-      ...(Platform.OS === 'web' && {
-        boxShadow: '0px 4px 8px rgba(0,0,0,0.3)',
-      }),
-    },
-    // Modal Styles
-    modalOverlay: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    },
-    modalContent: {
-      backgroundColor: '#FFFFFF',
-      borderRadius: 15,
-      padding: 25,
-      width: Platform.OS === 'web' ? '50%' : '90%',
-      maxWidth: 500,
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-      elevation: 5,
-    },
-    modalTitle: {
-      fontSize: 22,
-      fontWeight: 'bold',
-      marginBottom: 20,
-      color: '#263238',
-      textAlign: 'center',
-    },
-    modalInput: {
-      backgroundColor: '#F0F4F8',
-      borderRadius: 8,
-      paddingHorizontal: 15,
-      paddingVertical: Platform.OS === 'ios' ? 15 : 12,
-      fontSize: 16,
-      color: '#37474F',
-      marginBottom: 15,
-      borderWidth: 1,
-      borderColor: '#CFD8DC',
-    },
-    datePickerButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#F0F4F8',
-      borderRadius: 8,
-      paddingHorizontal: 15,
-      paddingVertical: Platform.OS === 'ios' ? 15 : 12,
-      marginBottom: 15,
-      borderWidth: 1,
-      borderColor: '#CFD8DC',
-    },
-    datePickerIcon: {
-      marginRight: 10,
-    },
-    datePickerText: {
-      fontSize: 16,
-      color: '#37474F',
-    },
-    modalTextArea: {
-      minHeight: 80,
-      textAlignVertical: 'top',
-    },
-    modalButtonContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: 10,
-    },
-    modalButton: {
-      flex: 1, // Make buttons take equal width
-      paddingVertical: 12,
-      borderRadius: 8,
-      alignItems: 'center',
-      marginHorizontal: 5, // Add some space between buttons
-    },
-    cancelButton: {
-      backgroundColor: '#B0BEC5',
-    },
-    saveButton: {
-      backgroundColor: '#4A90E2',
-    },
-    modalButtonText: {
-      color: '#FFFFFF',
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: DESIGN_TOKENS.colors.background,
+  },
+
+  // Header Styles
+  header: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingBottom: DESIGN_TOKENS.spacing.md,
+    ...DESIGN_TOKENS.shadows.md,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: DESIGN_TOKENS.spacing.md,
+    paddingTop: DESIGN_TOKENS.spacing.md,
+  },
+  backButton: {
+    padding: DESIGN_TOKENS.spacing.sm,
+    marginRight: DESIGN_TOKENS.spacing.sm,
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: DESIGN_TOKENS.typography.sizes.xl,
+    fontWeight: DESIGN_TOKENS.typography.weights.bold,
+    color: DESIGN_TOKENS.colors.text.inverse,
+  },
+  optimizeHeaderButton: {
+    padding: DESIGN_TOKENS.spacing.sm,
+    marginLeft: DESIGN_TOKENS.spacing.sm,
+  },
+
+  // ScrollView Styles
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: DESIGN_TOKENS.spacing.md,
+    paddingBottom: 100, // Space for FAB
+  },
+
+  // Progress Card Styles
+  progressCard: {
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: DESIGN_TOKENS.borderRadius.lg,
+    padding: DESIGN_TOKENS.spacing.lg,
+    marginBottom: DESIGN_TOKENS.spacing.md,
+    ...DESIGN_TOKENS.shadows.md,
+  },
+  progressCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: DESIGN_TOKENS.spacing.md,
+  },
+  progressCardTitle: {
+    fontSize: DESIGN_TOKENS.typography.sizes.lg,
+    fontWeight: DESIGN_TOKENS.typography.weights.semibold,
+    color: DESIGN_TOKENS.colors.text.primary,
+  },
+  progressBadge: {
+    backgroundColor: DESIGN_TOKENS.colors.primary,
+    borderRadius: DESIGN_TOKENS.borderRadius.full,
+    paddingHorizontal: DESIGN_TOKENS.spacing.md,
+    paddingVertical: DESIGN_TOKENS.spacing.xs,
+  },
+  progressBadgeText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.sm,
+    fontWeight: DESIGN_TOKENS.typography.weights.bold,
+    color: DESIGN_TOKENS.colors.text.inverse,
+  },
+  progressBarContainer: {
+    marginBottom: DESIGN_TOKENS.spacing.md,
+  },
+  progressBarBackground: {
+    height: 8,
+    backgroundColor: DESIGN_TOKENS.colors.divider,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: DESIGN_TOKENS.colors.primary,
+    borderRadius: 4,
+  },
+  progressStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  progressStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  progressStatText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.sm,
+    color: DESIGN_TOKENS.colors.text.secondary,
+    marginLeft: DESIGN_TOKENS.spacing.xs,
+  },
+
+  // AI Suggestions Styles
+  aiSuggestionCard: {
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: DESIGN_TOKENS.borderRadius.lg,
+    padding: DESIGN_TOKENS.spacing.lg,
+    marginBottom: DESIGN_TOKENS.spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: DESIGN_TOKENS.colors.accent,
+    ...DESIGN_TOKENS.shadows.sm,
+  },
+  aiSuggestionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: DESIGN_TOKENS.spacing.sm,
+  },
+  aiSuggestionTitle: {
+    fontSize: DESIGN_TOKENS.typography.sizes.base,
+    fontWeight: DESIGN_TOKENS.typography.weights.semibold,
+    color: DESIGN_TOKENS.colors.text.primary,
+    marginLeft: DESIGN_TOKENS.spacing.sm,
+  },
+  aiSuggestionText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.sm,
+    color: DESIGN_TOKENS.colors.text.secondary,
+    lineHeight: 20,
+    fontStyle: 'italic',
+  },
+  optimizedSuggestionContainer: {
+    marginTop: DESIGN_TOKENS.spacing.md,
+    paddingTop: DESIGN_TOKENS.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: DESIGN_TOKENS.colors.divider,
+  },
+  optimizedSuggestionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: DESIGN_TOKENS.spacing.sm,
+  },
+  optimizedSuggestionTitle: {
+    fontSize: DESIGN_TOKENS.typography.sizes.sm,
+    fontWeight: DESIGN_TOKENS.typography.weights.semibold,
+    color: DESIGN_TOKENS.colors.success,
+    marginLeft: DESIGN_TOKENS.spacing.xs,
+  },
+  optimizedSuggestionText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.sm,
+    color: DESIGN_TOKENS.colors.text.secondary,
+    lineHeight: 20,
+    fontStyle: 'italic',
+  },
+
+  // Tasks Section Styles
+  tasksSection: {
+    marginBottom: DESIGN_TOKENS.spacing.md,
+  },
+  tasksSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: DESIGN_TOKENS.spacing.md,
+  },
+  tasksSectionTitle: {
+    fontSize: DESIGN_TOKENS.typography.sizes.xl,
+    fontWeight: DESIGN_TOKENS.typography.weights.bold,
+    color: DESIGN_TOKENS.colors.text.primary,
+  },
+  addTaskButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: DESIGN_TOKENS.colors.surfaceElevated,
+    paddingHorizontal: DESIGN_TOKENS.spacing.md,
+    paddingVertical: DESIGN_TOKENS.spacing.sm,
+    borderRadius: DESIGN_TOKENS.borderRadius.md,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.primary,
+  },
+  addTaskButtonText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.sm,
+    fontWeight: DESIGN_TOKENS.typography.weights.medium,
+    color: DESIGN_TOKENS.colors.primary,
+    marginLeft: DESIGN_TOKENS.spacing.xs,
+  },
+
+  // Task Card Styles
+  tasksList: {
+    gap: DESIGN_TOKENS.spacing.sm,
+  },
+  taskCard: {
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: DESIGN_TOKENS.borderRadius.md,
+    padding: DESIGN_TOKENS.spacing.md,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    ...DESIGN_TOKENS.shadows.sm,
+  },
+  taskStatusContainer: {
+    marginRight: DESIGN_TOKENS.spacing.md,
+    paddingTop: 2,
+  },
+  taskStatusIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: DESIGN_TOKENS.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskStatusIconCompleted: {
+    backgroundColor: DESIGN_TOKENS.colors.success,
+    borderColor: DESIGN_TOKENS.colors.success,
+  },
+  taskStatusIconEmpty: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'transparent',
+  },
+  taskContent: {
+    flex: 1,
+  },
+  taskTitle: {
+    fontSize: DESIGN_TOKENS.typography.sizes.base,
+    fontWeight: DESIGN_TOKENS.typography.weights.medium,
+    color: DESIGN_TOKENS.colors.text.primary,
+    marginBottom: DESIGN_TOKENS.spacing.xs,
+  },
+  taskTitleCompleted: {
+    textDecorationLine: 'line-through',
+    color: DESIGN_TOKENS.colors.text.tertiary,
+  },
+  taskDescription: {
+    fontSize: DESIGN_TOKENS.typography.sizes.sm,
+    color: DESIGN_TOKENS.colors.text.secondary,
+    marginBottom: DESIGN_TOKENS.spacing.sm,
+    lineHeight: 18,
+  },
+  taskMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: DESIGN_TOKENS.spacing.sm,
+  },
+  taskMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taskMetaItemOverdue: {
+    opacity: 1,
+  },
+  taskMetaText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.xs,
+    color: DESIGN_TOKENS.colors.text.tertiary,
+    marginLeft: DESIGN_TOKENS.spacing.xs,
+  },
+  taskMetaTextOverdue: {
+    color: DESIGN_TOKENS.colors.error,
+    fontWeight: DESIGN_TOKENS.typography.weights.medium,
+  },
+  taskPriorityBadge: {
+    paddingHorizontal: DESIGN_TOKENS.spacing.sm,
+    paddingVertical: 2,
+    borderRadius: DESIGN_TOKENS.borderRadius.sm,
+    marginLeft: 'auto',
+  },
+  taskPriorityText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.xs,
+    fontWeight: DESIGN_TOKENS.typography.weights.medium,
+    color: DESIGN_TOKENS.colors.text.inverse,
+  },
+  taskActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: DESIGN_TOKENS.spacing.sm,
+  },
+  taskActionButton: {
+    padding: DESIGN_TOKENS.spacing.sm,
+    marginLeft: DESIGN_TOKENS.spacing.xs,
+  },
+
+  // Empty States
+  emptyTasksContainer: {
+    alignItems: 'center',
+    paddingVertical: DESIGN_TOKENS.spacing.xl,
+  },
+  emptyTasksTitle: {
+    fontSize: DESIGN_TOKENS.typography.sizes.lg,
+    fontWeight: DESIGN_TOKENS.typography.weights.semibold,
+    color: DESIGN_TOKENS.colors.text.primary,
+    marginTop: DESIGN_TOKENS.spacing.md,
+    marginBottom: DESIGN_TOKENS.spacing.sm,
+  },
+  emptyTasksMessage: {
+    fontSize: DESIGN_TOKENS.typography.sizes.base,
+    color: DESIGN_TOKENS.colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: DESIGN_TOKENS.spacing.lg,
+  },
+  emptyTasksButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: DESIGN_TOKENS.colors.primary,
+    paddingHorizontal: DESIGN_TOKENS.spacing.lg,
+    paddingVertical: DESIGN_TOKENS.spacing.md,
+    borderRadius: DESIGN_TOKENS.borderRadius.md,
+  },
+  emptyTasksButtonText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.base,
+    fontWeight: DESIGN_TOKENS.typography.weights.medium,
+    color: DESIGN_TOKENS.colors.text.inverse,
+    marginLeft: DESIGN_TOKENS.spacing.sm,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: DESIGN_TOKENS.spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: DESIGN_TOKENS.borderRadius.xl,
+    padding: DESIGN_TOKENS.spacing.lg,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '90%',
+    ...DESIGN_TOKENS.shadows.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: DESIGN_TOKENS.spacing.lg,
+  },
+  modalTitle: {
+    fontSize: DESIGN_TOKENS.typography.sizes['2xl'],
+    fontWeight: DESIGN_TOKENS.typography.weights.bold,
+    color: DESIGN_TOKENS.colors.text.primary,
+  },
+  modalCloseButton: {
+    padding: DESIGN_TOKENS.spacing.sm,
+  },
+  modalForm: {
+    marginBottom: DESIGN_TOKENS.spacing.lg,
+  },
+  inputGroup: {
+    marginBottom: DESIGN_TOKENS.spacing.md,
+  },
+  inputLabel: {
+    fontSize: DESIGN_TOKENS.typography.sizes.sm,
+    fontWeight: DESIGN_TOKENS.typography.weights.medium,
+    color: DESIGN_TOKENS.colors.text.primary,
+    marginBottom: DESIGN_TOKENS.spacing.sm,
+  },
+  modalInput: {
+    backgroundColor: DESIGN_TOKENS.colors.surfaceElevated,
+    borderRadius: DESIGN_TOKENS.borderRadius.md,
+    paddingHorizontal: DESIGN_TOKENS.spacing.md,
+    paddingVertical: DESIGN_TOKENS.spacing.md,
+    fontSize: DESIGN_TOKENS.typography.sizes.base,
+    color: DESIGN_TOKENS.colors.text.primary,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.border,
+  },
+  modalTextArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: DESIGN_TOKENS.colors.surfaceElevated,
+    borderRadius: DESIGN_TOKENS.borderRadius.md,
+    paddingHorizontal: DESIGN_TOKENS.spacing.md,
+    paddingVertical: DESIGN_TOKENS.spacing.md,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.border,
+  },
+  datePickerText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.base,
+    color: DESIGN_TOKENS.colors.text.primary,
+    marginLeft: DESIGN_TOKENS.spacing.sm,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: DESIGN_TOKENS.spacing.md,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: DESIGN_TOKENS.spacing.md,
+    borderRadius: DESIGN_TOKENS.borderRadius.md,
+    alignItems: 'center',
+    backgroundColor: DESIGN_TOKENS.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.border,
+  },
+  modalCancelButtonText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.base,
+    fontWeight: DESIGN_TOKENS.typography.weights.medium,
+    color: DESIGN_TOKENS.colors.text.secondary,
+  },
+  modalSaveButton: {
+    flex: 1,
+    paddingVertical: DESIGN_TOKENS.spacing.md,
+    borderRadius: DESIGN_TOKENS.borderRadius.md,
+    alignItems: 'center',
+    backgroundColor: DESIGN_TOKENS.colors.primary,
+  },
+  modalSaveButtonText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.base,
+    fontWeight: DESIGN_TOKENS.typography.weights.medium,
+    color: DESIGN_TOKENS.colors.text.inverse,
+  },
+
+  // Floating Action Button
+  fab: {
+    position: 'absolute',
+    right: DESIGN_TOKENS.spacing.lg,
+    bottom: DESIGN_TOKENS.spacing.lg,
+  },
+  fabButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: DESIGN_TOKENS.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...DESIGN_TOKENS.shadows.lg,
+  },
+
+  // Loading and Error States
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: DESIGN_TOKENS.colors.background,
+  },
+  loadingText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.base,
+    color: DESIGN_TOKENS.colors.text.secondary,
+    marginTop: DESIGN_TOKENS.spacing.md,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: DESIGN_TOKENS.colors.background,
+    padding: DESIGN_TOKENS.spacing.lg,
+  },
+  errorTitle: {
+    fontSize: DESIGN_TOKENS.typography.sizes.xl,
+    fontWeight: DESIGN_TOKENS.typography.weights.bold,
+    color: DESIGN_TOKENS.colors.text.primary,
+    marginTop: DESIGN_TOKENS.spacing.md,
+    marginBottom: DESIGN_TOKENS.spacing.sm,
+  },
+  errorMessage: {
+    fontSize: DESIGN_TOKENS.typography.sizes.base,
+    color: DESIGN_TOKENS.colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: DESIGN_TOKENS.spacing.lg,
+  },
+  retryButton: {
+    backgroundColor: DESIGN_TOKENS.colors.primary,
+    paddingHorizontal: DESIGN_TOKENS.spacing.lg,
+    paddingVertical: DESIGN_TOKENS.spacing.md,
+    borderRadius: DESIGN_TOKENS.borderRadius.md,
+  },
+  retryButtonText: {
+    fontSize: DESIGN_TOKENS.typography.sizes.base,
+    fontWeight: DESIGN_TOKENS.typography.weights.medium,
+    color: DESIGN_TOKENS.colors.text.inverse,
+  },
+});
 
 export default StudyPlanDetailScreen;

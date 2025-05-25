@@ -16,10 +16,10 @@ import FocusTimerScreen from '../screens/FocusTimerScreen';
 import SplashScreen from '../screens/SplashScreen';
 import IntroScreen from '../screens/IntroScreen';
 import HomeScreen from '../screens/Dashboard'; // Main Home tab screen
-import StudyPlansDashboardScreen from '../screens/Dashboard'; // This is the original Dashboard, now for "Study" tab
-import WellbeingScreen from '../screens/WellbeingScreen'; // Placeholder
-import FinanceScreen from '../screens/FinanceScreen'; // Placeholder
-import ProfileScreen from '../screens/ProfileScreen'; // Placeholder for Profile tab
+import StudyScreen from '../screens/StudyScreen'; // New comprehensive Study screen
+import WellbeingScreen from '../screens/WellbeingScreen'; 
+import FinanceScreen from '../screens/FinanceScreen'; 
+import ProfileScreen from '../screens/ProfileScreen'; 
 import AppSettingsScreen from '../screens/AppSettingsScreen'; // Import AppSettingsScreen
 import SpacedRepetitionScreen from '../screens/SpacedRepetitionScreen'; // Import SpacedRepetitionScreen
 
@@ -63,23 +63,27 @@ const StudyStack = () => (
   <StudyStackNav.Navigator screenOptions={{ headerShown: false }}>
     <StudyStackNav.Screen
       name="StudyDashboard"
-      component={StudyPlansDashboardScreen}
+      component={StudyScreen}
     />
     <StudyStackNav.Screen
-      name="StudyPlanList"
+      name="StudyPlanListScreen"
       component={StudyPlanListScreen}
     />
     <StudyStackNav.Screen
-      name="CreateStudyPlan"
+      name="CreateStudyPlanScreen"
       component={CreateStudyPlanScreen}
     />
     <StudyStackNav.Screen
-      name="StudyPlanDetail"
+      name="StudyPlanDetailScreen"
       component={StudyPlanDetailScreen}
     />
     <StudyStackNav.Screen
-      name="SpacedRepetition"
+      name="SpacedRepetitionScreen"
       component={SpacedRepetitionScreen}
+    />
+    <StudyStackNav.Screen
+      name="FocusTimerScreen"
+      component={FocusTimerScreen}
     />
   </StudyStackNav.Navigator>
 );
