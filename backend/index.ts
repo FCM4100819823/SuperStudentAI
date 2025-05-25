@@ -9,7 +9,6 @@ import './firebase';
 import authRoutes from './routes/auth';
 import aiRoutes from './routes/ai';
 import fileRoutes from './routes/file';
-import studyPlanRoutes from './routes/studyPlan';
 import calendarRoutes from './routes/calendar'; // Added calendar routes
 import spacedRepetitionRoutes from './routes/spacedRepetition'; // Import spaced repetition routes
 
@@ -59,7 +58,6 @@ mongoose
 app.use('/auth', authRoutes); // Changed from /api/auth to /auth to match mobile app
 app.use('/ai', aiRoutes); // Changed from /api/ai to /ai
 app.use('/file', fileRoutes); // Changed from /api/file to /file
-app.use('/study-plans', studyPlanRoutes); // Changed from /api/study-plans to /study-plans
 app.use('/calendar', calendarRoutes); // Added calendar routes
 app.use('/srs', spacedRepetitionRoutes); // Add spaced repetition routes
 
