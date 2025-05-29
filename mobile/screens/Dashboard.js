@@ -14,14 +14,28 @@ import {
   Dimensions,
 } from 'react-native';
 import { signOut } from 'firebase/auth';
-import { auth, db as firestore } from '../config/firebase'; // Corrected import path and alias db as firestore
-import { doc, onSnapshot } from 'firebase/firestore';
+import { auth, db as firestoreDb } from '../config/firebase'; // Corrected import path and alias db as firestoreDb
+import { doc, onSnapshot, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore'; // Added collection, query, where, orderBy, limit, getDocs
 import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
+
+// Define studyTips outside the component to ensure it's stable
+const studyTips = [
+  "Break down large tasks into smaller, manageable ones.",
+  "Schedule regular study breaks to stay focused and avoid burnout.",
+  "Test yourself regularly on material to reinforce learning.",
+  "Teach what you've learned to someone else to solidify your understanding.",
+  "Stay hydrated and get enough sleep; they are crucial for cognitive function.",
+  "Find a quiet study space free from distractions to maximize concentration.",
+  "Use active recall and spaced repetition techniques for better memory retention.",
+  "Set specific, measurable, achievable, relevant, and time-bound (SMART) goals.",
+  "Don't be afraid to ask for help from teachers, tutors, or classmates.",
+  "Reward yourself for achieving study milestones to stay motivated."
+];
 
 // Consistent color palette (primary: Deep Purple, secondary: Green)
 const STATIC_COLORS = {
@@ -44,6 +58,16 @@ const STATIC_COLORS = {
   shadow: 'rgba(0, 0, 0, 0.05)',
   gradientPrimary: ['#6A1B9A', '#4A0072'], // Deep Purple Gradient
   gradientSecondary: ['#4CAF50', '#388E3C'], // Green Gradient
+  // Mood specific colors (can be overridden by mood entry color)
+  moodHappy: '#FFD700',
+  moodCalm: '#87CEEB',
+  moodOkay: '#90EE90',
+  moodSad: '#A9A9A9',
+  moodStressed: '#FFA07A',
+  // Colors for Overview cards
+  overviewTaskCard: ['#6A1B9A', '#9C4DCC'], // Purple gradient for tasks
+  overviewCalendarCard: ['#4CAF50', '#81C784'], // Green gradient for calendar
+  overviewTipCard: ['#F59E0B', '#FFCA28'], // Amber gradient for tips
 };
 
 
@@ -98,36 +122,44 @@ const ProgressCard = ({ title, value, total, percentage, color, icon }) => (
 );
 
 const Dashboard = ({ navigation, route }) => {
+  const currentUser = auth.currentUser;
   const [profileData, setProfileData] = useState(null);
   const [studyStats, setStudyStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [greeting, setGreeting] = useState('');
+  const [currentMood, setCurrentMood] = useState(null);
+  const [upcomingTasks, setUpcomingTasks] = useState([]);
+  const [currentStudyTip, setCurrentStudyTip] = useState('');
 
-  const getApiUrl = async () => {
+  const getRandomTip = useCallback(() => {
+    const randomIndex = Math.floor(Math.random() * studyTips.length);
+    setCurrentStudyTip(studyTips[randomIndex]);
+  }, []); // studyTips is stable and defined outside, so empty dependency array is correct.
+
+  const getApiUrl = useCallback(async () => {
     try {
       return await AsyncStorage.getItem('apiUrl') || 'http://192.168.1.100:3000';
     } catch (error) {
       console.error('Error getting API URL:', error);
       return 'http://192.168.1.100:3000';
     }
-  };
+  }, []);
 
-  const getAuthToken = async () => {
+  const getAuthToken = useCallback(async () => {
     try {
-      const user = auth.currentUser;
-      if (user) {
-        return await user.getIdToken();
+      if (currentUser) {
+        return await currentUser.getIdToken();
       }
       return null;
     } catch (error) {
       console.error('Error getting auth token:', error);
       return null;
     }
-  };
+  }, [currentUser?.uid]); // MODIFIED: Depend on currentUser?.uid
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       const apiUrl = await getApiUrl();
       const token = await getAuthToken();
@@ -150,49 +182,102 @@ const Dashboard = ({ navigation, route }) => {
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      if (!studyStats) { // Keep this check, or adapt if studyStats is always initialized
-        setError('Failed to load dashboard data. Please check your connection.');
-      }
+      setError('Failed to load dashboard data. Please check your connection.');
     }
-  };
+  }, [getApiUrl, getAuthToken]); // getAuthToken is now more stable
 
   const fetchUserProfile = useCallback(async () => {
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        setError('You are not logged in. Please log in again.');
+      if (!currentUser?.uid) { // Check uid directly
+        setError('User not available. Cannot fetch profile.');
+        setProfileData(null);
         setLoading(false);
-        navigation.replace('Login');
-        return;
+        setRefreshing(false);
+        // navigation.replace('Login'); // REMOVED: AppNavigator handles this
+        return () => {}; // Return an empty unsubscribe function
       }
 
-      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDocRef = doc(firestoreDb, 'users', currentUser.uid);
       const unsubscribe = onSnapshot(
         userDocRef,
         (docSnap) => {
           if (docSnap.exists()) {
             setProfileData(docSnap.data());
+            setError(''); // Clear error on success
           } else {
             setError('User profile not found.');
-            // Consider creating a default profile or guiding the user
+            setProfileData(null);
           }
           setLoading(false);
           setRefreshing(false);
         },
         (err) => {
-          console.error('Firestore error:', err);
+          console.error('Firestore error in fetchUserProfile:', err);
           setError('Error fetching profile data. ' + err.message);
+          setProfileData(null);
           setLoading(false);
           setRefreshing(false);
         },
       );
       return unsubscribe;
     } catch (err) {
+      console.error('Error in fetchUserProfile setup:', err);
       setError(err.message || 'Failed to load profile data');
+      setProfileData(null);
       setLoading(false);
       setRefreshing(false);
+      return () => {}; // Return an empty unsubscribe function for consistency
     }
-  }, [navigation]); // Added navigation to dependency array
+  }, [currentUser?.uid, firestoreDb]); // MODIFIED: Removed navigation, using currentUser.uid
+
+  const fetchCurrentMood = useCallback(async () => {
+    // const user = auth.currentUser; // Use captured currentUser
+    if (!currentUser) {
+      return;
+    }
+    try {
+      const q = query(
+        collection(firestoreDb, 'moodEntries'),
+        where('userId', '==', currentUser.uid), // Use currentUser.uid
+        orderBy('timestamp', 'desc'),
+        limit(1)
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const moodDoc = querySnapshot.docs[0].data();
+        setCurrentMood({
+          ...moodDoc,
+          timestamp: moodDoc.timestamp?.toDate(), 
+        });
+      } else {
+        setCurrentMood(null); 
+      }
+    } catch (err) {
+      console.error('Error fetching current mood:', err);
+    }
+  }, [currentUser?.uid, firestoreDb]); // Use currentUser.uid
+
+  const fetchUpcomingTasks = useCallback(async () => {
+    // const user = auth.currentUser; // Use captured currentUser
+    if (!currentUser) {
+      return;
+    }
+    try {
+      const tasksQuery = query(
+        collection(firestoreDb, 'tasks'),
+        where('userId', '==', currentUser.uid), // Use currentUser.uid
+        where('status', '!=', 'completed'),
+        orderBy('status'), 
+        orderBy('dueDate', 'asc'),
+        limit(3)
+      );
+      const querySnapshot = await getDocs(tasksQuery);
+      const tasks = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUpcomingTasks(tasks);
+    } catch (err) {
+      console.error('Error fetching upcoming tasks:', err);
+    }
+  }, [currentUser?.uid, firestoreDb]); // Use currentUser.uid
 
   useEffect(() => {
     const hours = new Date().getHours();
@@ -202,33 +287,64 @@ const Dashboard = ({ navigation, route }) => {
   }, []);
 
   useEffect(() => {
-    let unsubscribe;
+    let unsubscribeProfile = () => {}; // Initialize with an empty function
+
     const initializeDashboard = async () => {
-      setLoading(true); // Ensure loading is true at the start
-      unsubscribe = await fetchUserProfile();
-      await fetchDashboardData();
-      // setLoading(false) is handled within fetchUserProfile and fetchDashboardData error/success paths
+      setLoading(true);
+      setError('');
+      getRandomTip();
+
+      // fetchUserProfile will handle the case where currentUser or currentUser.uid is null/undefined
+      unsubscribeProfile = await fetchUserProfile(); 
+      
+      // Only fetch other data if currentUser is valid.
+      // fetchUserProfile handles setting profileData and its own loading/refreshing states.
+      if (currentUser?.uid) { 
+        await Promise.all([
+          fetchDashboardData(),
+          fetchCurrentMood(),
+          fetchUpcomingTasks(),
+        ]);
+      }
+      // setLoading(false) is primarily handled by fetchUserProfile\'s onSnapshot callback.
+      // If the Promise.all above takes significant time, the UI might show "loaded" 
+      // (from profile fetch) while these are still pending. This is a common pattern.
     };
 
     initializeDashboard();
 
     return () => {
-      if (unsubscribe) {
-        unsubscribe();
+      if (typeof unsubscribeProfile === 'function') {
+        unsubscribeProfile();
       }
     };
-  }, [fetchUserProfile]);
+    // REMOVED profileData from the dependency array to prevent the infinite loop.
+    // The onSnapshot within fetchUserProfile handles reactivity for profileData changes.
+  }, [currentUser?.uid, fetchUserProfile, fetchDashboardData, fetchCurrentMood, fetchUpcomingTasks, getRandomTip]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setError(''); // Clear previous errors
-    await Promise.all([
-      fetchUserProfile(),
-      fetchDashboardData()
-    ]);
-    // setRefreshing(false) is handled by fetchUserProfile
-  }, [fetchUserProfile]);
+    setError(''); 
+    getRandomTip(); 
 
+    // Re-fetch profile first
+    const unsubscribe = await fetchUserProfile(); // fetchUserProfile will setRefreshing(false)
+    
+    if (currentUser?.uid) { 
+      await Promise.all([
+        fetchDashboardData(),
+        fetchCurrentMood(),
+        fetchUpcomingTasks()
+      ]);
+    }
+    // Ensure unsubscribe is called if component unmounts during refresh, though less critical here.
+    // setRefreshing(false) is handled by fetchUserProfile's onSnapshot
+    return () => { // Allow cleanup if onRefresh itself is part of a hook that cleans up
+        if (typeof unsubscribe === 'function') {
+            unsubscribe();
+        }
+    }
+  }, [currentUser?.uid, fetchUserProfile, fetchDashboardData, fetchCurrentMood, fetchUpcomingTasks, getRandomTip]);
 
   const handleCreateStudyPlan = () => {
     // navigation.navigate('CreateStudyPlan'); // To be re-enabled when feature is rebuilt
@@ -315,7 +431,7 @@ const Dashboard = ({ navigation, route }) => {
       icon: 'timer-outline',
       title: 'Focus Timer',
       subtitle: 'Stay concentrated',
-      onPress: () => navigation.navigate('FocusTimer'),
+      onPress: () => navigation.navigate('Focus'), // Corrected: Navigate to the 'Focus' tab route name
       gradient: ['#F9A8D4', '#EC4899'], // Pink gradient
       iconColor: '#EC4899',
     },
@@ -356,9 +472,35 @@ const Dashboard = ({ navigation, route }) => {
             )}
           </TouchableOpacity>
         </View>
-        {/* Mood Overview Placeholder - To be implemented */}
-        <View style={styles.moodOverviewPlaceholder}>
-            <Text style={styles.moodPlaceholderText}>Mood Overview Coming Soon!</Text>
+        
+        {/* Mood Overview Section */}
+        <View style={styles.moodOverviewContainer}>
+          {currentMood ? (
+            <View style={styles.moodContent}>
+              <Ionicons 
+                name={currentMood.icon || 'happy-outline'} 
+                size={28} 
+                color={currentMood.color || STATIC_COLORS.textOnPrimary} 
+                style={styles.moodIcon}
+              />
+              <View style={styles.moodTextContainer}>
+                <Text style={styles.moodText}>Current Mood: <Text style={{fontWeight: 'bold', color: currentMood.color || STATIC_COLORS.textOnPrimary }}>{currentMood.mood}</Text></Text>
+                <Text style={styles.moodTimestampText}>
+                  Logged: {currentMood.timestamp?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {currentMood.timestamp?.toLocaleDateString()}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.moodContent}>
+              <Ionicons name="sparkles-outline" size={28} color={STATIC_COLORS.textOnPrimary} style={styles.moodIcon}/>
+              <View style={styles.moodTextContainer}>
+                <Text style={styles.moodText}>No mood logged recently.</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Wellbeing')}>
+                    <Text style={styles.logMoodPromptText}>Log your mood now?</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
       </LinearGradient>
       
@@ -426,11 +568,74 @@ const Dashboard = ({ navigation, route }) => {
       
       {/* Placeholder for "Overview of Everything" */}
       <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Everything Overview</Text>
-        <View style={styles.placeholderCard}>
-          <Ionicons name="layers-outline" size={48} color={STATIC_COLORS.primaryLight} />
-          <Text style={styles.placeholderText}>A comprehensive overview of your activities and insights will be displayed here soon.</Text>
-        </View>
+        <Text style={styles.sectionTitle}>Your Day At a Glance</Text>
+        
+        {/* Upcoming Tasks Card */}
+        <LinearGradient colors={STATIC_COLORS.overviewTaskCard} style={styles.overviewCard}>
+          <View style={styles.overviewCardHeader}>
+            <Ionicons name="list-circle-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
+            <Text style={styles.overviewCardTitle}>Upcoming Tasks</Text>
+          </View>
+          {upcomingTasks.length > 0 ? (
+            upcomingTasks.map(task => (
+              <TouchableOpacity 
+                key={task.id} 
+                style={styles.overviewItem}
+                onPress={() => navigation.navigate('TaskManager', { screen: 'AddTask', params: { task: task }})} // Navigate to task details or edit
+              >
+                <Ionicons name="chevron-forward-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+                <View style={styles.overviewItemTextContainer}>
+                  <Text style={styles.overviewItemTextPrimary}>{task.title}</Text>
+                  {task.dueDate && (
+                    <Text style={styles.overviewItemTextSecondary}>
+                      Due: {new Date(task.dueDate.seconds * 1000).toLocaleDateString()}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.overviewItem}>
+              <Ionicons name="checkmark-done-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+              <Text style={styles.overviewItemTextPrimary}>No pressing tasks. Well done!</Text>
+            </View>
+          )}
+          <TouchableOpacity onPress={() => navigation.navigate('Study', { screen: 'TaskManager' })} style={styles.viewAllButton}>
+             <Text style={styles.viewAllButtonText}>View All Tasks</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+
+        {/* Calendar Events Placeholder Card */}
+        <LinearGradient colors={STATIC_COLORS.overviewCalendarCard} style={styles.overviewCard}>
+          <View style={styles.overviewCardHeader}>
+            <Ionicons name="calendar-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
+            <Text style={styles.overviewCardTitle}>Calendar Events</Text>
+          </View>
+          <View style={styles.overviewItem}>
+            <Ionicons name="information-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+            <Text style={styles.overviewItemTextPrimary}>Device calendar integration coming soon!</Text>
+          </View>
+           {/* <TouchableOpacity onPress={() => {}} style={styles.viewAllButton}>
+             <Text style={styles.viewAllButtonText}>Open Calendar</Text>
+          </TouchableOpacity> */}
+        </LinearGradient>
+
+        {/* Study Tip Card */}
+        {currentStudyTip && (
+          <LinearGradient colors={STATIC_COLORS.overviewTipCard} style={styles.overviewCard}>
+            <View style={styles.overviewCardHeader}>
+              <Ionicons name="bulb-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
+              <Text style={styles.overviewCardTitle}>Study Tip</Text>
+            </View>
+            <View style={styles.overviewItem}>
+                <Ionicons name="star-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+                <Text style={styles.overviewItemTextPrimary}>{currentStudyTip}</Text>
+            </View>
+            <TouchableOpacity onPress={getRandomTip} style={styles.viewAllButton}>
+                <Text style={styles.viewAllButtonText}>Get Another Tip</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        )}
       </View>
 
     </ScrollView>
@@ -448,7 +653,7 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: (Platform.OS === 'android' ? StatusBar.currentHeight : 0) + 20,
     paddingHorizontal: 20,
-    paddingBottom: 60, // Increased padding to make space for mood overview
+    paddingBottom: 20, // Adjusted padding
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
@@ -456,7 +661,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20, // Space before mood overview
+    // marginBottom: 20, // Adjusted: remove or reduce if mood overview is part of header
   },
   greetingText: {
     fontFamily: FONTS.regular,
@@ -479,19 +684,116 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: STATIC_COLORS.textOnPrimary,
   },
-  moodOverviewPlaceholder: {
-    backgroundColor: 'rgba(255,255,255,0.1)', // Semi-transparent white
+  moodOverviewPlaceholder: { // This style might be deprecated if using moodOverviewContainer
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 15,
     paddingVertical: 20,
     paddingHorizontal: 15,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 15, // Added margin if it's a separate block
   },
-  moodPlaceholderText: {
+  moodPlaceholderText: { // This style might be deprecated
     fontFamily: FONTS.semibold,
     fontSize: 16,
     color: STATIC_COLORS.textOnPrimary,
     textAlign: 'center',
+  },
+  moodOverviewContainer: { // New style for the mood section
+    backgroundColor: 'rgba(255,255,255,0.1)', // Semi-transparent white
+    borderRadius: 15,
+    padding: 15,
+    marginTop: 20, // Space from the greeting/avatar
+    marginBottom: 10, // Space before content below header
+  },
+  moodContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  moodIcon: {
+    marginRight: 12,
+  },
+  moodTextContainer: {
+    flex: 1,
+  },
+  moodText: {
+    fontFamily: FONTS.semibold,
+    fontSize: 16,
+    color: STATIC_COLORS.textOnPrimary,
+    marginBottom: 3,
+  },
+  moodTimestampText: {
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    color: STATIC_COLORS.textOnPrimary,
+    opacity: 0.8,
+  },
+  logMoodPromptText: {
+    fontFamily: FONTS.semibold,
+    fontSize: 14,
+    color: STATIC_COLORS.accent, // Use accent color for prompt
+    marginTop: 4,
+    textDecorationLine: 'underline',
+  },
+  // Styles for Overview Section
+  overviewCard: {
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: STATIC_COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  overviewCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  overviewCardTitle: {
+    fontFamily: FONTS.bold,
+    fontSize: 18,
+    color: STATIC_COLORS.textOnPrimary,
+    marginLeft: 10,
+  },
+  overviewItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    // borderBottomWidth: 1,
+    // borderBottomColor: 'rgba(255,255,255,0.2)',
+  },
+  overviewItemIcon: {
+    marginRight: 10,
+  },
+  overviewItemTextContainer: {
+    flex: 1,
+  },
+  overviewItemTextPrimary: {
+    fontFamily: FONTS.medium,
+    fontSize: 15,
+    color: STATIC_COLORS.textOnPrimary,
+    flexShrink: 1, // Allow text to wrap
+  },
+  overviewItemTextSecondary: {
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    color: STATIC_COLORS.textOnPrimary,
+    opacity: 0.8,
+  },
+  viewAllButton: {
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+  },
+  viewAllButtonText: {
+    fontFamily: FONTS.semibold,
+    fontSize: 13,
+    color: STATIC_COLORS.textOnPrimary,
   },
   centeredLoader: {
     flex: 1,

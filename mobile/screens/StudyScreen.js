@@ -94,7 +94,14 @@ const StudyScreen = ({ navigation }) => {
   }, []);
 
   const handleNavigate = (screenName, params = {}) => {
-    navigation.navigate(screenName, params);
+    // Check if navigating to a tab screen, if so, navigate to the tab first
+    if (screenName === 'FocusTimer') {
+      navigation.navigate('Focus', { screen: 'FocusTimer' }); // Navigate to Focus tab, then FocusTimer screen if nested
+      // If FocusTimer is directly a tab, it would be navigation.navigate('Focus');
+      // Based on BottomTabNavigator.js, 'Focus' is the name of the tab route for FocusTimerScreen
+    } else {
+      navigation.navigate(screenName, params);
+    }
   };
   
   const handleComingSoon = (featureName) => {
@@ -118,7 +125,8 @@ const StudyScreen = ({ navigation }) => {
       subtitle: 'Organize your assignments',
       iconName: 'checkbox-outline',
       gradientColors: STATIC_COLORS.gradientGreen,
-      onPress: () => handleComingSoon('Task Manager'), // To be implemented
+      onPress: () => handleNavigate('TaskManager'), // Navigate to TaskManagerScreen
+      tag: 'Key Feature' // Updated tag
     },
     {
       title: 'Spaced Repetition',
@@ -132,7 +140,7 @@ const StudyScreen = ({ navigation }) => {
       subtitle: 'Pomodoro & tracking',
       iconName: 'timer-outline',
       gradientColors: STATIC_COLORS.gradientAmber,
-      onPress: () => handleNavigate('FocusTimer'), // Navigate to existing FocusTimerScreen
+      onPress: () => handleNavigate('FocusTimer'), // Corrected: Was 'FocusTimer', ensure 'Focus' tab handles it or it's a global screen
     },
     {
       title: 'Grade Tracker',

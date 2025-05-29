@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import { Audio } from 'expo-audio';
 
 const WORK_DURATION = 25 * 60; // 25 minutes in seconds
 const SHORT_BREAK_DURATION = 5 * 60; // 5 minutes in seconds
@@ -63,6 +63,19 @@ const FocusTimerScreen = ({ navigation }) => {
   const [isActive, setIsActive] = useState(false);
   const [sessionType, setSessionType] = useState('Work'); // 'Work', 'Short Break', 'Long Break'
   const [sessionCount, setSessionCount] = useState(0); // Number of work sessions completed
+  const [sound, setSound] = useState(); // For audio playback
+  const [isFocusMode, setIsFocusMode] = useState(true); // Added state for focus/break mode
+
+  // Function to determine the next session type
+  const getNextSessionType = () => {
+    if (sessionType === 'Work') {
+      if ((sessionCount + 1) % SESSIONS_BEFORE_LONG_BREAK === 0) {
+        return 'Long Break';
+      }
+      return 'Short Break';
+    }
+    return 'Work'; // If current is break, next is Work
+  };
 
   // Timer logic
   useEffect(() => {
@@ -74,10 +87,45 @@ const FocusTimerScreen = ({ navigation }) => {
     } else if (isActive && timeLeft === 0) {
       clearInterval(interval);
       Vibration.vibrate(); // Vibrate on session end
+      playSound(); // Play sound on session end
       handleSessionEnd();
     }
     return () => clearInterval(interval);
   }, [isActive, timeLeft]);
+
+  // Audio setup
+  useEffect(() => {
+    const loadSound = async () => {
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+           require('../assets/notification.mp3') // Ensure you have a notification sound file here
+        );
+        setSound(sound);
+      } catch (error) {
+        console.error("Failed to load sound", error);
+        // Optionally, inform the user that sound notifications won't work
+        // Alert.alert("Sound Error", "Could not load notification sound.");
+      }
+    };
+    loadSound();
+
+    return () => {
+      if (sound) {
+        console.log('Unloading Sound');
+        sound.unloadAsync();
+      }
+    };
+  }, []); // Empty dependency array means this runs once on mount and cleanup on unmount
+
+  const playSound = async () => {
+    if (sound) {
+      try {
+        await sound.replayAsync(); // Replay the sound from the beginning
+      } catch (error) {
+        console.error("Failed to play sound", error);
+      }
+    }
+  };
 
   const handleSessionEnd = () => {
     setIsActive(false);
@@ -116,6 +164,22 @@ const FocusTimerScreen = ({ navigation }) => {
     handleSessionEnd();
   };
 
+  const toggleModeManual = () => {
+    setIsFocusMode(!isFocusMode);
+    // Add logic to switch timer settings based on the new mode
+    // For example, if switching to Focus mode, set timer to WORK_DURATION
+    // If switching to Break mode, set timer to SHORT_BREAK_DURATION
+    // This is a basic toggle, you might want more sophisticated logic
+    if (!isFocusMode) { // If current mode is break, switch to focus
+        setSessionType('Work');
+        setTimeLeft(WORK_DURATION);
+    } else { // If current mode is focus, switch to short break
+        setSessionType('Short Break');
+        setTimeLeft(SHORT_BREAK_DURATION);
+    }
+    setIsActive(false); // Pause timer on mode switch
+  };
+
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -144,7 +208,7 @@ const FocusTimerScreen = ({ navigation }) => {
           {!isActive &&
             timeLeft > 0 && ( // Show next session type when paused or ready to start
               <Text style={styles.nextSessionText}>
-                Next: {getNextSessionType()}
+                Next: {getNextSessionType()} 
               </Text>
             )}
         </View>
@@ -194,7 +258,7 @@ const FocusTimerScreen = ({ navigation }) => {
       </View>
       <TouchableOpacity style={styles.modeButton} onPress={toggleModeManual}>
         <Text style={styles.modeButtonText}>
-          Switch to {isFocusMode ? 'Break' : 'Focus'}
+          Switch to {isFocusMode ? 'Break' : 'Focus'} {/* Ensure isFocusMode and toggleModeManual are defined if this button is kept */}
         </Text>
       </TouchableOpacity>
     </View>

@@ -11,6 +11,7 @@ import {
   Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getAuth } from 'firebase/auth'; // Import getAuth
 // import CalendarEvents from 'react-native-calendar-events'; // Consider for adding to device calendar
 
 const backendUrl = 'http://172.20.10.2:3000'; // Ensure this is your correct backend URL
@@ -54,6 +55,9 @@ const SyllabusAnalysisResultScreen = ({ route, navigation }) => {
   const [analysisData, setAnalysisData] = useState(null);
   const [error, setError] = useState(null);
 
+  const auth = getAuth(); // Get auth instance
+  const user = auth.currentUser; // Get current user
+
   useEffect(() => {
     const fetchAnalysisData = async () => {
       if (!analysisId) {
@@ -61,12 +65,17 @@ const SyllabusAnalysisResultScreen = ({ route, navigation }) => {
         setLoading(false);
         return;
       }
+      if (!user || !user.uid) { // Check for user and user.uid
+        setError('User not authenticated. Please login again.');
+        setLoading(false);
+        // Optionally navigate to login screen
+        // navigation.navigate('Login'); 
+        return;
+      }
       try {
         setLoading(true);
         setError(null);
-        // TODO: Replace with actual user ID retrieval
-        const userId = 'temp-user-id'; // Placeholder - replace with actual user ID from auth context
-        const response = await fetch(`${backendUrl}/file/syllabus-analysis/${analysisId}?userId=${userId}`);
+        const response = await fetch(`${backendUrl}/file/syllabus-analysis/${analysisId}?userId=${user.uid}`); // Use actual user.uid
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ message: 'Failed to fetch analysis results. Server returned an error.' }));
@@ -167,6 +176,10 @@ const SyllabusAnalysisResultScreen = ({ route, navigation }) => {
         <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
           Analysis: {fileName || 'Syllabus Results'}
         </Text>
+        {/* Add a refresh button to allow refetching data */}
+        <TouchableOpacity onPress={fetchAnalysisData} style={styles.refreshButton}>
+            <Ionicons name="refresh-outline" size={24} color={STATIC_COLORS.primary} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.contentContainer}>
@@ -213,12 +226,17 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: SPACING.xs,
-    marginRight: SPACING.sm,
+    // marginRight: SPACING.sm, // Removed to allow refresh button on the other side
   },
   headerTitle: {
     ...TYPOGRAPHY.h2,
     color: STATIC_COLORS.text,
     flex: 1, // Allow title to take space and truncate
+    textAlign: 'center', // Center the title
+    marginHorizontal: SPACING.sm, // Add some margin if title is too close to buttons
+  },
+  refreshButton: { // Style for the refresh button
+    padding: SPACING.xs,
   },
   centeredLoader: {
     flex: 1,

@@ -22,23 +22,25 @@ import {
 import { auth, db, storage } from '../config/firebase'; // Ensure this path is correct
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient'; // Import LinearGradient
 
 // Define static colors and fonts directly
 const STATIC_COLORS = {
-  background: '#F0F4F8',
+  background: '#F0F4F8', // Lightest grey for a very clean look
   surface: '#FFFFFF',
-  primary: '#6A11CB',
-  secondary: '#2575FC',
-  text: '#1A2B4D',
-  subtext: '#5A6B7C',
+  primary: '#6A11CB', // Deep, motivating purple
+  secondary: '#2575FC', // Vibrant blue for accents
+  text: '#121212', // Darker text for better contrast
+  subtext: '#5A6B7C', // Softer grey for less emphasis
   border: '#E0E6F0',
   error: '#D32F2F',
   buttonText: '#FFFFFF',
-  icon: '#1A2B4D',
+  icon: '#6A11CB', // Primary color for icons in menu items
   card: '#FFFFFF',
-  shadow: 'rgba(0, 0, 0, 0.1)',
-  headerBackground: '#6A11CB', // Primary color for header
+  shadow: 'rgba(0, 0, 0, 0.08)', // Softer shadow
+  // headerBackground: '#6A11CB', // Will be replaced by gradient
   headerText: '#FFFFFF',
+  profileStatsBackground: 'rgba(255, 255, 255, 0.1)', // Semi-transparent white for stats
 };
 
 const STATIC_FONTS = {
@@ -55,30 +57,45 @@ const ProfileScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [userStats, setUserStats] = useState({ tasksCompleted: 0, studyHours: 0 });
+
+  // Capture currentUser at the beginning of the render
+  const currentUser = auth.currentUser;
 
   const fetchUserProfile = useCallback(async () => {
     setLoading(true);
-    const userId = auth.currentUser?.uid;
+    const userId = currentUser?.uid; // Use the captured currentUser's uid
+
     if (!userId) {
       setLoading(false);
+      setUserData(null); // Clear user data if no user
+      setUserStats({ tasksCompleted: 0, studyHours: 0 }); // Reset stats
       return;
     }
 
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
-        setUserData(userDoc.data());
+        const data = userDoc.data();
+        setUserData(data);
+        const fetchedStats = {
+          tasksCompleted: data.tasksCompleted || 0,
+          studyHours: data.studyHours || 0,
+        };
+        setUserStats(fetchedStats);
       } else {
-        console.log('No such document!');
+        console.log('No such document for userId:', userId);
         setUserData(null);
+        setUserStats({ tasksCompleted: 0, studyHours: 0 });
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('Error fetching user data for userId:', userId, error);
       setUserData(null);
+      setUserStats({ tasksCompleted: 0, studyHours: 0 });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser?.uid, db]); // Added currentUser?.uid and db to dependencies. State setters are stable.
 
   useFocusEffect(
     useCallback(() => {
@@ -185,7 +202,12 @@ const ProfileScreen = ({ navigation }) => {
       }
       contentContainerStyle={styles.contentContainer}
     >
-      <View style={styles.headerContainer}>
+      <LinearGradient
+        colors={['#6A11CB', '#2575FC']} // Gradient colors
+        style={styles.headerContainer}
+        start={{ x: 0, y: 0 }} // Gradient start point
+        end={{ x: 1, y: 1 }} // Gradient end point
+      >
         <Image
           source={
             userData?.profilePicture
@@ -199,7 +221,20 @@ const ProfileScreen = ({ navigation }) => {
           {userData?.email || 'No email provided'}
         </Text>
         {userData?.bio && <Text style={styles.userBio}>{userData.bio}</Text>}
-      </View>
+        
+        {/* User Stats Section */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{userStats.tasksCompleted}</Text>
+            <Text style={styles.statLabel}>Tasks Done</Text>
+          </View>
+          <View style={styles.statSeparator} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{userStats.studyHours}</Text>
+            <Text style={styles.statLabel}>Study Hours</Text>
+          </View>
+        </View>
+      </LinearGradient>
 
       <View style={styles.menuContainer}>
         <MenuItem
@@ -212,7 +247,7 @@ const ProfileScreen = ({ navigation }) => {
         <MenuItem
           icon="settings-outline"
           text="App Settings"
-          onPress={() => navigation.navigate('AppSettings')}
+          onPress={() => navigation.navigate('SettingsTab')} // Corrected: Navigate to SettingsTab
           colors={colors}
           fonts={fonts}
         />
@@ -288,19 +323,20 @@ const getMenuItemStyles = (colors, fonts) =>
     menuItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 18,
-      paddingHorizontal: 15,
+      paddingVertical: 20, // Increased padding
+      paddingHorizontal: 20, // Increased padding
       backgroundColor: colors.surface,
-      borderRadius: 10,
-      marginBottom: 10,
+      borderRadius: 12, // Slightly more rounded
+      marginBottom: 12, // Increased spacing
       shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 2,
+      shadowOffset: { width: 0, height: 2 }, // Adjusted shadow
+      shadowOpacity: 0.1, // Adjusted shadow
+      shadowRadius: 4, // Adjusted shadow
+      elevation: 3, // Adjusted elevation
     },
     menuItemIcon: {
-      marginRight: 15,
+      marginRight: 18, // Increased spacing
+      color: colors.icon, // Use defined icon color
     },
     menuItemText: {
       flex: 1,
@@ -317,7 +353,7 @@ const getStyles = (colors, fonts) =>
       backgroundColor: colors.background,
     },
     contentContainer: {
-      paddingBottom: 30,
+      paddingBottom: 40, // Increased bottom padding
     },
     loadingContainer: {
       flex: 1,
@@ -350,75 +386,108 @@ const getStyles = (colors, fonts) =>
       fontFamily: fonts.medium,
     },
     headerContainer: {
-      backgroundColor: colors.headerBackground,
+      // backgroundColor: colors.headerBackground, // Removed as LinearGradient is used
       alignItems: 'center',
-      paddingTop: Platform.OS === 'android' ? 40 : 60,
-      paddingBottom: 30,
-      borderBottomLeftRadius: 30,
-      borderBottomRightRadius: 30,
-      marginBottom: 20,
+      paddingTop: Platform.OS === 'android' ? 50 : 70, // Increased top padding
+      paddingBottom: 40, // Increased bottom padding
+      borderBottomLeftRadius: 35, // More pronounced curve
+      borderBottomRightRadius: 35, // More pronounced curve
+      marginBottom: 25, // Increased spacing
       shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.15,
-      shadowRadius: 5,
-      elevation: 4,
+      shadowOffset: { width: 0, height: 4 }, // Enhanced shadow
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 6,
     },
     profilePic: {
-      width: 120,
-      height: 120,
-      borderRadius: 60,
-      borderWidth: 3,
-      borderColor: colors.surface, // White border around pic
-      marginBottom: 15,
+      width: 130, // Larger pic
+      height: 130, // Larger pic
+      borderRadius: 65, // Keep it circular
+      borderWidth: 4, // Thicker border
+      borderColor: colors.surface, 
+      marginBottom: 18, // Increased spacing
     },
     userName: {
-      fontSize: 26,
+      fontSize: 28, // Larger name
       fontFamily: fonts.bold,
       color: colors.headerText,
-      marginBottom: 5,
+      marginBottom: 6, // Adjusted spacing
     },
     userEmail: {
-      fontSize: 16,
+      fontSize: 17, // Slightly larger email
+      fontFamily: fonts.regular,
+      color: colors.headerText,
+      opacity: 0.9, // Slightly more opaque
+      marginBottom: 12, // Increased spacing
+    },
+    userBio: {
+      fontSize: 15, // Slightly larger bio
+      fontFamily: fonts.regular,
+      color: colors.headerText,
+      opacity: 0.8,
+      textAlign: 'center',
+      paddingHorizontal: 25, // Increased padding
+      fontStyle: 'italic',
+      lineHeight: 22, // Improved readability
+    },
+    statsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      backgroundColor: colors.profileStatsBackground,
+      borderRadius: 15,
+      paddingVertical: 15,
+      paddingHorizontal: 20,
+      marginTop: 20,
+      width: '90%',
+    },
+    statItem: {
+      alignItems: 'center',
+    },
+    statValue: {
+      fontSize: 22,
+      fontFamily: fonts.bold,
+      color: colors.headerText,
+      marginBottom: 4,
+    },
+    statLabel: {
+      fontSize: 13,
       fontFamily: fonts.regular,
       color: colors.headerText,
       opacity: 0.85,
-      marginBottom: 10,
+      textTransform: 'uppercase',
     },
-    userBio: {
-      fontSize: 14,
-      fontFamily: fonts.regular,
-      color: colors.headerText,
-      opacity: 0.75,
-      textAlign: 'center',
-      paddingHorizontal: 20,
-      fontStyle: 'italic',
+    statSeparator: {
+      width: 1,
+      height: '60%',
+      backgroundColor: 'rgba(255, 255, 255, 0.3)',
     },
     menuContainer: {
       paddingHorizontal: 20,
-      marginTop: 10, // Add some space if header is not curved or less padding
+      marginTop: 15, 
     },
     actionsContainer: {
-      marginTop: 30,
+      marginTop: 35, // Increased spacing
       paddingHorizontal: 20,
     },
     actionButton: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: 15,
-      borderRadius: 10,
-      marginBottom: 15,
+      paddingVertical: 16, // Increased padding
+      borderRadius: 12, // More rounded
+      marginBottom: 18, // Increased spacing
       shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 2,
+      shadowOffset: { width: 0, height: 3 }, // Adjusted shadow
+      shadowOpacity: 0.15, // Adjusted shadow
+      shadowRadius: 5, // Adjusted shadow
+      elevation: 3, // Adjusted elevation
     },
     actionButtonIcon: {
-      marginRight: 10,
+      marginRight: 12, // Increased spacing
     },
     actionButtonText: {
-      fontSize: 17,
+      fontSize: 18, // Larger text
       fontFamily: fonts.medium,
       color: colors.buttonText,
     },
