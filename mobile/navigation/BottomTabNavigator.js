@@ -62,7 +62,7 @@ const BottomTabNavigator = () => {
           } else if (route.name === 'AI') {
             iconName = focused ? 'sparkles' : 'sparkles-outline'; // Using sparkles for AI
             return <Ionicons name={iconName} size={iconSize} color={color} />;
-          } else if (route.name === 'Settings') {
+          } else if (route.name === 'SettingsTab') { // Changed from 'Settings' to 'SettingsTab'
             iconName = focused ? 'settings' : 'settings-outline';
             return <Ionicons name={iconName} size={iconSize} color={color} />;
           }
@@ -96,7 +96,7 @@ const BottomTabNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Settings"
+        name="SettingsTab" // Changed from 'Settings' to 'SettingsTab'
         component={AppSettingsScreen} // Updated component
         // Options can be kept minimal
       />

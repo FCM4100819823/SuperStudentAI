@@ -13,8 +13,8 @@ import {
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
-import { collection, addDoc, query, where, getDocs, Timestamp, deleteDoc, doc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { firestoreDb, auth } from '../config/firebase'; // Assuming firebase.js exports firestoreDb
+import { collection, addDoc, query, where, getDocs, Timestamp, deleteDoc, doc, updateDoc, onSnapshot, serverTimestamp, orderBy } from 'firebase/firestore'; // Added orderBy
+import { db as firestoreDb, auth } from '../config/firebase'; // Corrected import: db as firestoreDb
 import { Ionicons } from '@expo/vector-icons'; // Assuming you use Expo and have vector icons
 
 // Try to import LinearGradient, fallback to View if not available

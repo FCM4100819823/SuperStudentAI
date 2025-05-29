@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { firestoreDb, auth } from '../config/firebase';
+import { db as firestoreDb, auth } from '../config/firebase'; // Corrected import: db as firestoreDb
 import { Ionicons } from '@expo/vector-icons'; // Assuming Expo for icons
 
 // Enhanced Design System (consistent with FinanceScreen)
@@ -273,7 +273,7 @@ const AppSettingsScreen = ({ navigation }) => {
           description: "Keep your data synced across devices",
           value: settings.dataSync,
           onValueChange: (val) => handleSettingChange('dataSync', val),
-          iconName: 'cloud-sync-outline', // Custom icon, ensure it exists or use 'sync-circle-outline'
+          iconName: 'sync-circle-outline', // Changed from 'cloud-sync-outline'
         })}
          {renderSettingItem({
           title: 'Language',
