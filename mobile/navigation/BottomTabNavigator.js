@@ -9,16 +9,18 @@ import StudyScreen from '../screens/StudyScreen'; // New comprehensive Study scr
 import AIScreen from '../screens/AIScreen'; // Assuming you have an AIScreen
 import AppSettingsScreen from '../screens/AppSettingsScreen'; // Changed from SettingsScreen to AppSettingsScreen
 import FocusTimerScreen from '../screens/FocusTimerScreen'; // Added FocusTimerScreen
+import WellbeingScreen from '../screens/WellbeingScreen'; // Added WellbeingScreen
+import FinanceScreen from '../screens/FinanceScreen'; // Added FinanceScreen
 
 const Tab = createBottomTabNavigator();
 
 // Define static colors for the tab bar for a professional look
 const STATIC_COLORS = {
-  primary: '#6A11CB', // Deep purple - primary brand color
-  inactive: '#8E8E93', // Standard inactive color
-  background: '#FFFFFF', // Tab bar background
-  activeAccent: '#2575FC', // A secondary color for active tab, if desired (or use primary)
-  // Add more if needed
+  primary: '#6A1B9A', // Deep Purple - primary brand color from AppSettingsScreen
+  secondary: '#4CAF50', // Green - secondary color from AppSettingsScreen
+  inactive: '#718096', // textMuted from AppSettingsScreen
+  background: '#FFFFFF', // surface from AppSettingsScreen
+  // activeAccent: '#F59E0B', // accent from AppSettingsScreen (optional)
 };
 
 const BottomTabNavigator = () => {
@@ -48,57 +50,75 @@ const BottomTabNavigator = () => {
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          const iconSize = focused ? size + 2 : size; // Slightly larger icon when focused
+          const iconSize = focused ? size + 3 : size; // Slightly larger icon when focused
 
           if (route.name === 'Dashboard') {
-            iconName = focused ? 'home' : 'home-outline';
-            return <Ionicons name={iconName} size={iconSize} color={color} />;
+            iconName = focused ? 'home-sharp' : 'home-outline';
           } else if (route.name === 'Study') {
-            iconName = focused ? 'library' : 'library-outline'; // Changed icon
-            return <Ionicons name={iconName} size={iconSize} color={color} />;
+            iconName = focused ? 'library-sharp' : 'library-outline'; 
           } else if (route.name === 'Focus') {
-            iconName = focused ? 'timer' : 'timer-outline';
-            return <Ionicons name={iconName} size={iconSize} color={color} />;
+            iconName = focused ? 'hourglass-sharp' : 'hourglass-outline'; // Changed icon for Focus
           } else if (route.name === 'AI') {
-            iconName = focused ? 'sparkles' : 'sparkles-outline'; // Using sparkles for AI
-            return <Ionicons name={iconName} size={iconSize} color={color} />;
-          } else if (route.name === 'SettingsTab') { // Changed from 'Settings' to 'SettingsTab'
-            iconName = focused ? 'settings' : 'settings-outline';
-            return <Ionicons name={iconName} size={iconSize} color={color} />;
+            iconName = focused ? 'sparkles-sharp' : 'sparkles-outline'; 
+          } else if (route.name === 'Wellbeing') { // Added Wellbeing Tab
+            iconName = focused ? 'heart-sharp' : 'heart-outline';
+          } else if (route.name === 'Finance') { // Added Finance Tab
+            iconName = focused ? 'cash-sharp' : 'cash-outline';
+          } else if (route.name === 'SettingsTab') { 
+            iconName = focused ? 'settings-sharp' : 'settings-outline';
           }
+          return <Ionicons name={iconName} size={iconSize} color={color} />;
         },
       })}
     >
       <Tab.Screen
         name="Dashboard"
         component={Dashboard}
-        // Options can be kept minimal if defaults are good
+        options={{
+          title: 'Home',
+        }}
       />
       <Tab.Screen
         name="Study"
-        component={StudyScreen} // New comprehensive Study screen
+        component={StudyScreen} 
         options={{
-          title: 'Study Universe', // Updated title
+          title: 'Study Hub', // Updated title
         }}
       />
       <Tab.Screen
         name="Focus"
-        component={FocusTimerScreen} // Added Focus Timer screen
+        component={FocusTimerScreen} 
         options={{
-          title: 'Focus Timer',
+          title: 'Focus Zone',
         }}
       />
       <Tab.Screen
         name="AI"
-        component={AIScreen} // Added AI screen
+        component={AIScreen} 
         options={{
-          title: 'AI Tutor',
+          title: 'AI Assistant',
+        }}
+      />
+      <Tab.Screen // Added Wellbeing Tab
+        name="Wellbeing"
+        component={WellbeingScreen}
+        options={{
+          title: 'Wellbeing',
+        }}
+      />
+      <Tab.Screen // Added Finance Tab
+        name="Finance"
+        component={FinanceScreen}
+        options={{
+          title: 'Finances',
         }}
       />
       <Tab.Screen
-        name="SettingsTab" // Changed from 'Settings' to 'SettingsTab'
-        component={AppSettingsScreen} // Updated component
-        // Options can be kept minimal
+        name="SettingsTab" 
+        component={AppSettingsScreen} 
+        options={{
+          title: 'Settings',
+        }}
       />
     </Tab.Navigator>
   );

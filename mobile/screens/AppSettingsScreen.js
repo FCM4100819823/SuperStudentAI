@@ -16,6 +16,7 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { db as firestoreDb, auth } from '../config/firebase'; // Corrected import: db as firestoreDb
 import { Ionicons } from '@expo/vector-icons'; // Assuming Expo for icons
+import { LinearGradient } from 'expo-linear-gradient'; 
 
 // Enhanced Design System (consistent with FinanceScreen)
 const STATIC_COLORS = {
@@ -60,19 +61,22 @@ const SPACING = {
   md: 16,
   lg: 24,
   xl: 32,
+  xxl: 48, // Added for larger spacing if needed
 };
 
 const AppSettingsScreen = ({ navigation }) => {
   const [settings, setSettings] = useState({
     notificationsEnabled: true,
-    darkMode: false, // Assuming a light mode default
+    darkMode: false, 
     dataSync: true,
     language: 'English',
-    // Add more settings as needed
+    aiPersonalization: true, // New setting
+    studyReminders: 'default', // New setting: 'default', 'custom', 'off'
   });
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [userName, setUserName] = useState('User');
+  const [userEmail, setUserEmail] = useState(''); // Store user email
 
   const userId = auth.currentUser?.uid;
 
@@ -80,7 +84,7 @@ const AppSettingsScreen = ({ navigation }) => {
     if (!userId) {
       Alert.alert("Error", "User not authenticated.");
       setLoading(false);
-      navigation.replace('Login'); // Or your main auth flow
+      navigation.replace('Auth'); 
       return;
     }
     setLoading(true);
@@ -95,11 +99,14 @@ const AppSettingsScreen = ({ navigation }) => {
           darkMode: userData.appSettings?.darkMode !== undefined ? userData.appSettings.darkMode : false,
           dataSync: userData.appSettings?.dataSync !== undefined ? userData.appSettings.dataSync : true,
           language: userData.appSettings?.language || 'English',
+          aiPersonalization: userData.appSettings?.aiPersonalization !== undefined ? userData.appSettings.aiPersonalization : true,
+          studyReminders: userData.appSettings?.studyReminders || 'default',
         }));
         setUserName(userData.name || 'User');
+        setUserEmail(auth.currentUser?.email || ''); // Get email from auth object
       } else {
-        // Initialize with default settings if no doc exists (or handle as error)
         console.log("No such user document! Using default settings.");
+        setUserEmail(auth.currentUser?.email || '');
       }
     } catch (error) {
       console.error("Error fetching settings: ", error);
@@ -119,23 +126,22 @@ const AppSettingsScreen = ({ navigation }) => {
       return;
     }
     
-    setSettings(prev => ({ ...prev, [key]: value }));
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings); // Optimistically update UI
+
     setIsSaving(true);
     try {
       const userDocRef = doc(firestoreDb, 'users', userId);
       await updateDoc(userDocRef, {
-        appSettings: { // Store settings under an 'appSettings' map
-          ...settings, // current settings state
-          [key]: value,   // the updated key-value pair
-        },
+        appSettings: newSettings, // Save the whole appSettings object
         lastUpdated: serverTimestamp(),
       });
-      // Optionally, show a success toast/message here
+      // Optionally, show a success toast/message here: e.g., Toast.show('Settings saved!');
     } catch (error) {
       console.error("Error updating setting: ", error);
       Alert.alert("Error", `Could not save ${key}. ` + error.message);
-      // Revert UI change on error
-      setSettings(prev => ({ ...prev, [key]: !value })); 
+      // Revert UI change on error by fetching settings again or storing previous state
+      fetchSettings(); 
     } finally {
       setIsSaving(false);
     }
@@ -165,7 +171,7 @@ const AppSettingsScreen = ({ navigation }) => {
   };
 
   const handleNavigateToProfile = () => {
-    navigation.navigate('Profile'); // Ensure 'Profile' route exists in your navigator
+    navigation.navigate('Profile'); 
   };
 
   const handleShareApp = async () => {
@@ -194,13 +200,27 @@ const AppSettingsScreen = ({ navigation }) => {
     });
   };
 
-  const renderSettingItem = ({ title, value, onValueChange, type = 'switch', iconName, onPress, description }) => (
-    <TouchableOpacity onPress={onPress} disabled={!onPress} style={styles.settingItemContainer}>
+  // New function to navigate to a generic "Coming Soon" or specific feature screen
+  const handleNavigateToFeature = (featureName, screenName) => {
+    if (screenName) {
+      navigation.navigate(screenName);
+    } else {
+      Alert.alert(featureName, "This feature is under development and will be available soon!");
+    }
+  };
+
+
+  const renderSettingItem = ({ title, value, onValueChange, type = 'switch', iconName, onPress, description, isLastInSection }) => (
+    <TouchableOpacity 
+      onPress={onPress} 
+      disabled={!onPress && type !== 'switch'} // Allow press for switches even if no explicit onPress
+      style={[styles.settingItemContainer, isLastInSection && styles.settingItemContainerLast]}
+    >
       <View style={styles.settingItemContent}>
         {iconName && <Ionicons name={iconName} size={24} color={STATIC_COLORS.primary} style={styles.settingIcon} />}
         <View style={styles.settingTextContainer}>
           <Text style={styles.settingTitle}>{title}</Text>
-          {description && <Text style={styles.settingDescription}>{description}</Text>}
+          {description && <Text style={styles.settingDescription}>{description}</Text>}\
         </View>
       </View>
       {type === 'switch' && (
@@ -233,61 +253,111 @@ const AppSettingsScreen = ({ navigation }) => {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContentContainer}>
-      <View style={styles.headerContainer}>
-        <Ionicons name="settings-outline" size={36} color={STATIC_COLORS.primary} />
-        <Text style={styles.headerTitle}>App Settings</Text>
-        <Text style={styles.headerSubtitle}>Manage your preferences for SuperStudentAI</Text>
-      </View>
+      <LinearGradient
+        colors={[STATIC_COLORS.primary, STATIC_COLORS.primaryDark]}
+        style={styles.headerContainer}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Ionicons name="settings-outline" size={40} color={STATIC_COLORS.textOnPrimary} />
+        <Text style={[styles.headerTitle, { color: STATIC_COLORS.textOnPrimary }]}>Settings</Text>
+        <Text style={[styles.headerSubtitle, { color: STATIC_COLORS.textOnPrimary }]}>Tailor SuperStudentAI to your needs</Text>
+      </LinearGradient>
 
-      {/* Profile Section */}
+      {/* Account Section */}
       <View style={styles.sectionContainer}>
-        <Text style={styles.sectionHeader}>Account</Text>
+        <Text style={styles.sectionHeader}>My Account</Text>
         {renderSettingItem({
           title: userName,
-          description: "View and edit your profile",
+          description: userEmail, // Show email here
           iconName: 'person-circle-outline',
           type: 'navigation',
           onPress: handleNavigateToProfile,
+        })}
+        {renderSettingItem({
+          title: 'Manage Subscription',
+          description: "View or update your plan",
+          iconName: 'card-outline',
+          type: 'navigation',
+          onPress: () => handleNavigateToFeature("Subscription Management"), // Placeholder
+          isLastInSection: true,
         })}
       </View>
 
       {/* General Settings Section */}
       <View style={styles.sectionContainer}>
-        <Text style={styles.sectionHeader}>General</Text>
-        {renderSettingItem({
-          title: 'Enable Notifications',
-          description: "Receive study reminders and updates",
-          value: settings.notificationsEnabled,
-          onValueChange: (val) => handleSettingChange('notificationsEnabled', val),
-          iconName: 'notifications-outline',
-        })}
+        <Text style={styles.sectionHeader}>Preferences</Text>
         {renderSettingItem({
           title: 'Dark Mode',
-          description: "Toggle between light and dark themes",
+          description: "Reduce eye strain in low light",
           value: settings.darkMode,
           onValueChange: (val) => handleSettingChange('darkMode', val),
-          iconName: 'moon-outline',
+          iconName: settings.darkMode ? 'moon' : 'moon-outline',
+        })}
+        {renderSettingItem({
+          title: 'Enable Notifications',
+          description: "Receive important updates",
+          value: settings.notificationsEnabled,
+          onValueChange: (val) => handleSettingChange('notificationsEnabled', val),
+          iconName: settings.notificationsEnabled ? 'notifications' : 'notifications-off-outline',
+        })}
+        {renderSettingItem({
+          title: 'Study Reminders',
+          description: "Stay on track with your goals", // Customize later based on 'studyReminders' value
+          value: settings.studyReminders, // This won't be a boolean for a picker
+          iconName: 'alarm-outline',
+          type: 'navigation', // To open a picker/modal or new screen
+          onPress: () => handleNavigateToFeature("Study Reminders Customization"), // Placeholder
+        })}
+        {renderSettingItem({
+          title: 'AI Personalization',
+          description: "Allow AI to tailor content for you",
+          value: settings.aiPersonalization,
+          onValueChange: (val) => handleSettingChange('aiPersonalization', val),
+          iconName: 'bulb-outline',
         })}
         {renderSettingItem({
           title: 'Data Sync',
-          description: "Keep your data synced across devices",
+          description: "Keep data synced across devices",
           value: settings.dataSync,
           onValueChange: (val) => handleSettingChange('dataSync', val),
-          iconName: 'sync-circle-outline', // Changed from 'cloud-sync-outline'
+          iconName: 'sync-circle-outline', 
         })}
          {renderSettingItem({
           title: 'Language',
           value: settings.language,
-          description: "Select your preferred language (feature coming soon)",
+          description: "Select your preferred language",
           iconName: 'language-outline',
-          type: 'info', // Or 'navigation' if you build a language selection screen
-          // onPress: () => Alert.alert("Language", "Language selection feature is under development.")
+          type: 'navigation', 
+          onPress: () => handleNavigateToFeature("Language Selection"), // Placeholder
+          isLastInSection: true,
         })}
       </View>
 
-      {/* About & Support Section */}
+      {/* Support & Feedback Section */}
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionHeader}>Support & Feedback</Text>
+        {renderSettingItem({
+          title: 'Help Center & FAQ',
+          description: "Find answers and tutorials",
+          iconName: 'help-buoy-outline',
+          type: 'navigation',
+          onPress: () => Linking.openURL('YOUR_FAQ_URL').catch(err => Alert.alert("Error", "Could not open Help Center.")),
+        })}
+        {renderSettingItem({
+          title: 'Report an Issue',
+          description: "Let us know about a problem",
+          iconName: 'bug-outline',
+          type: 'navigation',
+          onPress: () => handleNavigateToFeature("Report an Issue"), // Placeholder
+        })}
+        {renderSettingItem({
+          title: 'Suggest a Feature',
+          description: "Share your ideas with us",
+          iconName: 'chatbubbles-outline',
+          type: 'navigation',
+          onPress: () => handleNavigateToFeature("Suggest a Feature"), // Placeholder
+        })}
         {renderSettingItem({
           title: 'Rate SuperStudentAI',
           description: "Enjoying the app? Let us know!",
@@ -301,14 +371,13 @@ const AppSettingsScreen = ({ navigation }) => {
           iconName: 'share-social-outline',
           type: 'navigation',
           onPress: handleShareApp,
+          isLastInSection: true,
         })}
-        {renderSettingItem({
-          title: 'Help & FAQ',
-          description: "Find answers to common questions",
-          iconName: 'help-circle-outline',
-          type: 'navigation',
-          onPress: () => Linking.openURL('YOUR_FAQ_URL').catch(err => Alert.alert("Error", "Could not open FAQ page.")),
-        })}
+      </View>
+      
+      {/* Legal Section */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionHeader}>Legal</Text>
         {renderSettingItem({
           title: 'Privacy Policy',
           iconName: 'shield-checkmark-outline',
@@ -320,20 +389,26 @@ const AppSettingsScreen = ({ navigation }) => {
           iconName: 'document-text-outline',
           type: 'navigation',
           onPress: () => Linking.openURL('YOUR_TERMS_OF_SERVICE_URL').catch(err => Alert.alert("Error", "Could not open terms of service.")),
+          isLastInSection: true,
         })}
       </View>
 
       {/* Logout Button */}
       <View style={styles.logoutButtonContainer}>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color={STATIC_COLORS.danger} />
+          <Ionicons name="log-out-outline" size={24} color={STATIC_COLORS.danger} style={styles.logoutIcon} />
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>SuperStudentAI v1.0.0</Text>
-        {isSaving && <ActivityIndicator size="small" color={STATIC_COLORS.primary} style={{marginLeft: SPACING.xs}}/>}
+        {isSaving && (
+          <View style={styles.savingIndicatorContainer}>
+            <ActivityIndicator size="small" color={STATIC_COLORS.primary} />
+            <Text style={styles.savingText}>Saving...</Text>
+          </View>
+        )}
       </View>
 
     </ScrollView>
@@ -346,7 +421,30 @@ const styles = StyleSheet.create({
     backgroundColor: STATIC_COLORS.background,
   },
   scrollContentContainer: {
+    paddingBottom: SPACING.xl, // Increased bottom padding
+  },
+  headerContainer: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: Platform.OS === 'android' ? SPACING.xl + 10 : SPACING.xxl, // Adjust for status bar
     paddingBottom: SPACING.xl,
+    alignItems: 'center',
+    borderBottomLeftRadius: 25, // Slightly larger radius
+    borderBottomRightRadius: 25,
+    marginBottom: SPACING.lg,
+  },
+  headerTitle: {
+    ...TYPOGRAPHY.h1,
+    fontSize: 30, // Slightly larger
+    color: STATIC_COLORS.textOnPrimary, 
+    marginTop: SPACING.sm,
+  },
+  headerSubtitle: {
+    ...TYPOGRAPHY.body,
+    fontSize: 16,
+    color: STATIC_COLORS.textOnPrimary, 
+    opacity: 0.9, // Slight opacity for subtitle
+    marginTop: SPACING.xs,
+    textAlign: 'center',
   },
   centeredLoader: {
     flex: 1,
@@ -355,122 +453,125 @@ const styles = StyleSheet.create({
     backgroundColor: STATIC_COLORS.background,
   },
   loadingText: {
-    ...TYPOGRAPHY.body,
+    ...TYPOGRAPHY.bodyBold, // Bolder loading text
     color: STATIC_COLORS.primary,
-    marginTop: SPACING.sm,
-  },
-  headerContainer: {
-    backgroundColor: STATIC_COLORS.surface,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: Platform.OS === 'android' ? SPACING.lg + 20 : SPACING.xl + 20,
-    paddingBottom: SPACING.lg,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: STATIC_COLORS.border,
-    marginBottom: SPACING.lg,
-  },
-  headerTitle: {
-    ...TYPOGRAPHY.h1,
-    color: STATIC_COLORS.primary,
-    marginTop: SPACING.xs,
-  },
-  headerSubtitle: {
-    ...TYPOGRAPHY.body,
-    color: STATIC_COLORS.textSecondary,
-    marginTop: SPACING.xs,
-    textAlign: 'center',
+    marginTop: SPACING.md,
   },
   sectionContainer: {
     backgroundColor: STATIC_COLORS.surface,
-    borderRadius: 12,
+    borderRadius: 15, // Consistent rounded corners
     marginHorizontal: SPACING.md,
     marginBottom: SPACING.lg,
-    paddingVertical: SPACING.sm, // Add some vertical padding inside the card
-    shadowColor: STATIC_COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    overflow: 'hidden', // Ensures border radius is respected by children
+    paddingVertical: SPACING.xs, 
+    shadowColor: STATIC_COLORS.shadow, // Softer shadow
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08, // Slightly more pronounced shadow
+    shadowRadius: 12,
+    elevation: 5, // Android shadow
+    overflow: Platform.OS === 'android' ? 'hidden' : 'visible', // Fix for Android shadow clipping
   },
   sectionHeader: {
     ...TYPOGRAPHY.h3,
+    fontSize: 16, // Slightly smaller section header
+    fontWeight: 'bold', // Ensure it's bold
     color: STATIC_COLORS.primaryDark,
     paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.sm, // Give header a bit more space from top of card
-    paddingBottom: SPACING.sm, // Space between header and first item
-    borderBottomWidth: 1,
-    borderBottomColor: STATIC_COLORS.borderLight,
+    paddingTop: SPACING.md, 
+    paddingBottom: SPACING.sm, 
+    // borderBottomWidth: 1, // Removing border for a cleaner look, sections are distinct enough
+    // borderBottomColor: STATIC_COLORS.borderLight,
   },
   settingItemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: SPACING.md,
+    paddingVertical: SPACING.md + 2, // Slightly more vertical padding
     paddingHorizontal: SPACING.md,
+    backgroundColor: STATIC_COLORS.surface, // Ensure background for touchable area
     borderBottomWidth: 1,
     borderBottomColor: STATIC_COLORS.borderLight,
   },
-  settingItemContainerLast: { // To remove border for the last item in a section
-    borderBottomWidth: 0,
+  settingItemContainerLast: { 
+    borderBottomWidth: 0, // No border for the last item in a section
+    borderBottomLeftRadius: 15, // Apply border radius if it's the last item
+    borderBottomRightRadius: 15,
   },
   settingItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1, // Allow text to take available space
+    flex: 1, 
+    marginRight: SPACING.sm, // Add margin to prevent content touching switch/chevron
   },
   settingIcon: {
     marginRight: SPACING.md,
+    width: 24, // Ensure consistent icon alignment
+    textAlign: 'center',
   },
   settingTextContainer: {
-    flex: 1, // Allow text to wrap if needed
+    flex: 1,
   },
   settingTitle: {
     ...TYPOGRAPHY.listItem,
+    fontSize: 16, // Slightly smaller list item title
+    color: STATIC_COLORS.text,
   },
   settingDescription: {
     ...TYPOGRAPHY.caption,
+    fontSize: 13, // Slightly smaller caption
     color: STATIC_COLORS.textMuted,
-    marginTop: 2,
+    marginTop: SPACING.xs / 2,
   },
   settingValue: {
     ...TYPOGRAPHY.body,
-    color: STATIC_COLORS.textSecondary,
+    color: STATIC_COLORS.textMuted,
   },
   logoutButtonContainer: {
     marginHorizontal: SPACING.md,
-    marginTop: SPACING.md, // Space above logout
+    marginTop: SPACING.lg, // Space above logout button
+    marginBottom: SPACING.md,
   },
   logoutButton: {
-    flexDirection: 'row',
+    flexDirection: 'row', // Align icon and text
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: STATIC_COLORS.surface, // Match card style
+    backgroundColor: STATIC_COLORS.surface, // Make it look like other items but with danger text
     paddingVertical: SPACING.md,
-    borderRadius: 12,
+    borderRadius: 12, // Consistent border radius
     borderWidth: 1,
-    borderColor: STATIC_COLORS.danger, // Use danger color for border
+    borderColor: STATIC_COLORS.danger, // Danger border
     shadowColor: STATIC_COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
     elevation: 2,
+  },
+  logoutIcon: {
+    marginRight: SPACING.sm,
   },
   logoutButtonText: {
     ...TYPOGRAPHY.button,
-    color: STATIC_COLORS.danger,
-    marginLeft: SPACING.xs,
-    fontSize: 17, // Slightly larger for emphasis
+    color: STATIC_COLORS.danger, // Danger color for text
+    fontSize: 17,
   },
   footer: {
     alignItems: 'center',
     paddingVertical: SPACING.lg,
-    flexDirection: 'row',
-    justifyContent: 'center',
+    borderTopWidth: 1,
+    borderTopColor: STATIC_COLORS.borderLight,
   },
   footerText: {
     ...TYPOGRAPHY.caption,
     color: STATIC_COLORS.textMuted,
+  },
+  savingIndicatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: SPACING.xs,
+  },
+  savingText: {
+    ...TYPOGRAPHY.caption,
+    color: STATIC_COLORS.primary,
+    marginLeft: SPACING.xs,
   },
 });
 

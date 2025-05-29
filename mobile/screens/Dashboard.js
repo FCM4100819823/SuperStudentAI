@@ -23,32 +23,29 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 
-const COLORS = {
-  primary: '#6366F1',
-  primaryDark: '#4F46E5',
-  secondary: '#8B5CF6',
-  accent: '#10B981',
+// Consistent color palette (primary: Deep Purple, secondary: Green)
+const STATIC_COLORS = {
+  primary: '#6A1B9A', // Deep Purple
+  primaryDark: '#4A0072',
+  primaryLight: '#9C4DCC',
+  secondary: '#4CAF50', // Green
+  accent: '#F59E0B', // Amber
+  danger: '#EF4444',
+  success: '#4CAF50',
   warning: '#F59E0B',
-  error: '#EF4444',
-  background: '#FAFBFC',
+  background: '#F4F6F8',
   surface: '#FFFFFF',
-  text: '#0F172A',
-  textSecondary: '#475569',
-  textTertiary: '#94A3B8',
+  text: '#1A202C',
+  textSecondary: '#4A5568',
+  textMuted: '#718096',
+  textOnPrimary: '#FFFFFF',
+  textOnSecondary: '#FFFFFF',
   border: '#E2E8F0',
-  success: '#059669',
-  gradient: {
-    primary: ['#667EEA', '#764BA2'],
-    success: ['#10B981', '#059669'],
-    warning: ['#F59E0B', '#D97706'],
-    blue: ['#3B82F6', '#1D4ED8'],
-    purple: ['#8B5CF6', '#7C3AED'],
-  },
-  shadow: {
-    light: 'rgba(0, 0, 0, 0.05)',
-    medium: 'rgba(0, 0, 0, 0.1)',
-  }
+  shadow: 'rgba(0, 0, 0, 0.05)',
+  gradientPrimary: ['#6A1B9A', '#4A0072'], // Deep Purple Gradient
+  gradientSecondary: ['#4CAF50', '#388E3C'], // Green Gradient
 };
+
 
 const FONTS = {
   regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
@@ -140,19 +137,20 @@ const Dashboard = ({ navigation, route }) => {
         return;
       }
 
-      const statsResponse = await axios.get(`${apiUrl}/study-plans/stats/overview`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 30000, // Increased timeout to 30 seconds
-      });
-
-      setStudyStats(statsResponse.data);
+      // Temporarily commenting out studyStats fetching as the feature is being rebuilt
+      // const statsResponse = await axios.get(`${apiUrl}/study-plans/stats/overview`, {
+      //   headers: {
+      //     'Authorization': `Bearer ${token}`,
+      //     'Content-Type': 'application/json',
+      //   },
+      //   timeout: 30000, 
+      // });
+      // setStudyStats(statsResponse.data);
+      setStudyStats({ completedTasks: 0, upcomingSessions: 0, overallProgress: 0 }); // Placeholder
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      if (!studyStats) {
+      if (!studyStats) { // Keep this check, or adapt if studyStats is always initialized
         setError('Failed to load dashboard data. Please check your connection.');
       }
     }
@@ -161,12 +159,10 @@ const Dashboard = ({ navigation, route }) => {
   const fetchUserProfile = useCallback(async () => {
     try {
       const user = auth.currentUser;
-      console.log('Dashboard - firestore instance:', firestore); // Add this line
-      console.log('Dashboard - auth.currentUser:', user); // Add this line
-
       if (!user) {
         setError('You are not logged in. Please log in again.');
         setLoading(false);
+        navigation.replace('Login');
         return;
       }
 
@@ -178,13 +174,14 @@ const Dashboard = ({ navigation, route }) => {
             setProfileData(docSnap.data());
           } else {
             setError('User profile not found.');
+            // Consider creating a default profile or guiding the user
           }
           setLoading(false);
           setRefreshing(false);
         },
         (err) => {
           console.error('Firestore error:', err);
-          setError('Error fetching profile data.');
+          setError('Error fetching profile data. ' + err.message);
           setLoading(false);
           setRefreshing(false);
         },
@@ -195,7 +192,7 @@ const Dashboard = ({ navigation, route }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [navigation]); // Added navigation to dependency array
 
   useEffect(() => {
     const hours = new Date().getHours();
@@ -207,8 +204,10 @@ const Dashboard = ({ navigation, route }) => {
   useEffect(() => {
     let unsubscribe;
     const initializeDashboard = async () => {
+      setLoading(true); // Ensure loading is true at the start
       unsubscribe = await fetchUserProfile();
       await fetchDashboardData();
+      // setLoading(false) is handled within fetchUserProfile and fetchDashboardData error/success paths
     };
 
     initializeDashboard();
@@ -222,19 +221,23 @@ const Dashboard = ({ navigation, route }) => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    setError(''); // Clear previous errors
     await Promise.all([
       fetchUserProfile(),
       fetchDashboardData()
     ]);
-    setRefreshing(false);
+    // setRefreshing(false) is handled by fetchUserProfile
   }, [fetchUserProfile]);
 
+
   const handleCreateStudyPlan = () => {
-    navigation.navigate('CreateStudyPlan');
+    // navigation.navigate('CreateStudyPlan'); // To be re-enabled when feature is rebuilt
+    Alert.alert("Coming Soon", "The Study Plan feature is currently under reconstruction.");
   };
 
   const handleViewStudyPlans = () => {
-    navigation.navigate('StudyPlanList');
+    // navigation.navigate('StudyPlanList'); // To be re-enabled
+    Alert.alert("Coming Soon", "The Study Plan feature is currently under reconstruction.");
   };
 
   const handleViewAnalytics = () => {
@@ -242,7 +245,7 @@ const Dashboard = ({ navigation, route }) => {
   };
 
   const handleViewSettings = () => {
-    navigation.navigate('SettingsTab'); // Corrected navigation target
+    navigation.navigate('SettingsTab');
   };
 
   const handleSignOut = async () => {
@@ -269,390 +272,359 @@ const Dashboard = ({ navigation, route }) => {
 
   const quickActions = [
     {
-      icon: 'add-circle',
-      title: 'Create Plan',
-      subtitle: 'New study plan',
+      icon: 'add-circle-outline', // Changed icon
+      title: 'New Plan', // Simplified title
+      subtitle: 'Create a study schedule',
       onPress: handleCreateStudyPlan,
-      gradient: COLORS.gradient.primary,
-      iconColor: COLORS.primary,
+      gradient: STATIC_COLORS.gradientSecondary, // Use green gradient
+      iconColor: STATIC_COLORS.secondary,
     },
     {
-      icon: 'library',
-      title: 'Study Plans',
-      subtitle: 'View all plans',
+      icon: 'library-outline', // Changed icon
+      title: 'My Plans', // Simplified title
+      subtitle: 'View your study plans',
       onPress: handleViewStudyPlans,
-      gradient: COLORS.gradient.success,
-      iconColor: COLORS.accent,
+      gradient: STATIC_COLORS.gradientPrimary, // Use purple gradient
+      iconColor: STATIC_COLORS.primary,
     },
     {
-      icon: 'stats-chart',
-      title: 'Analytics',
-      subtitle: 'Track progress',
+      icon: 'stats-chart-outline', // Changed icon
+      title: 'Progress', // Simplified title
+      subtitle: 'Track your achievements',
       onPress: handleViewAnalytics,
-      gradient: COLORS.gradient.blue,
-      iconColor: '#3B82F6',
+      gradient: [STATIC_COLORS.accent, '#FBBF24'], // Amber gradient
+      iconColor: STATIC_COLORS.accent,
     },
     {
-      icon: 'settings',
+      icon: 'settings-outline', // Changed icon
       title: 'Settings',
-      subtitle: 'Preferences',
+      subtitle: 'App preferences',
       onPress: handleViewSettings,
-      gradient: COLORS.gradient.purple,
-      iconColor: COLORS.secondary,
+      gradient: [STATIC_COLORS.textSecondary, STATIC_COLORS.textMuted], // Neutral gradient
+      iconColor: STATIC_COLORS.textSecondary,
+    },
+     {
+      icon: 'happy-outline',
+      title: 'Wellbeing',
+      subtitle: 'Mood & Focus',
+      onPress: () => navigation.navigate('Wellbeing'),
+      gradient: ['#22D3EE', '#06B6D4'], // Cyan gradient
+      iconColor: '#06B6D4',
+    },
+    {
+      icon: 'timer-outline',
+      title: 'Focus Timer',
+      subtitle: 'Stay concentrated',
+      onPress: () => navigation.navigate('FocusTimer'),
+      gradient: ['#F9A8D4', '#EC4899'], // Pink gradient
+      iconColor: '#EC4899',
     },
   ];
 
-  if (loading) {
+  if (loading && !refreshing) { // Show full screen loader only on initial load
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading dashboard...</Text>
-      </View>
-    );
-  }
-
-  if (error && !profileData) {
-    return (
-      <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle" size={64} color={COLORS.error} />
-        <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
-          <Text style={styles.retryText}>Try Again</Text>
-        </TouchableOpacity>
+      <View style={styles.centeredLoader}>
+        <ActivityIndicator size="large" color={STATIC_COLORS.primary} />
+        <Text style={styles.loadingText}>Loading Dashboard...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
-          />
-        }
-        showsVerticalScrollIndicator={false}
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.scrollContentContainer}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[STATIC_COLORS.primary]} />}
+    >
+      <StatusBar barStyle="light-content" backgroundColor={STATIC_COLORS.primaryDark} />
+      <LinearGradient
+        colors={STATIC_COLORS.gradientPrimary}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <LinearGradient colors={COLORS.gradient.primary} style={styles.header}>
-          <View style={styles.headerContent}>
-            <View style={styles.headerLeft}>
-              <TouchableOpacity style={styles.avatarContainer}>
-                <Image
-                  source={{
-                    uri: profileData?.profilePicture || 'https://via.placeholder.com/100'
-                  }}
-                  style={styles.avatar}
+        <View style={styles.headerTopRow}>
+          <View>
+            <Text style={styles.greetingText}>{greeting},</Text>
+            <Text style={styles.userNameText}>{profileData?.name || 'User'}</Text>
+          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.avatarContainer}>
+            {profileData?.profilePictureUrl ? (
+              <Image source={{ uri: profileData.profilePictureUrl }} style={styles.avatar} />
+            ) : (
+              <Ionicons name="person-circle-outline" size={40} color={STATIC_COLORS.textOnPrimary} />
+            )}
+          </TouchableOpacity>
+        </View>
+        {/* Mood Overview Placeholder - To be implemented */}
+        <View style={styles.moodOverviewPlaceholder}>
+            <Text style={styles.moodPlaceholderText}>Mood Overview Coming Soon!</Text>
+        </View>
+      </LinearGradient>
+      
+      {error && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={24} color={STATIC_COLORS.danger} />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      {/* Quick Actions Section */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActionsScroll}>
+          {quickActions.map((action, index) => (
+            <QuickActionCard
+              key={index}
+              icon={action.icon}
+              title={action.title}
+              subtitle={action.subtitle}
+              onPress={action.onPress}
+              gradient={action.gradient}
+              iconColor={action.iconColor}
+            />
+          ))}
+        </ScrollView>
+      </View>
+      
+      {/* Study Stats Section - Placeholder for now */}
+      {studyStats && (
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Study Progress</Text>
+          <View style={styles.statsGrid}>
+            <ProgressCard 
+              title="Completed Tasks" 
+              value={studyStats.completedTasks || 0} 
+              total={studyStats.totalTasks || 0} 
+              percentage={studyStats.totalTasks ? (studyStats.completedTasks / studyStats.totalTasks) * 100 : 0}
+              color={STATIC_COLORS.secondary}
+              icon="checkmark-done-circle-outline"
+            />
+            <ProgressCard 
+              title="Upcoming Sessions" 
+              value={studyStats.upcomingSessions || 0} 
+              total={studyStats.totalSessions || 0} // Assuming you might have total sessions
+              percentage={studyStats.totalSessions ? (studyStats.upcomingSessions / studyStats.totalSessions) * 100 : 0}
+              color={STATIC_COLORS.accent}
+              icon="calendar-outline"
+            />
+          </View>
+           <View style={styles.overallProgressContainer}>
+             <Text style={styles.overallProgressLabel}>Overall Plan Progress</Text>
+            <View style={styles.overallProgressBar}>
+                <LinearGradient
+                    colors={STATIC_COLORS.gradientPrimary}
+                    style={[styles.overallProgressBarFill, { width: `${Math.min(studyStats.overallProgress || 0, 100)}%` }]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
                 />
-              </TouchableOpacity>
-              <View style={styles.greetingContainer}>
-                <Text style={styles.greeting}>{greeting}!</Text>
-                <Text style={styles.userName}>
-                  {profileData?.name || 'Student'}
-                </Text>
-              </View>
             </View>
-            <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
-              <Ionicons name="log-out-outline" size={24} color={COLORS.surface} />
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsGrid}>
-            {quickActions.map((action, index) => (
-              <QuickActionCard key={index} {...action} />
-            ))}
-          </View>
+            <Text style={styles.overallProgressPercentage}>{(studyStats.overallProgress || 0).toFixed(0)}%</Text>
+           </View>
         </View>
-
-        {studyStats && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Progress Overview</Text>
-            <View style={styles.progressGrid}>
-              <ProgressCard
-                title="Active Plans"
-                value={studyStats.activePlans || 0}
-                total={studyStats.totalPlans || 0}
-                percentage={studyStats.totalPlans > 0 ? (studyStats.activePlans / studyStats.totalPlans) * 100 : 0}
-                color={COLORS.primary}
-                icon="library"
-              />
-              <ProgressCard
-                title="Completed Tasks"
-                value={studyStats.completedTasks || 0}
-                total={studyStats.totalTasks || 0}
-                percentage={studyStats.totalTasks > 0 ? (studyStats.completedTasks / studyStats.totalTasks) * 100 : 0}
-                color={COLORS.accent}
-                icon="checkmark-circle"
-              />
-              <ProgressCard
-                title="Study Streak"
-                value={studyStats.studyStreak || 0}
-                total="days"
-                percentage={Math.min((studyStats.studyStreak || 0) * 10, 100)}
-                color={COLORS.warning}
-                icon="flame"
-              />
-              <ProgressCard
-                title="This Week"
-                value={studyStats.weeklyProgress || 0}
-                total="100"
-                percentage={studyStats.weeklyProgress || 0}
-                color={COLORS.secondary}
-                icon="trending-up"
-              />
-            </View>
-          </View>
-        )}
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Study Plans</Text>
-            <TouchableOpacity onPress={handleViewStudyPlans}>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.emptyState}>
-            <Ionicons name="school" size={48} color={COLORS.textTertiary} />
-            <Text style={styles.emptyStateTitle}>Ready to Start Studying?</Text>
-            <Text style={styles.emptyStateText}>
-              Create your first study plan and begin your learning journey!
-            </Text>
-            <TouchableOpacity style={styles.emptyStateButton} onPress={handleCreateStudyPlan}>
-              <Text style={styles.emptyStateButtonText}>Create Study Plan</Text>
-            </TouchableOpacity>
-          </View>
+      )}
+      
+      {/* Placeholder for "Overview of Everything" */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Everything Overview</Text>
+        <View style={styles.placeholderCard}>
+          <Ionicons name="layers-outline" size={48} color={STATIC_COLORS.primaryLight} />
+          <Text style={styles.placeholderText}>A comprehensive overview of your activities and insights will be displayed here soon.</Text>
         </View>
-      </ScrollView>
-    </View>
+      </View>
+
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: STATIC_COLORS.background,
   },
-  loadingContainer: {
+  scrollContentContainer: {
+    paddingBottom: 30, // Added padding at the bottom
+  },
+  header: {
+    paddingTop: (Platform.OS === 'android' ? StatusBar.currentHeight : 0) + 20,
+    paddingHorizontal: 20,
+    paddingBottom: 60, // Increased padding to make space for mood overview
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20, // Space before mood overview
+  },
+  greetingText: {
+    fontFamily: FONTS.regular,
+    fontSize: 18,
+    color: STATIC_COLORS.textOnPrimary,
+    opacity: 0.8,
+  },
+  userNameText: {
+    fontFamily: FONTS.bold,
+    fontSize: 26,
+    color: STATIC_COLORS.textOnPrimary,
+  },
+  avatarContainer: {
+    // Styles for avatar touchable area if needed
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: STATIC_COLORS.textOnPrimary,
+  },
+  moodOverviewPlaceholder: {
+    backgroundColor: 'rgba(255,255,255,0.1)', // Semi-transparent white
+    borderRadius: 15,
+    paddingVertical: 20,
+    paddingHorizontal: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moodPlaceholderText: {
+    fontFamily: FONTS.semibold,
+    fontSize: 16,
+    color: STATIC_COLORS.textOnPrimary,
+    textAlign: 'center',
+  },
+  centeredLoader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
+    backgroundColor: STATIC_COLORS.background,
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: 10,
     fontSize: 16,
-    color: COLORS.textSecondary,
+    color: STATIC_COLORS.textSecondary,
     fontFamily: FONTS.medium,
   },
   errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    backgroundColor: '#FFF0F0', // Light red
+    padding: 15,
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 10,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 32,
-    backgroundColor: COLORS.background,
-  },
-  errorTitle: {
-    fontSize: 24,
-    fontFamily: FONTS.bold,
-    color: COLORS.text,
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: 'center',
+    borderLeftWidth: 4,
+    borderLeftColor: STATIC_COLORS.danger,
   },
   errorText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 24,
+    color: STATIC_COLORS.danger,
+    fontSize: 15,
+    fontFamily: FONTS.medium,
+    marginLeft: 10,
+    flex: 1, // Allow text to wrap
   },
-  retryButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  retryText: {
-    color: COLORS.surface,
-    fontSize: 16,
-    fontFamily: FONTS.semibold,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 32,
-  },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 32,
+  sectionContainer: {
+    marginTop: 25,
     paddingHorizontal: 20,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  avatarContainer: {
-    marginRight: 16,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 3,
-    borderColor: COLORS.surface,
-  },
-  greetingContainer: {
-    flex: 1,
-  },
-  greeting: {
-    fontSize: 16,
-    color: COLORS.surface,
-    fontFamily: FONTS.regular,
-    opacity: 0.9,
-  },
-  userName: {
-    fontSize: 24,
-    color: COLORS.surface,
-    fontFamily: FONTS.bold,
-    marginTop: 2,
-  },
-  signOutButton: {
-    padding: 8,
-  },
-  section: {
-    marginTop: 32,
-    paddingHorizontal: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,
     fontFamily: FONTS.bold,
-    color: COLORS.text,
+    color: STATIC_COLORS.text,
+    marginBottom: 15,
   },
-  viewAllText: {
-    fontSize: 16,
-    color: COLORS.primary,
-    fontFamily: FONTS.semibold,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 16,
-    marginHorizontal: -8,
+  quickActionsScroll: {
+    paddingRight: 20, // Ensure last card is not cut off
   },
   quickActionCard: {
-    width: (width - 56) / 2,
-    marginHorizontal: 8,
-    marginBottom: 16,
+    width: width * 0.38, // Adjusted width
+    height: 170, // Adjusted height
+    borderRadius: 20,
+    marginRight: 15,
+    overflow: 'hidden', // Important for LinearGradient border radius
+    elevation: 3,
+    shadowColor: STATIC_COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   quickActionGradient: {
-    borderRadius: 16,
-    padding: 1,
+    flex: 1,
+    padding: 15,
+    justifyContent: 'space-between', // Distribute content
   },
   quickActionContent: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 15,
-    padding: 20,
-    alignItems: 'center',
-    minHeight: 120,
-    justifyContent: 'center',
+    alignItems: 'flex-start', // Align icon and text to the start
   },
   quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
   quickActionTitle: {
-    fontSize: 16,
-    fontFamily: FONTS.semibold,
-    color: COLORS.text,
-    textAlign: 'center',
+    fontSize: 17, // Slightly larger
+    fontFamily: FONTS.bold,
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   quickActionSubtitle: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
+    fontSize: 13,
     fontFamily: FONTS.regular,
+    color: '#FFFFFF',
+    opacity: 0.85,
   },
-  progressGrid: {
+  statsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 16,
-    marginHorizontal: -8,
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   progressCard: {
-    width: (width - 56) / 2,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 8,
-    marginBottom: 16,
-    shadowColor: COLORS.shadow.light,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
+    backgroundColor: STATIC_COLORS.surface,
+    borderRadius: 15,
+    padding: 15,
+    width: (width - 40 - 15) / 2, // 40 for padding, 15 for margin between cards
     elevation: 2,
+    shadowColor: STATIC_COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
   },
   progressHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   progressIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: 10,
   },
   progressTitle: {
-    fontSize: 14,
-    fontFamily: FONTS.medium,
-    color: COLORS.textSecondary,
-    flex: 1,
+    fontSize: 15,
+    fontFamily: FONTS.semibold,
+    color: STATIC_COLORS.textSecondary,
+    flex: 1, // Allow text to wrap
   },
   progressContent: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   progressValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontFamily: FONTS.bold,
-    color: COLORS.text,
+    color: STATIC_COLORS.text,
   },
   progressTotal: {
     fontSize: 16,
-    fontFamily: FONTS.regular,
-    color: COLORS.textSecondary,
+    fontFamily: FONTS.medium,
+    color: STATIC_COLORS.textMuted,
     marginLeft: 4,
   },
   progressBarContainer: {
@@ -661,51 +633,73 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     flex: 1,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 8,
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden', // For inner fill
   },
   progressBarFill: {
-    height: 6,
-    borderRadius: 3,
+    height: '100%',
+    borderRadius: 4,
   },
   progressPercentage: {
-    fontSize: 12,
-    fontFamily: FONTS.medium,
-    color: COLORS.textSecondary,
-    minWidth: 35,
-    textAlign: 'right',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 48,
-    paddingHorizontal: 32,
-  },
-  emptyStateTitle: {
-    fontSize: 18,
+    fontSize: 13,
     fontFamily: FONTS.semibold,
-    color: COLORS.text,
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: 'center',
+    color: STATIC_COLORS.textSecondary,
+    marginLeft: 8,
   },
-  emptyStateText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
+  overallProgressContainer: {
+    backgroundColor: STATIC_COLORS.surface,
+    borderRadius: 15,
+    padding: 15,
+    marginTop: 10, // Space from grid cards
+    elevation: 2,
+    shadowColor: STATIC_COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
   },
-  emptyStateButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  emptyStateButtonText: {
-    color: COLORS.surface,
+  overallProgressLabel: {
     fontSize: 16,
     fontFamily: FONTS.semibold,
+    color: STATIC_COLORS.text,
+    marginBottom: 10,
+  },
+  overallProgressBar: {
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: STATIC_COLORS.border,
+    overflow: 'hidden',
+    marginBottom: 5,
+  },
+  overallProgressBarFill: {
+    height: '100%',
+    borderRadius: 6,
+  },
+  overallProgressPercentage: {
+    fontSize: 14,
+    fontFamily: FONTS.bold,
+    color: STATIC_COLORS.primary,
+    alignSelf: 'flex-end',
+  },
+  placeholderCard: {
+    backgroundColor: STATIC_COLORS.surface,
+    borderRadius: 15,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 150,
+    elevation: 2,
+    shadowColor: STATIC_COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+  },
+  placeholderText: {
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+    color: STATIC_COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: 15,
   },
 });
 
