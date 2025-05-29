@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Button, ScrollView, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, Image } from 'react-native'; // Added Image
+import { View, Text, TextInput, Button, ScrollView, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, Image, SafeAreaView } from 'react-native'; // Added Image and SafeAreaView
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios'; // Import axios
 import * as DocumentPicker from 'expo-document-picker'; // Import DocumentPicker
 
-const NLP_API_ENDPOINT = 'http://localhost:3000/api/ai/nlp';
-const SYLLABUS_TEXT_ANALYSIS_ENDPOINT = 'http://localhost:3000/api/ai/syllabus/analyze-text';
-const SYLLABUS_FILE_ANALYSIS_ENDPOINT = 'http://localhost:3000/api/ai/syllabus/analyze-file';
+const API_BASE_URL = 'http://172.20.10.2:3000/api/ai'; // Ensure this is your computer's IP address
+const NLP_API_ENDPOINT = `${API_BASE_URL}/nlp`;
+const SYLLABUS_TEXT_ANALYSIS_ENDPOINT = `${API_BASE_URL}/syllabus/analyze-text`;
+const SYLLABUS_FILE_ANALYSIS_ENDPOINT = `${API_BASE_URL}/syllabus/analyze-file`;
 
 const AIScreen = ({ navigation }) => {
   const [messages, setMessages] = useState([
@@ -169,59 +170,60 @@ const AIScreen = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={[styles.container, { backgroundColor: '#F0F0F0' /* formerly colors.background */ }]}
-    >
-      <ScrollView
-        ref={scrollViewRef}
-        contentContainerStyle={styles.scrollContent}
-        onContentSizeChange={() => scrollViewRef.current.scrollToEnd({ animated: true })}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F0F0' }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={[styles.container, { backgroundColor: '#F0F0F0' }]}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
       >
-        {messages.map((entry, index) => (
-          <View
-            key={index}
-            style={[
-              styles.chatBubble,
-              entry.sender === 'user' ? styles.userBubble : styles.aiBubble,
-              entry.sender === 'user' ? { backgroundColor: '#007AFF' /* formerly colors.primary */ } : { backgroundColor: '#E5E5EA' /* formerly colors.card */ },
-            ]}
-          >
-            <Text style={entry.sender === 'user' ? { color: '#FFFFFF' /* formerly colors.buttonText */ } : { color: '#000000' /* formerly colors.text */ }}>
-              {entry.text}
-            </Text>
-          </View>
-        ))}
-        {isTyping && (
-          <View style={styles.typingIndicatorContainer}>
-            <Image source={require('../assets/superstudentlogo.png')} style={styles.typingAvatar} />
-            <Text style={styles.typingIndicator}>AI is typing...</Text>
-            <ActivityIndicator size="small" color="#007AFF" style={{ marginLeft: 5 }} />
-          </View>
-        )}
-      </ScrollView>
-      <View style={[styles.inputContainer, { borderTopColor: '#CCCCCC' /* formerly colors.border */ }]}>
-        <TextInput
-          style={[styles.input, {
-            backgroundColor: '#FFFFFF', // formerly colors.card
-            color: '#333333', // formerly colors.text
-            borderColor: '#CCCCCC', // formerly colors.border
-          }]}
-          value={input}
-          onChangeText={setInput}
-          placeholder="Ask SuperStudent AI..."
-          placeholderTextColor="#A0A0A0"
-          multiline
-        />
-        <TouchableOpacity onPress={handleSend} style={[styles.sendButton, { backgroundColor: '#007AFF' /* formerly colors.primary */ }]}>
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Icon name="send" size={24} color="#FFFFFF" /* formerly colors.buttonText */ />
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.scrollContent}
+          onContentSizeChange={() => scrollViewRef.current.scrollToEnd({ animated: true })}
+        >
+          {messages.map((entry, index) => (
+            <View
+              key={index}
+              style={[
+                styles.chatBubble,
+                entry.sender === 'user' ? styles.userBubble : styles.aiBubble,
+              ]}
+            >
+              <Text style={[
+                styles.messageText, // Base text style
+                entry.sender === 'user' ? styles.userMessageText : styles.aiMessageText // Conditional text style
+              ]}>
+                {entry.text}
+              </Text>
+            </View>
+          ))}
+          {isTyping && (
+            <View style={styles.typingIndicatorContainer}>
+              <Image source={require('../assets/superstudentlogo.png')} style={styles.typingAvatar} />
+              <Text style={styles.typingIndicator}>AI is typing...</Text>
+              {/* ActivityIndicator was previously commented out, keeping it that way */}
+            </View>
           )}
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+        </ScrollView>
+        <View style={[styles.inputContainer, { borderTopColor: '#CCCCCC' }]}>
+          <TextInput
+            style={styles.input} // Simplified style array for clarity during debugging
+            value={input}
+            onChangeText={setInput}
+            placeholder="Ask SuperStudent AI..."
+            placeholderTextColor="#A0A0A0"
+            multiline
+          />
+          <TouchableOpacity onPress={handleSend} style={[styles.sendButton, { backgroundColor: '#007AFF' }]}>
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Icon name="send" size={24} color="#FFFFFF" />
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -231,20 +233,31 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 10,
-    paddingBottom: 20, // Extra padding for the last message
+    paddingBottom: 20,
   },
   chatBubble: {
     padding: 12,
     borderRadius: 15,
     marginBottom: 10,
     maxWidth: '80%',
-    alignSelf: 'flex-start', // Default for AI
+    alignSelf: 'flex-start',
   },
   userBubble: {
     alignSelf: 'flex-end',
+    backgroundColor: '#007AFF', // User bubble background
   },
   aiBubble: {
-    // backgroundColor is set dynamically
+    backgroundColor: '#E5E5EA', // AI bubble background
+  },
+  messageText: { // Base style for message text
+    fontSize: 16,
+    padding: 2, // Add slight padding inside the text component if needed
+  },
+  userMessageText: { // Style for user message text
+    color: '#FFFFFF',
+  },
+  aiMessageText: { // Style for AI message text
+    color: '#000000',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -260,6 +273,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginRight: 10,
     fontSize: 16,
+    backgroundColor: '#FFFFFF', 
+    color: '#333333', 
+    borderColor: '#CCCCCC',
   },
   sendButton: {
     padding: 10,

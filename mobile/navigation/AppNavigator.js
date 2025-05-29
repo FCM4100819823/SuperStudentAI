@@ -14,6 +14,12 @@ import ProfileScreen from '../screens/ProfileScreen';
 import SyllabusAnalysisResultScreen from '../screens/SyllabusAnalysisResult';
 import TaskManagerScreen from '../screens/TaskManagerScreen';
 import AddTaskScreen from '../screens/AddTaskScreen';
+import FocusTimerScreen from '../screens/FocusTimerScreen'; // Import FocusTimerScreen
+import AnalyticsScreen from '../screens/AnalyticsScreen'; // Import AnalyticsScreen
+import CreateStudyPlanScreen from '../screens/CreateStudyPlanScreen'; // Import CreateStudyPlanScreen
+import StudyPlanDetailScreen from '../screens/StudyPlanDetailScreen'; // Import StudyPlanDetailScreen
+import AddStudyTaskScreen from '../screens/AddStudyTaskScreen'; // Import AddStudyTaskScreen
+import AddSpacedRepetitionItemScreen from '../screens/AddSpacedRepetitionItemScreen'; // Import AddSpacedRepetitionItemScreen
 
 import BottomTabNavigator from './BottomTabNavigator';
 
@@ -49,8 +55,12 @@ const AppNavigator = ({ user }) => {
       <RootStackNav.Screen name="SyllabusAnalysisResult" component={SyllabusAnalysisResultScreen} /> 
       <RootStackNav.Screen name="TaskManager" component={TaskManagerScreen} />
       <RootStackNav.Screen name="AddTask" component={AddTaskScreen} />
-      {/* Add FocusTimerScreen here if it needs to be globally accessible outside tabs */}
-      {/* <RootStackNav.Screen name="FocusTimer" component={FocusTimerScreen} /> */}
+      <RootStackNav.Screen name="FocusTimer" component={FocusTimerScreen} />
+      <RootStackNav.Screen name="Analytics" component={AnalyticsScreen} />
+      <RootStackNav.Screen name="CreateStudyPlan" component={CreateStudyPlanScreen} /> 
+      <RootStackNav.Screen name="StudyPlanDetail" component={StudyPlanDetailScreen} />
+      <RootStackNav.Screen name="AddStudyTask" component={AddStudyTaskScreen} />
+      <RootStackNav.Screen name="AddSpacedRepetitionItem" component={AddSpacedRepetitionItemScreen} />
     </RootStackNav.Navigator>
   );
 };

@@ -186,10 +186,11 @@ const StudyPlanListScreen = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       
+      // Use progress from backend
       const plansWithStatus = response.data.map(plan => ({
         ...plan,
-        status: new Date(plan.endDate) < new Date() ? 'completed' : 'active',
-        progress: Math.random() * 100,
+        status: new Date(plan.endDate) < new Date() && plan.progress === 100 ? 'completed' : (new Date(plan.endDate) < new Date() ? 'overdue' : 'active'),
+        // progress is already calculated by backend
         daysRemaining: differenceInDays(new Date(plan.endDate), new Date()),
       }));
       setStudyPlans(plansWithStatus);
@@ -295,7 +296,7 @@ const StudyPlanListScreen = () => {
       ]}
     >
       <TouchableOpacity
-        onPress={() => navigation.navigate('StudyPlanDetailScreen', { planId: item.id })}
+        onPress={() => navigation.navigate('StudyPlanDetail', { planId: item._id })} // Pass planId as _id
         activeOpacity={0.8}
         style={styles.cardTouchable}
       >
@@ -386,7 +387,7 @@ const StudyPlanListScreen = () => {
           <Text style={styles.headerTitle}>Study Plans</Text>
           <TouchableOpacity
             style={styles.createButton}
-            onPress={() => navigation.navigate('CreateStudyPlanScreen')}
+            onPress={() => navigation.navigate('CreateStudyPlan')} // Navigate to CreateStudyPlanScreen
           >
             <Ionicons name="add" size={24} color="#FFFFFF" />
           </TouchableOpacity>
@@ -463,7 +464,7 @@ const StudyPlanListScreen = () => {
       {activeFilter !== 'completed' && (
         <TouchableOpacity
           style={styles.emptyAction}
-          onPress={() => navigation.navigate('CreateStudyPlanScreen')}
+          onPress={() => navigation.navigate('CreateStudyPlan')} // Navigate to CreateStudyPlanScreen
           activeOpacity={0.8}
         >
           <LinearGradient

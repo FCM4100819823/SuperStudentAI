@@ -10,7 +10,8 @@ import {
   Platform,
   StatusBar,
   Dimensions,
-  ImageBackground
+  ImageBackground,
+  SafeAreaView, // Added SafeAreaView
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -95,13 +96,8 @@ const StudyScreen = ({ navigation }) => {
 
   const handleNavigate = (screenName, params = {}) => {
     // Check if navigating to a tab screen, if so, navigate to the tab first
-    if (screenName === 'FocusTimer') {
-      navigation.navigate('Focus', { screen: 'FocusTimer' }); // Navigate to Focus tab, then FocusTimer screen if nested
-      // If FocusTimer is directly a tab, it would be navigation.navigate('Focus');
-      // Based on BottomTabNavigator.js, 'Focus' is the name of the tab route for FocusTimerScreen
-    } else {
-      navigation.navigate(screenName, params);
-    }
+    // Removed FocusTimer specific logic as it's now a root stack screen
+    navigation.navigate(screenName, params);
   };
   
   const handleComingSoon = (featureName) => {
@@ -162,66 +158,78 @@ const StudyScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.centeredLoader}>
-        <ActivityIndicator size="large" color={STATIC_COLORS.primary} />
-        <Text style={{ marginTop: SPACING.sm, color: STATIC_COLORS.primary }}>Loading Study Hub...</Text>
-      </View>
+      <SafeAreaView style={styles.safeAreaCenteredLoader}> {/* Added SafeAreaView for loader */}
+        <View style={styles.centeredLoader}>
+          <ActivityIndicator size="large" color={STATIC_COLORS.primary} />
+          <Text style={{ marginTop: SPACING.sm, color: STATIC_COLORS.primary }}>Loading Study Hub...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContentContainer}>
-      <StatusBar barStyle="light-content" backgroundColor={STATIC_COLORS.primaryDark} />
-      <ImageBackground 
-        source={require('../assets/study-banner.png')} // Replace with your desired banner image
-        style={styles.headerContainer}
-        imageStyle={styles.headerImageStyle}
-      >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.3)', 'transparent']}
-          style={styles.headerOverlay}
-        >
-          <Text style={styles.headerTitle}>Study Universe</Text>
-          <Text style={styles.headerSubtitle}>All your academic tools in one place, {userName}.</Text>
-        </LinearGradient>
-      </ImageBackground>
+    <SafeAreaView style={styles.screen}> 
+      <View style={{flex: 1, width: '100%'}}>
+        <ScrollView contentContainerStyle={styles.scrollContentContainer}>
+          <StatusBar barStyle="light-content" backgroundColor={STATIC_COLORS.primaryDark} />
+          <ImageBackground 
+            source={require('../assets/study-banner.png')} // Replace with your desired banner image
+            style={styles.headerContainer}
+            imageStyle={styles.headerImageStyle}
+          >
+            <LinearGradient
+              colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.3)', 'transparent']}
+              style={styles.headerOverlay}
+            >
+              <Text style={styles.headerTitle}>Study Universe</Text>
+              <Text style={styles.headerSubtitle}>All your academic tools in one place, {userName}.</Text>
+            </LinearGradient>
+          </ImageBackground>
 
-      <View style={styles.contentContainer}>
-        <Text style={styles.sectionTitle}>Academic Toolkit</Text>
-        <View style={styles.featuresGrid}>
-          {academicFeatures.map((feature, index) => (
-            <FeatureCard
-              key={index}
-              title={feature.title}
-              subtitle={feature.subtitle}
-              iconName={feature.iconName}
-              iconType={feature.iconType}
-              gradientColors={feature.gradientColors}
-              onPress={feature.onPress}
-              tag={feature.tag}
-            />
-          ))}
-        </View>
-        
-        {/* Placeholder for upcoming tasks or quick summary */}
-        <View style={styles.quickSummaryCard}>
-            <Ionicons name="newspaper-outline" size={24} color={STATIC_COLORS.primary} style={{marginRight: SPACING.sm}}/>
-            <View>
-                <Text style={styles.quickSummaryTitle}>Today's Focus</Text>
-                <Text style={styles.quickSummaryText}>No upcoming tasks or sessions. Plan your day!</Text>
-                {/* <Text style={styles.quickSummaryText}>- Math Assignment due at 11:59 PM</Text>
-                <Text style={styles.quickSummaryText}>- History Quiz at 2:00 PM</Text> */}
+          <View style={styles.contentContainer}>
+            <Text style={styles.sectionTitle}>Academic Toolkit</Text>
+            <View style={styles.featuresGrid}>
+              {academicFeatures.map((feature, index) => (
+                <FeatureCard
+                  key={index}
+                  title={feature.title}
+                  subtitle={feature.subtitle}
+                  iconName={feature.iconName}
+                  iconType={feature.iconType}
+                  gradientColors={feature.gradientColors}
+                  onPress={feature.onPress}
+                  tag={feature.tag}
+                />
+              ))}
             </View>
-        </View>
+            
+            {/* Placeholder for upcoming tasks or quick summary */}
+            <View style={styles.quickSummaryCard}>
+                <Ionicons name="newspaper-outline" size={24} color={STATIC_COLORS.primary} style={{marginRight: SPACING.sm}}/>
+                <View>
+                    <Text style={styles.quickSummaryTitle}>Today's Focus</Text>
+                    <Text style={styles.quickSummaryText}>No upcoming tasks or sessions. Plan your day!</Text>
+                    {/* <Text style={styles.quickSummaryText}>- Math Assignment due at 11:59 PM</Text>
+                    <Text style={styles.quickSummaryText}>- History Quiz at 2:00 PM</Text> */}
+                </View>
+            </View>
+          </View>
+        </ScrollView>
       </View>
-    </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeAreaCenteredLoader: { // Style for SafeAreaView around loader
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: STATIC_COLORS.background,
+  },
   screen: {
     flex: 1,
-    backgroundColor: STATIC_COLORS.background,
+    backgroundColor: STATIC_COLORS.background, // Ensure screen has a background color
   },
   scrollContentContainer: {
     paddingBottom: SPACING.lg,

@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { firestoreDb } from '../config/firebase'; // Assuming firestoreDb is your initialized Firestore instance
+import { db as firestoreDb } from '../config/firebase'; // Assuming firestoreDb is your initialized Firestore instance
 
 // Define STATIC_COLORS and SPACING for consistent styling (should be from a global theme ideally)
 const STATIC_COLORS = {

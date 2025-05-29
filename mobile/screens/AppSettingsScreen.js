@@ -11,6 +11,7 @@ import {
   Platform,
   Linking,
   Share,
+  SafeAreaView, // Added SafeAreaView
 } from 'react-native';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
@@ -220,7 +221,7 @@ const AppSettingsScreen = ({ navigation }) => {
         {iconName && <Ionicons name={iconName} size={24} color={STATIC_COLORS.primary} style={styles.settingIcon} />}
         <View style={styles.settingTextContainer}>
           <Text style={styles.settingTitle}>{title}</Text>
-          {description && <Text style={styles.settingDescription}>{description}</Text>}\
+          {description && <Text style={styles.settingDescription}>{description}</Text>}
         </View>
       </View>
       {type === 'switch' && (
@@ -244,178 +245,186 @@ const AppSettingsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.centeredLoader}>
-        <ActivityIndicator size="large" color={STATIC_COLORS.primary} />
-        <Text style={styles.loadingText}>Loading Settings...</Text>
-      </View>
+      <SafeAreaView style={styles.flexOne}> {/* Ensure SafeAreaView wraps the loading state */}
+        <View style={styles.centeredLoader}>
+          <ActivityIndicator size="large" color={STATIC_COLORS.primary} />
+          <Text style={styles.loadingText}>Loading Settings...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContentContainer}>
-      <LinearGradient
-        colors={[STATIC_COLORS.primary, STATIC_COLORS.primaryDark]}
-        style={styles.headerContainer}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Ionicons name="settings-outline" size={40} color={STATIC_COLORS.textOnPrimary} />
-        <Text style={[styles.headerTitle, { color: STATIC_COLORS.textOnPrimary }]}>Settings</Text>
-        <Text style={[styles.headerSubtitle, { color: STATIC_COLORS.textOnPrimary }]}>Tailor SuperStudentAI to your needs</Text>
-      </LinearGradient>
+    <SafeAreaView style={styles.flexOne}>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContentContainer}>
+        <LinearGradient
+          colors={[STATIC_COLORS.primary, STATIC_COLORS.primaryDark]}
+          style={styles.headerContainer}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Ionicons name="settings-outline" size={40} color={STATIC_COLORS.textOnPrimary} />
+          <Text style={[styles.headerTitle, { color: STATIC_COLORS.textOnPrimary }]}>Settings</Text>
+          <Text style={[styles.headerSubtitle, { color: STATIC_COLORS.textOnPrimary }]}>Tailor SuperStudentAI to your needs</Text>
+        </LinearGradient>
 
-      {/* Account Section */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionHeader}>My Account</Text>
-        {renderSettingItem({
-          title: userName,
-          description: userEmail, // Show email here
-          iconName: 'person-circle-outline',
-          type: 'navigation',
-          onPress: handleNavigateToProfile,
-        })}
-        {renderSettingItem({
-          title: 'Manage Subscription',
-          description: "View or update your plan",
-          iconName: 'card-outline',
-          type: 'navigation',
-          onPress: () => handleNavigateToFeature("Subscription Management"), // Placeholder
-          isLastInSection: true,
-        })}
-      </View>
+        {/* Account Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionHeader}>My Account</Text>
+          {renderSettingItem({
+            title: userName,
+            description: userEmail, // Show email here
+            iconName: 'person-circle-outline',
+            type: 'navigation',
+            onPress: handleNavigateToProfile,
+          })}
+          {renderSettingItem({
+            title: 'Manage Subscription',
+            description: "View or update your plan",
+            iconName: 'card-outline',
+            type: 'navigation',
+            onPress: () => handleNavigateToFeature("Subscription Management"), // Placeholder
+            isLastInSection: true,
+          })}
+        </View>
 
-      {/* General Settings Section */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionHeader}>Preferences</Text>
-        {renderSettingItem({
-          title: 'Dark Mode',
-          description: "Reduce eye strain in low light",
-          value: settings.darkMode,
-          onValueChange: (val) => handleSettingChange('darkMode', val),
-          iconName: settings.darkMode ? 'moon' : 'moon-outline',
-        })}
-        {renderSettingItem({
-          title: 'Enable Notifications',
-          description: "Receive important updates",
-          value: settings.notificationsEnabled,
-          onValueChange: (val) => handleSettingChange('notificationsEnabled', val),
-          iconName: settings.notificationsEnabled ? 'notifications' : 'notifications-off-outline',
-        })}
-        {renderSettingItem({
-          title: 'Study Reminders',
-          description: "Stay on track with your goals", // Customize later based on 'studyReminders' value
-          value: settings.studyReminders, // This won't be a boolean for a picker
-          iconName: 'alarm-outline',
-          type: 'navigation', // To open a picker/modal or new screen
-          onPress: () => handleNavigateToFeature("Study Reminders Customization"), // Placeholder
-        })}
-        {renderSettingItem({
-          title: 'AI Personalization',
-          description: "Allow AI to tailor content for you",
-          value: settings.aiPersonalization,
-          onValueChange: (val) => handleSettingChange('aiPersonalization', val),
-          iconName: 'bulb-outline',
-        })}
-        {renderSettingItem({
-          title: 'Data Sync',
-          description: "Keep data synced across devices",
-          value: settings.dataSync,
-          onValueChange: (val) => handleSettingChange('dataSync', val),
-          iconName: 'sync-circle-outline', 
-        })}
-         {renderSettingItem({
-          title: 'Language',
-          value: settings.language,
-          description: "Select your preferred language",
-          iconName: 'language-outline',
-          type: 'navigation', 
-          onPress: () => handleNavigateToFeature("Language Selection"), // Placeholder
-          isLastInSection: true,
-        })}
-      </View>
+        {/* General Settings Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionHeader}>Preferences</Text>
+          {renderSettingItem({
+            title: 'Dark Mode',
+            description: "Reduce eye strain in low light",
+            value: settings.darkMode,
+            onValueChange: (val) => handleSettingChange('darkMode', val),
+            iconName: settings.darkMode ? 'moon' : 'moon-outline',
+          })}
+          {renderSettingItem({
+            title: 'Enable Notifications',
+            description: "Receive important updates",
+            value: settings.notificationsEnabled,
+            onValueChange: (val) => handleSettingChange('notificationsEnabled', val),
+            iconName: settings.notificationsEnabled ? 'notifications' : 'notifications-off-outline',
+          })}
+          {renderSettingItem({
+            title: 'Study Reminders',
+            description: "Stay on track with your goals", // Customize later based on 'studyReminders' value
+            value: settings.studyReminders, // This won't be a boolean for a picker
+            iconName: 'alarm-outline',
+            type: 'navigation', // To open a picker/modal or new screen
+            onPress: () => handleNavigateToFeature("Study Reminders Customization"), // Placeholder
+          })}
+          {renderSettingItem({
+            title: 'AI Personalization',
+            description: "Allow AI to tailor content for you",
+            value: settings.aiPersonalization,
+            onValueChange: (val) => handleSettingChange('aiPersonalization', val),
+            iconName: 'bulb-outline',
+          })}
+          {renderSettingItem({
+            title: 'Data Sync',
+            description: "Keep data synced across devices",
+            value: settings.dataSync,
+            onValueChange: (val) => handleSettingChange('dataSync', val),
+            iconName: 'sync-circle-outline', 
+          })}
+           {renderSettingItem({
+            title: 'Language',
+            value: settings.language,
+            description: "Select your preferred language",
+            iconName: 'language-outline',
+            type: 'navigation', 
+            onPress: () => handleNavigateToFeature("Language Selection"), // Placeholder
+            isLastInSection: true,
+          })}
+        </View>
 
-      {/* Support & Feedback Section */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionHeader}>Support & Feedback</Text>
-        {renderSettingItem({
-          title: 'Help Center & FAQ',
-          description: "Find answers and tutorials",
-          iconName: 'help-buoy-outline',
-          type: 'navigation',
-          onPress: () => Linking.openURL('YOUR_FAQ_URL').catch(err => Alert.alert("Error", "Could not open Help Center.")),
-        })}
-        {renderSettingItem({
-          title: 'Report an Issue',
-          description: "Let us know about a problem",
-          iconName: 'bug-outline',
-          type: 'navigation',
-          onPress: () => handleNavigateToFeature("Report an Issue"), // Placeholder
-        })}
-        {renderSettingItem({
-          title: 'Suggest a Feature',
-          description: "Share your ideas with us",
-          iconName: 'chatbubbles-outline',
-          type: 'navigation',
-          onPress: () => handleNavigateToFeature("Suggest a Feature"), // Placeholder
-        })}
-        {renderSettingItem({
-          title: 'Rate SuperStudentAI',
-          description: "Enjoying the app? Let us know!",
-          iconName: 'star-outline',
-          type: 'navigation',
-          onPress: handleRateApp,
-        })}
-        {renderSettingItem({
-          title: 'Share with Friends',
-          description: "Help others discover SuperStudentAI",
-          iconName: 'share-social-outline',
-          type: 'navigation',
-          onPress: handleShareApp,
-          isLastInSection: true,
-        })}
-      </View>
-      
-      {/* Legal Section */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionHeader}>Legal</Text>
-        {renderSettingItem({
-          title: 'Privacy Policy',
-          iconName: 'shield-checkmark-outline',
-          type: 'navigation',
-          onPress: () => Linking.openURL('YOUR_PRIVACY_POLICY_URL').catch(err => Alert.alert("Error", "Could not open privacy policy.")),
-        })}
-        {renderSettingItem({
-          title: 'Terms of Service',
-          iconName: 'document-text-outline',
-          type: 'navigation',
-          onPress: () => Linking.openURL('YOUR_TERMS_OF_SERVICE_URL').catch(err => Alert.alert("Error", "Could not open terms of service.")),
-          isLastInSection: true,
-        })}
-      </View>
+        {/* Support & Feedback Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionHeader}>Support & Feedback</Text>
+          {renderSettingItem({
+            title: 'Help Center & FAQ',
+            description: "Find answers and tutorials",
+            iconName: 'help-buoy-outline',
+            type: 'navigation',
+            onPress: () => Linking.openURL('YOUR_FAQ_URL').catch(err => Alert.alert("Error", "Could not open Help Center.")),
+          })}
+          {renderSettingItem({
+            title: 'Report an Issue',
+            description: "Let us know about a problem",
+            iconName: 'bug-outline',
+            type: 'navigation',
+            onPress: () => handleNavigateToFeature("Report an Issue"), // Placeholder
+          })}
+          {renderSettingItem({
+            title: 'Suggest a Feature',
+            description: "Share your ideas with us",
+            iconName: 'chatbubbles-outline',
+            type: 'navigation',
+            onPress: () => handleNavigateToFeature("Suggest a Feature"), // Placeholder
+          })}
+          {renderSettingItem({
+            title: 'Rate SuperStudentAI',
+            description: "Enjoying the app? Let us know!",
+            iconName: 'star-outline',
+            type: 'navigation',
+            onPress: handleRateApp,
+          })}
+          {renderSettingItem({
+            title: 'Share with Friends',
+            description: "Help others discover SuperStudentAI",
+            iconName: 'share-social-outline',
+            type: 'navigation',
+            onPress: handleShareApp,
+            isLastInSection: true,
+          })}
+        </View>
+        
+        {/* Legal Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionHeader}>Legal</Text>
+          {renderSettingItem({
+            title: 'Privacy Policy',
+            iconName: 'shield-checkmark-outline',
+            type: 'navigation',
+            onPress: () => Linking.openURL('YOUR_PRIVACY_POLICY_URL').catch(err => Alert.alert("Error", "Could not open privacy policy.")),
+          })}
+          {renderSettingItem({
+            title: 'Terms of Service',
+            iconName: 'document-text-outline',
+            type: 'navigation',
+            onPress: () => Linking.openURL('YOUR_TERMS_OF_SERVICE_URL').catch(err => Alert.alert("Error", "Could not open terms of service.")),
+            isLastInSection: true,
+          })}
+        </View>
 
-      {/* Logout Button */}
-      <View style={styles.logoutButtonContainer}>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={24} color={STATIC_COLORS.danger} style={styles.logoutIcon} />
-          <Text style={styles.logoutButtonText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Logout Button */}
+        <View style={styles.logoutButtonContainer}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={24} color={STATIC_COLORS.danger} style={styles.logoutIcon} />
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>SuperStudentAI v1.0.0</Text>
-        {isSaving && (
-          <View style={styles.savingIndicatorContainer}>
-            <ActivityIndicator size="small" color={STATIC_COLORS.primary} />
-            <Text style={styles.savingText}>Saving...</Text>
-          </View>
-        )}
-      </View>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>SuperStudentAI v1.0.0</Text>
+          {isSaving && (
+            <View style={styles.savingIndicatorContainer}>
+              <ActivityIndicator size="small" color={STATIC_COLORS.primary} />
+              <Text style={styles.savingText}>Saving...</Text>
+            </View>
+          )}
+        </View>
 
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  flexOne: { // Added style for SafeAreaView
+    flex: 1,
+    backgroundColor: STATIC_COLORS.background, // Match screen background
+  },
   screen: {
     flex: 1,
     backgroundColor: STATIC_COLORS.background,

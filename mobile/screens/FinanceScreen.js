@@ -12,6 +12,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
+  SafeAreaView, // Added SafeAreaView
 } from 'react-native';
 import { collection, addDoc, query, where, getDocs, Timestamp, deleteDoc, doc, updateDoc, onSnapshot, serverTimestamp, orderBy } from 'firebase/firestore'; // Added orderBy
 import { db as firestoreDb, auth } from '../config/firebase'; // Corrected import: db as firestoreDb
@@ -264,165 +265,200 @@ const FinanceScreen = ({ navigation }) => {
 
   if (loading && transactions.length === 0) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading Finances...</Text>
-      </View>
+      <SafeAreaView style={styles.flexOne}> {/* Ensure SafeAreaView wraps the loading state as well */} 
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading Finances...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.screen}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0} // Adjust offset if needed
-    >
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollViewContent}
-        keyboardShouldPersistTaps="handled" // Ensures taps work inside ScrollView when keyboard is up
+    <SafeAreaView style={styles.flexOne}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.screen}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0} // Adjust offset if needed
       >
-        {LinearGradient !== View ? (
-            <LinearGradient
-              colors={[colors.gradientStart, colors.gradientEnd]}
-              style={styles.headerContainer}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 0.5}} // Adjust gradient angle
-            >
-              <Text style={styles.headerTitle}>My Finances</Text>
-              <View style={styles.summaryBalanceContainer}>
-                <Text style={styles.summaryBalanceLabel}>Total Balance</Text>
-                <Text style={styles.summaryBalanceAmount}>${totalBalance.toFixed(2)}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <View style={styles.summaryItem}>
-                  <Ionicons name="arrow-up-circle-outline" size={24} color={colors.income} />
-                  <Text style={styles.summaryLabel}>Income</Text>
-                  <Text style={[styles.summaryAmount, { color: colors.income }]}>${totalIncome.toFixed(2)}</Text>
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollViewContent}
+          keyboardShouldPersistTaps="handled" // Ensures taps work inside ScrollView when keyboard is up
+        >
+          {LinearGradient !== View ? (
+              <LinearGradient
+                colors={[colors.gradientStart, colors.gradientEnd]}
+                style={styles.headerContainer}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 0.5}} // Adjust gradient angle
+              >
+                <Text style={styles.headerTitle}>My Finances</Text>
+                <View style={styles.summaryBalanceContainer}>
+                  <Text style={styles.summaryBalanceLabel}>Total Balance</Text>
+                  <Text style={styles.summaryBalanceAmount}>${totalBalance.toFixed(2)}</Text>
                 </View>
-                <View style={styles.summaryItem}>
-                  <Ionicons name="arrow-down-circle-outline" size={24} color={colors.expense} />
-                  <Text style={styles.summaryLabel}>Expenses</Text>
-                  <Text style={[styles.summaryAmount, { color: colors.expense }]}>${totalExpenses.toFixed(2)}</Text>
+                <View style={styles.summaryRow}>
+                  <View style={styles.summaryItem}>
+                    <Ionicons name="arrow-up-circle-outline" size={24} color={colors.income} />
+                    <View style={styles.summaryTextContainer}> {/* Added View to wrap texts */}
+                      <Text style={styles.summaryItemLabel}>Income</Text>
+                      <Text style={[styles.summaryItemAmount, { color: colors.income }]}>
+                        ${totalIncome.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.summaryItem}>
+                    <Ionicons name="arrow-down-circle-outline" size={24} color={colors.expense} />
+                    <View style={styles.summaryTextContainer}> {/* Added View to wrap texts */}
+                      <Text style={styles.summaryItemLabel}>Expenses</Text>
+                      <Text style={[styles.summaryItemAmount, { color: colors.expense }]}>
+                        ${totalExpenses.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </LinearGradient>
+            ) : (
+              <View style={styles.headerContainer}> {/* Fallback for when LinearGradient is not available */}
+                <Text style={styles.headerTitle}>My Finances</Text>
+                <View style={styles.summaryBalanceContainer}>
+                  <Text style={styles.summaryBalanceLabel}>Total Balance</Text>
+                  <Text style={styles.summaryBalanceAmount}>${totalBalance.toFixed(2)}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <View style={styles.summaryItem}>
+                    <Ionicons name="arrow-up-circle-outline" size={24} color={colors.income} />
+                    <View style={styles.summaryTextContainer}> {/* Added View to wrap texts */}
+                      <Text style={styles.summaryItemLabel}>Income</Text>
+                      <Text style={[styles.summaryItemAmount, { color: colors.income }]}>
+                        ${totalIncome.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.summaryItem}>
+                    <Ionicons name="arrow-down-circle-outline" size={24} color={colors.expense} />
+                    <View style={styles.summaryTextContainer}> {/* Added View to wrap texts */}
+                      <Text style={styles.summaryItemLabel}>Expenses</Text>
+                      <Text style={[styles.summaryItemAmount, { color: colors.expense }]}>
+                        ${totalExpenses.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
               </View>
-            </LinearGradient>
-          ) : (
-            <View style={[styles.headerContainer, {backgroundColor: colors.primary}]}>
-              <Text style={[styles.headerTitle, {color: colors.textOnPrimary}]}>My Finances</Text>
-              <View style={styles.summaryBalanceContainer}>
-                <Text style={[styles.summaryBalanceLabel, {color: colors.textOnPrimary, opacity: 0.8}]}>Total Balance</Text>
-                <Text style={[styles.summaryBalanceAmount, {color: colors.textOnPrimary}]}>${totalBalance.toFixed(2)}</Text>
-              </View>
-               {/* Simplified summary for fallback */}
-            </View>
-          )
-        }
-        
+            )
+          }
+          
 
-        <View style={styles.contentContainer}>
-          <View style={styles.inputSection}>
-            <Text style={styles.sectionTitle}>{editingTransaction ? 'Edit Transaction' : 'Add New Transaction'}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Description (e.g., Groceries, Salary)"
-              placeholderTextColor={colors.textMuted}
-              value={description}
-              onChangeText={setDescription}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Amount (e.g., 50.00)"
-              placeholderTextColor={colors.textMuted}
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-            />
-            <View style={styles.typeSelector}>
-              <TouchableOpacity
-                style={[styles.typeOption, type === 'income' && styles.typeOptionActiveIncome]}
-                onPress={() => setType('income')}
-              >
-                <Ionicons name="add-circle-outline" size={20} color={type === 'income' ? colors.income : colors.textSecondary} style={{marginRight: spacing.xs}}/>
-                <Text style={[styles.typeOptionText, type === 'income' && styles.typeOptionTextActiveIncome]}>Income</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.typeOption, type === 'expense' && styles.typeOptionActiveExpense]}
-                onPress={() => setType('expense')}
-              >
-                 <Ionicons name="remove-circle-outline" size={20} color={type === 'expense' ? colors.expense : colors.textSecondary} style={{marginRight: spacing.xs}}/>
-                <Text style={[styles.typeOptionText, type === 'expense' && styles.typeOptionTextActiveExpense]}>Expense</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity 
-              style={[styles.button, isSubmitting && styles.buttonDisabled]} 
-              onPress={handleAddOrUpdateTransaction}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color={colors.textOnPrimary} />
-              ) : (
-                <Text style={styles.buttonText}>{editingTransaction ? 'Update Transaction' : 'Add Transaction'}</Text>
-              )}
-            </TouchableOpacity>
-            {editingTransaction && (
+          <View style={styles.contentContainer}>
+            <View style={styles.inputSection}>
+              <Text style={styles.sectionTitle}>{editingTransaction ? 'Edit Transaction' : 'Add New Transaction'}</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Description (e.g., Groceries, Salary)"
+                placeholderTextColor={colors.textMuted}
+                value={description}
+                onChangeText={setDescription}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Amount (e.g., 50.00)"
+                placeholderTextColor={colors.textMuted}
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="numeric"
+              />
+              <View style={styles.typeSelector}>
+                <TouchableOpacity
+                  style={[styles.typeOption, type === 'income' && styles.typeOptionActiveIncome]}
+                  onPress={() => setType('income')}
+                >
+                  <Ionicons name="add-circle-outline" size={20} color={type === 'income' ? colors.income : colors.textSecondary} style={{marginRight: spacing.xs}}/>
+                  <Text style={[styles.typeOptionText, type === 'income' && styles.typeOptionTextActiveIncome]}>Income</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.typeOption, type === 'expense' && styles.typeOptionActiveExpense]}
+                  onPress={() => setType('expense')}
+                >
+                   <Ionicons name="remove-circle-outline" size={20} color={type === 'expense' ? colors.expense : colors.textSecondary} style={{marginRight: spacing.xs}}/>
+                  <Text style={[styles.typeOptionText, type === 'expense' && styles.typeOptionTextActiveExpense]}>Expense</Text>
+                </TouchableOpacity>
+              </View>
               <TouchableOpacity 
-                style={[styles.button, styles.cancelButton]} 
-                onPress={() => {
-                  setEditingTransaction(null);
-                  setDescription('');
-                  setAmount('');
-                  setType('expense');
-                }}
+                style={[styles.button, isSubmitting && styles.buttonDisabled]} 
+                onPress={handleAddOrUpdateTransaction}
                 disabled={isSubmitting}
               >
-                <Text style={styles.cancelButtonText}>Cancel Edit</Text>
+                {isSubmitting ? (
+                  <ActivityIndicator color={colors.textOnPrimary} />
+                ) : (
+                  <Text style={styles.buttonText}>{editingTransaction ? 'Update Transaction' : 'Add Transaction'}</Text>
+                )}
               </TouchableOpacity>
+              {editingTransaction && (
+                <TouchableOpacity 
+                  style={[styles.button, styles.cancelButton]} 
+                  onPress={() => {
+                    setEditingTransaction(null);
+                    setDescription('');
+                    setAmount('');
+                    setType('expense');
+                  }}
+                  disabled={isSubmitting}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel Edit</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.filterContainer}>
+              <Text style={styles.sectionTitle}>History</Text>
+              <View style={styles.filterButtons}>
+                {['all', 'income', 'expense'].map((f) => (
+                  <TouchableOpacity
+                    key={f}
+                    style={[styles.filterButton, filter === f && styles.filterButtonActive]}
+                    onPress={() => setFilter(f)}
+                  >
+                    <Text style={[styles.filterButtonText, filter === f && styles.filterButtonTextActive]}>
+                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}\
+              </View>
+            </View>
+
+            {loading && transactions.length > 0 && <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md}} />}
+
+            {filteredTransactions.length === 0 && !loading ? (
+              <View style={styles.emptyStateContainer}>
+                <Ionicons name="receipt-outline" size={60} color={colors.textMuted} />
+                <Text style={styles.emptyStateText}>No transactions yet.</Text>
+                <Text style={styles.emptyStateSubText}>
+                  {filter === 'all' ? 'Add your first transaction to get started.' : `No ${filter} transactions found.`}
+                </Text>
+              </View>
+            ) : (
+              // Using View instead of FlatList directly inside ScrollView to avoid virtualization issues
+              // For very long lists, consider a virtualized list component designed for ScrollView if performance drops.
+              <View> 
+                {filteredTransactions.map(item => renderTransactionItem({ item }))}
+              </View>
             )}
           </View>
-
-          <View style={styles.filterContainer}>
-            <Text style={styles.sectionTitle}>History</Text>
-            <View style={styles.filterButtons}>
-              {['all', 'income', 'expense'].map((f) => (
-                <TouchableOpacity
-                  key={f}
-                  style={[styles.filterButton, filter === f && styles.filterButtonActive]}
-                  onPress={() => setFilter(f)}
-                >
-                  <Text style={[styles.filterButtonText, filter === f && styles.filterButtonTextActive]}>
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}\
-            </View>
-          </View>
-
-          {loading && transactions.length > 0 && <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md}} />}
-
-          {filteredTransactions.length === 0 && !loading ? (
-            <View style={styles.emptyStateContainer}>
-              <Ionicons name="receipt-outline" size={60} color={colors.textMuted} />
-              <Text style={styles.emptyStateText}>No transactions yet.</Text>
-              <Text style={styles.emptyStateSubText}>
-                {filter === 'all' ? 'Add your first transaction to get started.' : `No ${filter} transactions found.`}
-              </Text>
-            </View>
-          ) : (
-            // Using View instead of FlatList directly inside ScrollView to avoid virtualization issues
-            // For very long lists, consider a virtualized list component designed for ScrollView if performance drops.
-            <View> 
-              {filteredTransactions.map(item => renderTransactionItem({ item }))}
-            </View>
-          )}
-        </View>
-        <View style={{ height: spacing.xxl }} /> {/* Extra space at the bottom */}
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <View style={{ height: spacing.xxl }} /> {/* Extra space at the bottom */}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  flexOne: { // Added style for SafeAreaView
+    flex: 1,
+    backgroundColor: colors.background, // Match screen background
+  },
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -485,21 +521,32 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm, // Add some top margin
   },
   summaryItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    minWidth: width / 3.5, // Ensure items have some minimum width
+    backgroundColor: colors.surface, // Card-like background for each item
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 8,
+    flex: 1, // Distribute space equally
+    marginHorizontal: spacing.xs, // Add some space between items
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  summaryLabel: {
-    ...typography.small,
-    color: colors.textOnPrimary,
-    opacity: 0.9,
-    marginTop: spacing.xxs,
+  summaryTextContainer: { // Added style for the text container next to icon
+    marginLeft: spacing.sm,
+    flexShrink: 1, // Allow text to shrink if needed
   },
-  summaryAmount: {
+  summaryItemLabel: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.xxs,
+  },
+  summaryItemAmount: {
     ...typography.bodyBold,
-    fontSize: 18, // Slightly larger summary amounts
-    color: colors.textOnPrimary, 
-    marginTop: spacing.xxs,
+    fontSize: 18, // Slightly larger for emphasis
   },
   contentContainer: {
     paddingHorizontal: spacing.lg,

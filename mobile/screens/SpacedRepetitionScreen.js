@@ -17,7 +17,7 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 
 // Replace with your actual backend URL and endpoint
-const API_URL = 'http://172.20.10.2:3000/api'; // Ensure this is your backend URL
+const API_URL = 'http://172.20.10.2:3000'; // Ensure this is your backend URL, removed /api
 const SRS_ENDPOINT = `${API_URL}/srs`;
 
 const STATIC_COLORS = {
@@ -92,9 +92,15 @@ const SpacedRepetitionScreen = ({ navigation }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [auth]);
+  }, [auth.currentUser]); // Depend on auth.currentUser to re-run if the user changes
 
-  useFocusEffect(fetchDueItems);
+  useFocusEffect(
+    useCallback(() => {
+      fetchDueItems();
+      // Optional: return a cleanup function if needed
+      // return () => { /* cleanup logic */ };
+    }, [fetchDueItems]) // fetchDueItems is already memoized with useCallback
+  );
 
   const handleReviewAction = async (itemId, quality) => {
     if (!itemId) return;

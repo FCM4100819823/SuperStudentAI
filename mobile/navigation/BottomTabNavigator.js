@@ -6,7 +6,6 @@ import { Platform } from 'react-native';
 // Import your screens
 import Dashboard from '../screens/Dashboard'; // Changed from HomeScreen to Dashboard
 import StudyScreen from '../screens/StudyScreen'; // New comprehensive Study screen
-import AIScreen from '../screens/AIScreen'; // Assuming you have an AIScreen
 import AppSettingsScreen from '../screens/AppSettingsScreen'; // Changed from SettingsScreen to AppSettingsScreen
 import FocusTimerScreen from '../screens/FocusTimerScreen'; // Added FocusTimerScreen
 import WellbeingScreen from '../screens/WellbeingScreen'; // Added WellbeingScreen
@@ -83,20 +82,6 @@ const BottomTabNavigator = () => {
         component={StudyScreen} 
         options={{
           title: 'Study Hub', // Updated title
-        }}
-      />
-      <Tab.Screen
-        name="Focus"
-        component={FocusTimerScreen} 
-        options={{
-          title: 'Focus Zone',
-        }}
-      />
-      <Tab.Screen
-        name="AI"
-        component={AIScreen} 
-        options={{
-          title: 'AI Assistant',
         }}
       />
       <Tab.Screen // Added Wellbeing Tab

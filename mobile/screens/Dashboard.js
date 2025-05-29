@@ -13,6 +13,7 @@ import {
   StatusBar,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context'; // Added import from react-native-safe-area-context
 import { signOut } from 'firebase/auth';
 import { auth, db as firestoreDb } from '../config/firebase'; // Corrected import path and alias db as firestoreDb
 import { doc, onSnapshot, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore'; // Added collection, query, where, orderBy, limit, getDocs
@@ -20,6 +21,7 @@ import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native'; // Import useNavigation
 
 const { width, height } = Dimensions.get('window');
 
@@ -64,10 +66,10 @@ const STATIC_COLORS = {
   moodOkay: '#90EE90',
   moodSad: '#A9A9A9',
   moodStressed: '#FFA07A',
-  // Colors for Overview cards
-  overviewTaskCard: ['#6A1B9A', '#9C4DCC'], // Purple gradient for tasks
-  overviewCalendarCard: ['#4CAF50', '#81C784'], // Green gradient for calendar
-  overviewTipCard: ['#F59E0B', '#FFCA28'], // Amber gradient for tips
+  // Updated Colors for "Your Day At a Glance" cards
+  overviewTaskCard: ['#5E35B1', '#4527A0'], // Deeper Purple gradient for tasks
+  overviewCalendarCard: ['#00796B', '#004D40'], // Teal gradient for calendar
+  overviewTipCard: ['#FF8F00', '#FF6F00'], // Darker Amber gradient for tips
 };
 
 
@@ -121,7 +123,8 @@ const ProgressCard = ({ title, value, total, percentage, color, icon }) => (
   </View>
 );
 
-const Dashboard = ({ navigation, route }) => {
+const Dashboard = ({ route }) => { // Removed navigation from props, will use useNavigation hook
+  const navigation = useNavigation(); // Added for FAB navigation
   const currentUser = auth.currentUser;
   const [profileData, setProfileData] = useState(null);
   const [studyStats, setStudyStats] = useState(null);
@@ -347,13 +350,11 @@ const Dashboard = ({ navigation, route }) => {
   }, [currentUser?.uid, fetchUserProfile, fetchDashboardData, fetchCurrentMood, fetchUpcomingTasks, getRandomTip]);
 
   const handleCreateStudyPlan = () => {
-    // navigation.navigate('CreateStudyPlan'); // To be re-enabled when feature is rebuilt
-    Alert.alert("Coming Soon", "The Study Plan feature is currently under reconstruction.");
+    navigation.navigate('CreateStudyPlan'); // Navigate to CreateStudyPlanScreen
   };
 
   const handleViewStudyPlans = () => {
-    // navigation.navigate('StudyPlanList'); // To be re-enabled
-    Alert.alert("Coming Soon", "The Study Plan feature is currently under reconstruction.");
+    navigation.navigate('StudyPlanList'); // Ensure StudyPlanList screen is in a navigator
   };
 
   const handleViewAnalytics = () => {
@@ -431,7 +432,7 @@ const Dashboard = ({ navigation, route }) => {
       icon: 'timer-outline',
       title: 'Focus Timer',
       subtitle: 'Stay concentrated',
-      onPress: () => navigation.navigate('Focus'), // Corrected: Navigate to the 'Focus' tab route name
+      onPress: () => navigation.navigate('FocusTimer'), // Corrected: Navigate directly to FocusTimerScreen
       gradient: ['#F9A8D4', '#EC4899'], // Pink gradient
       iconColor: '#EC4899',
     },
@@ -447,352 +448,568 @@ const Dashboard = ({ navigation, route }) => {
   }
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.scrollContentContainer}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[STATIC_COLORS.primary]} />}
-    >
-      <StatusBar barStyle="light-content" backgroundColor={STATIC_COLORS.primaryDark} />
-      <LinearGradient
-        colors={STATIC_COLORS.gradientPrimary}
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.headerTopRow}>
-          <View>
-            <Text style={styles.greetingText}>{greeting},</Text>
-            <Text style={styles.userNameText}>{profileData?.name || 'User'}</Text>
-          </View>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.avatarContainer}>
-            {profileData?.profilePictureUrl ? (
-              <Image source={{ uri: profileData.profilePictureUrl }} style={styles.avatar} />
-            ) : (
-              <Ionicons name="person-circle-outline" size={40} color={STATIC_COLORS.textOnPrimary} />
-            )}
-          </TouchableOpacity>
-        </View>
-        
-        {/* Mood Overview Section */}
-        <View style={styles.moodOverviewContainer}>
-          {currentMood ? (
-            <View style={styles.moodContent}>
-              <Ionicons 
-                name={currentMood.icon || 'happy-outline'} 
-                size={28} 
-                color={currentMood.color || STATIC_COLORS.textOnPrimary} 
-                style={styles.moodIcon}
-              />
-              <View style={styles.moodTextContainer}>
-                <Text style={styles.moodText}>Current Mood: <Text style={{fontWeight: 'bold', color: currentMood.color || STATIC_COLORS.textOnPrimary }}>{currentMood.mood}</Text></Text>
-                <Text style={styles.moodTimestampText}>
-                  Logged: {currentMood.timestamp?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {currentMood.timestamp?.toLocaleDateString()}
-                </Text>
+    <SafeAreaView style={styles.screenContainer}>
+      <View style={{flex: 1, width: '100%'}}>
+        <ScrollView
+          style={styles.screen}
+          contentContainerStyle={styles.scrollContentContainer}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[STATIC_COLORS.primary]} />}
+        >
+          <StatusBar barStyle="light-content" backgroundColor={STATIC_COLORS.primaryDark} />
+          <LinearGradient
+            colors={STATIC_COLORS.gradientPrimary}
+            style={styles.header}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.headerTopRow}>
+              <View>
+                <Text style={styles.greetingText}>{greeting},</Text>
+                <Text style={styles.userNameText}>{profileData?.name || 'User'}</Text>
               </View>
-            </View>
-          ) : (
-            <View style={styles.moodContent}>
-              <Ionicons name="sparkles-outline" size={28} color={STATIC_COLORS.textOnPrimary} style={styles.moodIcon}/>
-              <View style={styles.moodTextContainer}>
-                <Text style={styles.moodText}>No mood logged recently.</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Wellbeing')}>
-                    <Text style={styles.logMoodPromptText}>Log your mood now?</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </View>
-      </LinearGradient>
-      
-      {error && (
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={24} color={STATIC_COLORS.danger} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      {/* Quick Actions Section */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActionsScroll}>
-          {quickActions.map((action, index) => (
-            <QuickActionCard
-              key={index}
-              icon={action.icon}
-              title={action.title}
-              subtitle={action.subtitle}
-              onPress={action.onPress}
-              gradient={action.gradient}
-              iconColor={action.iconColor}
-            />
-          ))}
-        </ScrollView>
-      </View>
-      
-      {/* Study Stats Section - Placeholder for now */}
-      {studyStats && (
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Study Progress</Text>
-          <View style={styles.statsGrid}>
-            <ProgressCard 
-              title="Completed Tasks" 
-              value={studyStats.completedTasks || 0} 
-              total={studyStats.totalTasks || 0} 
-              percentage={studyStats.totalTasks ? (studyStats.completedTasks / studyStats.totalTasks) * 100 : 0}
-              color={STATIC_COLORS.secondary}
-              icon="checkmark-done-circle-outline"
-            />
-            <ProgressCard 
-              title="Upcoming Sessions" 
-              value={studyStats.upcomingSessions || 0} 
-              total={studyStats.totalSessions || 0} // Assuming you might have total sessions
-              percentage={studyStats.totalSessions ? (studyStats.upcomingSessions / studyStats.totalSessions) * 100 : 0}
-              color={STATIC_COLORS.accent}
-              icon="calendar-outline"
-            />
-          </View>
-           <View style={styles.overallProgressContainer}>
-             <Text style={styles.overallProgressLabel}>Overall Plan Progress</Text>
-            <View style={styles.overallProgressBar}>
-                <LinearGradient
-                    colors={STATIC_COLORS.gradientPrimary}
-                    style={[styles.overallProgressBarFill, { width: `${Math.min(studyStats.overallProgress || 0, 100)}%` }]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                />
-            </View>
-            <Text style={styles.overallProgressPercentage}>{(studyStats.overallProgress || 0).toFixed(0)}%</Text>
-           </View>
-        </View>
-      )}
-      
-      {/* Placeholder for "Overview of Everything" */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Your Day At a Glance</Text>
-        
-        {/* Upcoming Tasks Card */}
-        <LinearGradient colors={STATIC_COLORS.overviewTaskCard} style={styles.overviewCard}>
-          <View style={styles.overviewCardHeader}>
-            <Ionicons name="list-circle-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
-            <Text style={styles.overviewCardTitle}>Upcoming Tasks</Text>
-          </View>
-          {upcomingTasks.length > 0 ? (
-            upcomingTasks.map(task => (
-              <TouchableOpacity 
-                key={task.id} 
-                style={styles.overviewItem}
-                onPress={() => navigation.navigate('TaskManager', { screen: 'AddTask', params: { task: task }})} // Navigate to task details or edit
-              >
-                <Ionicons name="chevron-forward-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
-                <View style={styles.overviewItemTextContainer}>
-                  <Text style={styles.overviewItemTextPrimary}>{task.title}</Text>
-                  {task.dueDate && (
-                    <Text style={styles.overviewItemTextSecondary}>
-                      Due: {new Date(task.dueDate.seconds * 1000).toLocaleDateString()}
-                    </Text>
-                  )}
-                </View>
+              <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.avatarContainer}>
+                {profileData?.profilePictureUrl ? (
+                  <Image source={{ uri: profileData.profilePictureUrl }} style={styles.avatar} />
+                ) : (
+                  <Ionicons name="person-circle-outline" size={40} color={STATIC_COLORS.textOnPrimary} />
+                )}
               </TouchableOpacity>
-            ))
-          ) : (
-            <View style={styles.overviewItem}>
-              <Ionicons name="checkmark-done-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
-              <Text style={styles.overviewItemTextPrimary}>No pressing tasks. Well done!</Text>
+            </View>
+            
+            {/* Mood Overview Section */}
+            <View style={styles.moodOverviewContainer}>
+              {currentMood ? (
+                <View style={styles.moodContent}>
+                  <Ionicons 
+                    name={currentMood.icon || 'happy-outline'} 
+                    size={28} 
+                    color={currentMood.color || STATIC_COLORS.textOnPrimary} 
+                    style={styles.moodIcon}
+                  />
+                  <View style={styles.moodTextContainer}>
+                    <Text style={styles.moodText}>Current Mood: <Text style={{fontWeight: 'bold', color: currentMood.color || STATIC_COLORS.textOnPrimary }}>{currentMood.mood}</Text></Text>
+                    <Text style={styles.moodTimestampText}>
+                      Logged: {currentMood.timestamp?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {currentMood.timestamp?.toLocaleDateString()}
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.moodContent}>
+                  <Ionicons name="sparkles-outline" size={28} color={STATIC_COLORS.textOnPrimary} style={styles.moodIcon}/>
+                  <View style={styles.moodTextContainer}>
+                    <Text style={styles.moodText}>No mood logged recently.</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate('Wellbeing')}>
+                        <Text style={styles.logMoodPromptText}>Log your mood now?</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          </LinearGradient>
+          
+          {error && (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle-outline" size={24} color={STATIC_COLORS.danger} />
+              <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
-          <TouchableOpacity onPress={() => navigation.navigate('Study', { screen: 'TaskManager' })} style={styles.viewAllButton}>
-             <Text style={styles.viewAllButtonText}>View All Tasks</Text>
-          </TouchableOpacity>
-        </LinearGradient>
 
-        {/* Calendar Events Placeholder Card */}
-        <LinearGradient colors={STATIC_COLORS.overviewCalendarCard} style={styles.overviewCard}>
-          <View style={styles.overviewCardHeader}>
-            <Ionicons name="calendar-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
-            <Text style={styles.overviewCardTitle}>Calendar Events</Text>
+          {/* Quick Actions Section */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActionsScroll}>
+              {quickActions.map((action, index) => (
+                <QuickActionCard
+                  key={index}
+                  icon={action.icon}
+                  title={action.title}
+                  subtitle={action.subtitle}
+                  onPress={action.onPress}
+                  gradient={action.gradient}
+                  iconColor={action.iconColor}
+                />
+              ))}
+            </ScrollView>
           </View>
-          <View style={styles.overviewItem}>
-            <Ionicons name="information-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
-            <Text style={styles.overviewItemTextPrimary}>Device calendar integration coming soon!</Text>
-          </View>
-           {/* <TouchableOpacity onPress={() => {}} style={styles.viewAllButton}>
-             <Text style={styles.viewAllButtonText}>Open Calendar</Text>
-          </TouchableOpacity> */}
-        </LinearGradient>
+          
+          {/* Study Stats Section - Placeholder for now */}
+          {studyStats && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Study Progress</Text>
+              <View style={styles.statsGrid}>
+                <ProgressCard 
+                  title="Completed Tasks" 
+                  value={studyStats.completedTasks || 0} 
+                  total={studyStats.totalTasks || 0} 
+                  percentage={studyStats.totalTasks ? (studyStats.completedTasks / studyStats.totalTasks) * 100 : 0}
+                  color={STATIC_COLORS.secondary}
+                  icon="checkmark-done-circle-outline"
+                />
+                <ProgressCard 
+                  title="Upcoming Sessions" 
+                  value={studyStats.upcomingSessions || 0} 
+                  total={studyStats.totalSessions || 0} // Assuming you might have total sessions
+                  percentage={studyStats.totalSessions ? (studyStats.upcomingSessions / studyStats.totalSessions) * 100 : 0}
+                  color={STATIC_COLORS.accent}
+                  icon="calendar-outline"
+                />
+              </View>
+               <View style={styles.overallProgressContainer}>
+                 <Text style={styles.overallProgressLabel}>Overall Plan Progress</Text>
+                <View style={styles.overallProgressBar}>
+                    <LinearGradient
+                        colors={STATIC_COLORS.gradientPrimary}
+                        style={[styles.overallProgressBarFill, { width: `${Math.min(studyStats.overallProgress || 0, 100)}%` }]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                    />
+                </View>
+                <Text style={styles.overallProgressPercentage}>{(studyStats.overallProgress || 0).toFixed(0)}%</Text>
+               </View>
+            </View>
+          )}
+          
+          {/* Placeholder for "Overview of Everything" */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Your Day At a Glance</Text>
+            
+            {/* Upcoming Tasks Card */}
+            <LinearGradient colors={STATIC_COLORS.overviewTaskCard} style={[styles.overviewCard, styles.overviewCardShadow]}>
+              <View style={styles.overviewCardHeader}>
+                <Ionicons name="list-circle-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
+                <Text style={styles.overviewCardTitle}>Upcoming Tasks</Text>
+              </View>
+              {upcomingTasks.length > 0 ? (
+                upcomingTasks.map(task => (
+                  <TouchableOpacity 
+                    key={task.id} 
+                    style={styles.overviewItem}
+                    onPress={() => navigation.navigate('TaskManager', { screen: 'AddTask', params: { task: task }})} // Navigate to task details or edit
+                  >
+                    <Ionicons name="chevron-forward-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+                    <View style={styles.overviewItemTextContainer}>
+                      <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>{task.title}</Text>
+                      {task.dueDate && (
+                        <Text style={[styles.overviewItemTextSecondary, styles.textOnOverviewCardMuted]}>
+                          Due: {new Date(task.dueDate.seconds * 1000).toLocaleDateString()}
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.overviewItem}>
+                  <Ionicons name="checkmark-done-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+                  <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>No pressing tasks. Well done!</Text>
+                </View>
+              )}
+              <TouchableOpacity onPress={() => navigation.navigate('Study', { screen: 'TaskManager' })} style={[styles.viewAllButton, styles.viewAllButtonTasks]}>
+                 <Text style={styles.viewAllButtonText}>View All Tasks</Text>
+              </TouchableOpacity>
+            </LinearGradient>
 
-        {/* Study Tip Card */}
-        {currentStudyTip && (
-          <LinearGradient colors={STATIC_COLORS.overviewTipCard} style={styles.overviewCard}>
-            <View style={styles.overviewCardHeader}>
-              <Ionicons name="bulb-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
-              <Text style={styles.overviewCardTitle}>Study Tip</Text>
-            </View>
-            <View style={styles.overviewItem}>
-                <Ionicons name="star-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
-                <Text style={styles.overviewItemTextPrimary}>{currentStudyTip}</Text>
-            </View>
-            <TouchableOpacity onPress={getRandomTip} style={styles.viewAllButton}>
-                <Text style={styles.viewAllButtonText}>Get Another Tip</Text>
-            </TouchableOpacity>
-          </LinearGradient>
-        )}
+            {/* Calendar Events Placeholder Card */}
+            <LinearGradient colors={STATIC_COLORS.overviewCalendarCard} style={[styles.overviewCard, styles.overviewCardShadow]}>
+              <View style={styles.overviewCardHeader}>
+                <Ionicons name="calendar-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
+                <Text style={styles.overviewCardTitle}>Calendar Events</Text>
+              </View>
+              <View style={styles.overviewItem}>
+                <Ionicons name="information-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+                <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>Device calendar integration coming soon!</Text>
+              </View>
+               {/* <TouchableOpacity onPress={() => {}} style={[styles.viewAllButton, styles.viewAllButtonCalendar]}>
+                 <Text style={styles.viewAllButtonText}>Open Calendar</Text>
+               </TouchableOpacity> */}
+            </LinearGradient>
+
+            {/* Study Tip Card */}
+            {currentStudyTip && (
+              <LinearGradient colors={STATIC_COLORS.overviewTipCard} style={[styles.overviewCard, styles.overviewCardShadow]}>
+                <View style={styles.overviewCardHeader}>
+                  <Ionicons name="bulb-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
+                  <Text style={styles.overviewCardTitle}>Study Tip</Text>
+                </View>
+                <View style={styles.overviewItem}>
+                    <Ionicons name="star-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+                    <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>{currentStudyTip}</Text>
+                </View>
+                <TouchableOpacity onPress={getRandomTip} style={[styles.viewAllButton, styles.viewAllButtonTip]}>
+                    <Text style={styles.viewAllButtonText}>Get Another Tip</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            )}
+          </View>
+
+        </ScrollView>
+        {/* Floating Action Button for AI Assistant - Placed outside ScrollView for fixed positioning */}
+        <TouchableOpacity
+            style={styles.fab}
+            onPress={() => navigation.navigate('AIScreen')} // Ensure AIScreen is a valid route name in your navigator
+          >
+            <Ionicons name="sparkles-outline" size={30} color={STATIC_COLORS.textOnPrimary} />
+        </TouchableOpacity>
       </View>
-
-    </ScrollView>
+    </SafeAreaView> // Changed View to SafeAreaView
   );
 };
 
 const styles = StyleSheet.create({
-  screen: {
+  screenContainer: { // New style to wrap ScrollView and FAB
     flex: 1,
     backgroundColor: STATIC_COLORS.background,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0, // Add padding for Android status bar when using SafeAreaView like this
   },
-  scrollContentContainer: {
-    paddingBottom: 30, // Added padding at the bottom
+  screen: {
+    flex: 1,
+    // backgroundColor is inherited or can be set to transparent if screenContainer has it
+    // paddingTop: Platform.OS === 'ios' ? 20 : 0, // Basic notch handling, SafeAreaView is better
   },
   header: {
-    paddingTop: (Platform.OS === 'android' ? StatusBar.currentHeight : 0) + 20,
+    paddingVertical: 40,
     paddingHorizontal: 20,
-    paddingBottom: 20, // Adjusted padding
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    // borderBottomWidth: 1,
+    // borderBottomColor: STATIC_COLORS.border,
+    // elevation: 4, // Android shadow
+    // shadowColor: STATIC_COLORS.shadow,
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.3,
+    // shadowRadius: 4,
   },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    // marginBottom: 20, // Adjusted: remove or reduce if mood overview is part of header
   },
   greetingText: {
-    fontFamily: FONTS.regular,
-    fontSize: 18,
+    fontSize: 24,
+    fontFamily: FONTS.bold,
     color: STATIC_COLORS.textOnPrimary,
-    opacity: 0.8,
   },
   userNameText: {
-    fontFamily: FONTS.bold,
-    fontSize: 26,
+    fontSize: 18,
+    fontFamily: FONTS.medium,
     color: STATIC_COLORS.textOnPrimary,
   },
   avatarContainer: {
-    // Styles for avatar touchable area if needed
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
     borderWidth: 2,
     borderColor: STATIC_COLORS.textOnPrimary,
   },
-  moodOverviewPlaceholder: { // This style might be deprecated if using moodOverviewContainer
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 15,
-    paddingVertical: 20,
-    paddingHorizontal: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 15, // Added margin if it's a separate block
+  avatar: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
-  moodPlaceholderText: { // This style might be deprecated
-    fontFamily: FONTS.semibold,
-    fontSize: 16,
-    color: STATIC_COLORS.textOnPrimary,
-    textAlign: 'center',
-  },
-  moodOverviewContainer: { // New style for the mood section
-    backgroundColor: 'rgba(255,255,255,0.1)', // Semi-transparent white
-    borderRadius: 15,
+  moodOverviewContainer: {
+    marginTop: 20,
     padding: 15,
-    marginTop: 20, // Space from the greeting/avatar
-    marginBottom: 10, // Space before content below header
+    borderRadius: 10,
+    backgroundColor: STATIC_COLORS.primaryLight,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   moodContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   moodIcon: {
-    marginRight: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: STATIC_COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
   moodTextContainer: {
-    flex: 1,
+    flexDirection: 'column',
   },
   moodText: {
-    fontFamily: FONTS.semibold,
     fontSize: 16,
-    color: STATIC_COLORS.textOnPrimary,
-    marginBottom: 3,
+    fontFamily: FONTS.medium,
+    color: STATIC_COLORS.text,
   },
   moodTimestampText: {
-    fontFamily: FONTS.regular,
     fontSize: 12,
-    color: STATIC_COLORS.textOnPrimary,
-    opacity: 0.8,
+    fontFamily: FONTS.regular,
+    color: STATIC_COLORS.text,
   },
   logMoodPromptText: {
-    fontFamily: FONTS.semibold,
     fontSize: 14,
-    color: STATIC_COLORS.accent, // Use accent color for prompt
+    fontFamily: FONTS.medium,
+    color: STATIC_COLORS.accent,
     marginTop: 4,
-    textDecorationLine: 'underline',
   },
-  // Styles for Overview Section
-  overviewCard: {
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: STATIC_COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  overviewCardHeader: {
+  errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: STATIC_COLORS.danger,
+    margin: 20,
   },
-  overviewCardTitle: {
-    fontFamily: FONTS.bold,
-    fontSize: 18,
+  errorText: {
+    fontSize: 14,
+    fontFamily: FONTS.regular,
     color: STATIC_COLORS.textOnPrimary,
     marginLeft: 10,
+  },
+  sectionContainer: {
+    marginTop: 20,
+    marginHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: STATIC_COLORS.surface,
+    padding: 15,
+    elevation: 2,
+    shadowColor: STATIC_COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: FONTS.semibold,
+    color: STATIC_COLORS.text,
+    marginBottom: 10,
+  },
+  quickActionsScroll: {
+    paddingVertical: 10,
+  },
+  quickActionCard: {
+    width: 120,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginRight: 10,
+    elevation: 2,
+    shadowColor: STATIC_COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  quickActionGradient: {
+    padding: 15,
+    borderRadius: 10,
+  },
+  quickActionContent: {
+    alignItems: 'center',
+  },
+  quickActionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  quickActionTitle: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+    color: STATIC_COLORS.textOnPrimary,
+    textAlign: 'center',
+  },
+  quickActionSubtitle: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    color: STATIC_COLORS.textOnPrimary,
+    textAlign: 'center',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  progressCard: {
+    flex: 1,
+    marginRight: 10,
+    borderRadius: 10,
+    backgroundColor: STATIC_COLORS.surface,
+    padding: 15,
+    elevation: 2,
+    shadowColor: STATIC_COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  progressIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  progressTitle: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+    color: STATIC_COLORS.text,
+  },
+  progressContent: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 10,
+  },
+  progressValue: {
+    fontSize: 22,
+    fontFamily: FONTS.bold,
+    color: STATIC_COLORS.text,
+    marginRight: 5,
+  },
+  progressTotal: {
+    fontSize: 14,
+    fontFamily: FONTS.regular,
+    color: STATIC_COLORS.textMuted,
+  },
+  progressBarContainer: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: STATIC_COLORS.textMuted,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressPercentage: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    color: STATIC_COLORS.textMuted,
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  overallProgressContainer: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  overallProgressLabel: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+    color: STATIC_COLORS.text,
+    marginBottom: 5,
+  },
+  overallProgressBar: {
+    height: 10,
+    width: '100%',
+    borderRadius: 5,
+    backgroundColor: STATIC_COLORS.textMuted,
+    overflow: 'hidden',
+  },
+  overallProgressBarFill: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  overallProgressPercentage: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    color: STATIC_COLORS.text, // Changed from textMuted for better visibility
+    marginTop: 4,
+  },
+  overviewCard: {
+    borderRadius: 15, // Increased border radius
+    // overflow: 'hidden', // Keep this if you don\'t want shadow to be clipped by gradient, but might clip shadow itself
+    marginBottom: 20, // Increased margin
+    // elevation: 0, // Remove default elevation if using custom shadow
+    // shadowColor: STATIC_COLORS.shadow, // Moved to overviewCardShadow
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.3,
+    // shadowRadius: 4,
+  },
+  overviewCardShadow: { // New style for consistent shadow
+    shadowColor: STATIC_COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 }, // Slightly increased offset for depth
+    shadowOpacity: 0.2, // Adjusted opacity
+    shadowRadius: 5, // Adjusted radius
+    elevation: 5, // For Android
+    backgroundColor: STATIC_COLORS.surface, // Important for iOS shadow rendering on gradients
+  },
+  overviewCardHeader: {
+    paddingVertical: 15, // Adjusted padding
+    paddingHorizontal: 20, // Adjusted padding
+    // backgroundColor: STATIC_COLORS.primary, // Removed, as LinearGradient provides background
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopLeftRadius: 15, // Match card border radius
+    borderTopRightRadius: 15, // Match card border radius
+  },
+  overviewCardTitle: {
+    fontSize: 18, // Increased font size
+    fontFamily: FONTS.semibold,
+    color: STATIC_COLORS.textOnPrimary,
+    marginLeft: 12, // Adjusted margin
   },
   overviewItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    // borderBottomWidth: 1,
-    // borderBottomColor: 'rgba(255,255,255,0.2)',
+    paddingVertical: 12, // Adjusted padding
+    paddingHorizontal: 20, // Adjusted padding
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.15)', // Lighter border for dark cards
   },
   overviewItemIcon: {
-    marginRight: 10,
+    // width: 24, // Removed, let icon size dictate
+    // height: 24, // Removed
+    // borderRadius: 12, // Removed
+    // justifyContent: 'center', // Removed
+    // alignItems: 'center', // Removed
+    marginRight: 12, // Adjusted margin
+    // color is set directly in the JSX
   },
   overviewItemTextContainer: {
     flex: 1,
   },
   overviewItemTextPrimary: {
+    fontSize: 15, // Adjusted font size
     fontFamily: FONTS.medium,
-    fontSize: 15,
-    color: STATIC_COLORS.textOnPrimary,
-    flexShrink: 1, // Allow text to wrap
+    color: STATIC_COLORS.textOnPrimary, // Default to textOnPrimary
   },
   overviewItemTextSecondary: {
+    fontSize: 13, // Adjusted font size
     fontFamily: FONTS.regular,
-    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)', // Lighter secondary text for dark cards
+  },
+  textOnOverviewCard: { // Specific style for primary text on these cards
     color: STATIC_COLORS.textOnPrimary,
-    opacity: 0.8,
+  },
+  textOnOverviewCardMuted: { // Specific style for muted text on these cards
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   viewAllButton: {
-    marginTop: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 10,
-    alignSelf: 'flex-start',
+    marginTop: 15, // Adjusted margin
+    marginHorizontal: 20, // Added horizontal margin
+    marginBottom: 15, // Added bottom margin
+    paddingVertical: 12, // Adjusted padding
+    borderRadius: 10, // Increased border radius
+    // backgroundColor: STATIC_COLORS.secondary, // Removed, will use specific colors
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1, // Added border for definition
+    borderColor: 'rgba(255, 255, 255, 0.5)', // Light border
+  },
+  viewAllButtonTasks: { // Specific style for tasks button
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Slightly transparent white
+  },
+  viewAllButtonCalendar: { // Specific style for calendar button
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  viewAllButtonTip: { // Specific style for tip button
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   viewAllButtonText: {
+    fontSize: 14,
     fontFamily: FONTS.semibold,
-    fontSize: 13,
     color: STATIC_COLORS.textOnPrimary,
   },
   centeredLoader: {
@@ -804,204 +1021,28 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: STATIC_COLORS.textSecondary,
-    fontFamily: FONTS.medium,
-  },
-  errorContainer: {
-    backgroundColor: '#FFF0F0', // Light red
-    padding: 15,
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderLeftWidth: 4,
-    borderLeftColor: STATIC_COLORS.danger,
-  },
-  errorText: {
-    color: STATIC_COLORS.danger,
-    fontSize: 15,
-    fontFamily: FONTS.medium,
-    marginLeft: 10,
-    flex: 1, // Allow text to wrap
-  },
-  sectionContainer: {
-    marginTop: 25,
-    paddingHorizontal: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: FONTS.bold,
-    color: STATIC_COLORS.text,
-    marginBottom: 15,
-  },
-  quickActionsScroll: {
-    paddingRight: 20, // Ensure last card is not cut off
-  },
-  quickActionCard: {
-    width: width * 0.38, // Adjusted width
-    height: 170, // Adjusted height
-    borderRadius: 20,
-    marginRight: 15,
-    overflow: 'hidden', // Important for LinearGradient border radius
-    elevation: 3,
-    shadowColor: STATIC_COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-  },
-  quickActionGradient: {
-    flex: 1,
-    padding: 15,
-    justifyContent: 'space-between', // Distribute content
-  },
-  quickActionContent: {
-    alignItems: 'flex-start', // Align icon and text to the start
-  },
-  quickActionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  quickActionTitle: {
-    fontSize: 17, // Slightly larger
-    fontFamily: FONTS.bold,
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  quickActionSubtitle: {
-    fontSize: 13,
     fontFamily: FONTS.regular,
-    color: '#FFFFFF',
-    opacity: 0.85,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  progressCard: {
-    backgroundColor: STATIC_COLORS.surface,
-    borderRadius: 15,
-    padding: 15,
-    width: (width - 40 - 15) / 2, // 40 for padding, 15 for margin between cards
-    elevation: 2,
-    shadowColor: STATIC_COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  progressIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  progressTitle: {
-    fontSize: 15,
-    fontFamily: FONTS.semibold,
-    color: STATIC_COLORS.textSecondary,
-    flex: 1, // Allow text to wrap
-  },
-  progressContent: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 8,
-  },
-  progressValue: {
-    fontSize: 28,
-    fontFamily: FONTS.bold,
     color: STATIC_COLORS.text,
-  },
-  progressTotal: {
-    fontSize: 16,
-    fontFamily: FONTS.medium,
-    color: STATIC_COLORS.textMuted,
-    marginLeft: 4,
-  },
-  progressBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressBar: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden', // For inner fill
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressPercentage: {
-    fontSize: 13,
-    fontFamily: FONTS.semibold,
-    color: STATIC_COLORS.textSecondary,
-    marginLeft: 8,
-  },
-  overallProgressContainer: {
-    backgroundColor: STATIC_COLORS.surface,
-    borderRadius: 15,
-    padding: 15,
-    marginTop: 10, // Space from grid cards
-    elevation: 2,
-    shadowColor: STATIC_COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-  },
-  overallProgressLabel: {
-    fontSize: 16,
-    fontFamily: FONTS.semibold,
-    color: STATIC_COLORS.text,
-    marginBottom: 10,
-  },
-  overallProgressBar: {
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: STATIC_COLORS.border,
-    overflow: 'hidden',
-    marginBottom: 5,
-  },
-  overallProgressBarFill: {
-    height: '100%',
-    borderRadius: 6,
-  },
-  overallProgressPercentage: {
-    fontSize: 14,
-    fontFamily: FONTS.bold,
-    color: STATIC_COLORS.primary,
-    alignSelf: 'flex-end',
-  },
-  placeholderCard: {
-    backgroundColor: STATIC_COLORS.surface,
-    borderRadius: 15,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 150,
-    elevation: 2,
-    shadowColor: STATIC_COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
   },
   placeholderText: {
     fontSize: 16,
     fontFamily: FONTS.medium,
-    color: STATIC_COLORS.textMuted,
-    textAlign: 'center',
-    marginTop: 15,
+  },
+  fab: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: STATIC_COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    right: 30,
+    bottom: 30,
+    elevation: 8,
+    shadowColor: STATIC_COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
 });
 

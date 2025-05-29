@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Added useEffect
 import {
   View,
   Text,
@@ -13,45 +13,93 @@ import {
 import axios from 'axios';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons'; // Assuming you use Expo for icons
-import { API_BASE_URL } from '../config'; // Assuming you have a config file for your API base URL
+import { API_BASE_URL } from '../config/appConfig.js'; // Added .js extension
+import firebase from 'firebase/app'; // Import Firebase app
+import 'firebase/auth'; // Import Firebase auth
 
-const AddSpacedRepetitionItemScreen = ({ navigation }) => {
-  const [front, setFront] = useState('');
-  const [back, setBack] = useState('');
-  const [deck, setDeck] = useState(''); // Optional: for categorizing items
+const AddSpacedRepetitionItemScreen = ({ navigation, route }) => { // Added route
+  const [originalContent, setOriginalContent] = useState(''); // Renamed from front
+  const [answerContent, setAnswerContent] = useState(''); // Renamed from back
+  // const [deck, setDeck] = useState(''); // Optional: for categorizing items - Removing for now, can be added later if needed
   const [tags, setTags] = useState(''); // Optional: comma-separated tags
+  const [studyPlanId, setStudyPlanId] = useState(null); // Added studyPlanId
+  const [taskId, setTaskId] = useState(null); // Added taskId
   const [isLoading, setIsLoading] = useState(false);
+  const [authToken, setAuthToken] = useState(null); // State to hold the auth token
+
+  useEffect(() => {
+    // If studyPlanId or taskId are passed via route params, set them
+    if (route.params?.studyPlanId) {
+      setStudyPlanId(route.params.studyPlanId);
+    }
+    if (route.params?.taskId) {
+      setTaskId(route.params.taskId);
+    }
+
+    const fetchToken = async () => {
+      try {
+        const currentUser = firebase.auth().currentUser;
+        if (currentUser) {
+          const token = await currentUser.getIdToken();
+          setAuthToken(token);
+        } else {
+          // Handle case where user is not logged in, if necessary
+          console.log("No user logged in to fetch token.");
+          // You might want to navigate to a login screen or show an alert
+        }
+      } catch (error) {
+        console.error("Error fetching auth token:", error);
+        Alert.alert("Authentication Error", "Could not fetch authentication token. Please try logging in again.");
+      }
+    };
+
+    fetchToken();
+    // Listen for auth state changes to update token if user logs in/out
+    const unsubscribe = firebase.auth().onAuthStateChanged(async (user) => {
+      if (user) {
+        const token = await user.getIdToken();
+        setAuthToken(token);
+      } else {
+        setAuthToken(null);
+      }
+    });
+
+    return () => unsubscribe(); // Cleanup listener on unmount
+  }, []);
 
   const handleAddItem = async () => {
-    if (!front.trim() || !back.trim()) {
+    if (!originalContent.trim() || !answerContent.trim()) { // Changed from front and back
       Alert.alert(
         'Missing Information',
-        'Please provide at least the front and back content for the item.',
+        'Please provide at least the front (original content) and back (answer content) for the item.', // Updated message
       );
+      return;
+    }
+    if (!authToken) {
+      Alert.alert("Authentication Error", "You are not authenticated. Please log in.");
       return;
     }
     setIsLoading(true);
     try {
-      // Assuming you have a way to get the userId, e.g., from auth context
-      // For now, let's hardcode or assume it's handled by backend session/token
-      // const userId = "some-user-id";
-
       const newItem = {
-        front: front.trim(),
-        back: back.trim(),
-        deck: deck.trim() || 'Default', // Default deck if not specified
+        originalContent: originalContent.trim(), // Changed from front
+        answerContent: answerContent.trim(), // Changed from back
+        // deck: deck.trim() || 'Default', // Removing deck for now
         tags: tags
           .split(',')
           .map((tag) => tag.trim())
-          .filter((tag) => tag), // Process tags
+          .filter((tag) => tag),
+        // Conditionally add studyPlanId and taskId
+        ...(studyPlanId && { studyPlanId }),
+        ...(taskId && { taskId }),
         // userId will be added by the backend via authMiddleware
       };
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/srs/add`,
+        `${API_BASE_URL}/api/srs/items`, // Corrected endpoint
         newItem,
         {
-          // headers: { Authorization: `Bearer YOUR_AUTH_TOKEN` } // Include if auth is token-based
+          headers: { Authorization: `Bearer ${authToken}` } // Include auth token
         },
       );
 
@@ -61,9 +109,9 @@ const AddSpacedRepetitionItemScreen = ({ navigation }) => {
           'New item added to your Spaced Repetition System.',
           [{ text: 'OK', onPress: () => navigation.goBack() }],
         );
-        setFront('');
-        setBack('');
-        setDeck('');
+        setOriginalContent(''); // Changed from setFront
+        setAnswerContent(''); // Changed from setBack
+        // setDeck(''); // Removing deck
         setTags('');
       } else {
         Alert.alert('Error', 'Could not add the item. Please try again.');
@@ -97,8 +145,8 @@ const AddSpacedRepetitionItemScreen = ({ navigation }) => {
           <Text style={styles.label}>Front (Question/Prompt)</Text>
           <TextInput
             style={styles.input}
-            value={front}
-            onChangeText={setFront}
+            value={originalContent} // Changed from front
+            onChangeText={setOriginalContent} // Changed from setFront
             placeholder="e.g., What is the capital of France?"
             placeholderTextColor={'#A0A0A0'}
           />
@@ -108,14 +156,15 @@ const AddSpacedRepetitionItemScreen = ({ navigation }) => {
           <Text style={styles.label}>Back (Answer/Details)</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            value={back}
-            onChangeText={setBack}
+            value={answerContent} // Changed from back
+            onChangeText={setAnswerContent} // Changed from setBack
             placeholder="e.g., Paris"
             placeholderTextColor={'#A0A0A0'}
             multiline
           />
         </View>
 
+        {/* Removing Deck input for now
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Deck (Optional)</Text>
           <TextInput
@@ -126,6 +175,7 @@ const AddSpacedRepetitionItemScreen = ({ navigation }) => {
             placeholderTextColor={'#A0A0A0'}
           />
         </View>
+        */}
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Tags (Optional, comma-separated)</Text>

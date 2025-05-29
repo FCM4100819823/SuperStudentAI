@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, View, StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './navigation/AppNavigator';
 import { auth } from './config/firebase';
+import { SafeAreaProvider } from 'react-native-safe-area-context'; // Import SafeAreaProvider
 
 // Default color for loading indicator if not using theme
 const DEFAULT_PRIMARY_COLOR = '#6200EE'; // Example color, adjust as needed
@@ -10,14 +11,16 @@ const DEFAULT_BACKGROUND_COLOR = '#FFFFFF'; // Example color
 
 function AppContent({ user }) {
   return (
-    <NavigationContainer>
-      {/* Use a default status bar style or make it configurable elsewhere */}
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={DEFAULT_BACKGROUND_COLOR}
-      />
-      <AppNavigator user={user} />
-    </NavigationContainer>
+    <SafeAreaProvider> {/* Wrap NavigationContainer with SafeAreaProvider */}
+      <NavigationContainer>
+        {/* Use a default status bar style or make it configurable elsewhere */}
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor={DEFAULT_BACKGROUND_COLOR}
+        />
+        <AppNavigator user={user} />
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
 
