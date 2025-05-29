@@ -56,12 +56,12 @@ mongoose
   .catch((err) => console.error('MongoDB connection error:', err));
 
 // Use authentication routes
-app.use('/auth', authRoutes); // Changed from /api/auth to /auth to match mobile app
-app.use('/ai', aiRoutes); // Changed from /api/ai to /ai
-app.use('/file', fileRoutes); // Changed from /api/file to /file
-app.use('/calendar', calendarRoutes); // Added calendar routes
-app.use('/srs', spacedRepetitionRoutes); // Add spaced repetition routes
-app.use('/study-plans', studyPlansRoutes); // Add study plans routes
+app.use('/api/auth', authRoutes); // Changed from /api/auth to /auth to match mobile app
+app.use('/api/ai', aiRoutes); // Changed from /api/ai to /ai
+app.use('/api/file', fileRoutes); // Changed from /api/file to /file
+app.use('/api/calendar', calendarRoutes); // Added calendar routes
+app.use('/api/srs', spacedRepetitionRoutes); // Add spaced repetition routes
+app.use('/api/study-plans', studyPlansRoutes); // Add study plans routes
 
 // Start the server
 app.listen(PORT, HOST, () => {

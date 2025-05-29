@@ -30,13 +30,39 @@ const FileUploadScreen = ({ navigation, route }) => {
   const pickFile = async () => {
     setError('');
     setResult(null);
+    setFile(null); // Clear previous file selection
     try {
-      const res = await DocumentPicker.getDocumentAsync({ type: '*/*' });
-      if (res.type === 'success') {
-        setFile(res);
+      const res = await DocumentPicker.getDocumentAsync({
+        type: '*/*', // Consider more specific types if needed, e.g., ['application/pdf', 'image/*', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        copyToCacheDirectory: true, // Important for accessing the file URI
+      });
+
+      // console.log("DocumentPicker result:", res); // For debugging
+
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const selectedAsset = res.assets[0];
+        // console.log("Selected asset:", selectedAsset); // For debugging
+        if (selectedAsset.uri && selectedAsset.name) {
+            setFile({
+                uri: selectedAsset.uri,
+                name: selectedAsset.name,
+                mimeType: selectedAsset.mimeType,
+                size: selectedAsset.size,
+            });
+        } else {
+            setError('Failed to get file details from selection.');
+            Alert.alert('Error', 'Could not retrieve file details. Please try again.');
+        }
+      } else if (res.canceled) {
+        // console.log('File picking was cancelled by the user.');
+        // Optionally, provide feedback to the user that picking was cancelled.
+      } else {
+        setError('No file was selected or an unknown error occurred.');
       }
     } catch (e) {
-      setError('Failed to pick file.');
+      console.error("Error picking file:", e);
+      setError('Failed to pick file. An unexpected error occurred.');
+      Alert.alert('Error', 'An unexpected error occurred while trying to select the file.');
     }
   };
 

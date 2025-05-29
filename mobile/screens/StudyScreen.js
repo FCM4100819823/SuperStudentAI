@@ -143,7 +143,7 @@ const StudyScreen = ({ navigation }) => {
       subtitle: 'Monitor CWA/GPA & courses',
       iconName: 'school-outline',
       gradientColors: ['#FF6B6B', '#FF8E8E'], // Custom gradient
-      onPress: () => handleComingSoon('Grade Tracker'), // To be implemented
+      onPress: () => handleNavigate('GPACalculatorScreen'), // Updated to navigate to GPACalculatorScreen
       tag: 'New'
     },
     {

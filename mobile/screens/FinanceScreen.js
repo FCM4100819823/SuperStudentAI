@@ -110,7 +110,7 @@ const FinanceScreen = ({ navigation }) => {
       if (navigation.canGoBack()) {
         navigation.popToTop(); // Go to the top of the current stack
       }
-      navigation.replace('Auth'); // Replace current nav state with Auth stack
+      navigation.replace('Login'); // Changed from 'Auth' to 'Login'
       return;
     }
 
@@ -442,8 +442,12 @@ const FinanceScreen = ({ navigation }) => {
             ) : (
               // Using View instead of FlatList directly inside ScrollView to avoid virtualization issues
               // For very long lists, consider a virtualized list component designed for ScrollView if performance drops.
-              <View> 
-                {filteredTransactions.map(item => renderTransactionItem({ item }))}
+              <View>
+                {filteredTransactions.map(item =>
+                  // Ensure each item rendered by map has a unique key.
+                  // React.cloneElement can add a key to the element returned by renderTransactionItem.
+                  React.cloneElement(renderTransactionItem({ item }), { key: item.id })
+                )}
               </View>
             )}
           </View>

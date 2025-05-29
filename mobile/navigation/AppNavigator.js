@@ -20,6 +20,7 @@ import CreateStudyPlanScreen from '../screens/CreateStudyPlanScreen'; // Import 
 import StudyPlanDetailScreen from '../screens/StudyPlanDetailScreen'; // Import StudyPlanDetailScreen
 import AddStudyTaskScreen from '../screens/AddStudyTaskScreen'; // Import AddStudyTaskScreen
 import AddSpacedRepetitionItemScreen from '../screens/AddSpacedRepetitionItemScreen'; // Import AddSpacedRepetitionItemScreen
+import GPACalculatorScreen from '../screens/GPACalculatorScreen'; // Import GPACalculatorScreen
 
 import BottomTabNavigator from './BottomTabNavigator';
 
@@ -61,6 +62,7 @@ const AppNavigator = ({ user }) => {
       <RootStackNav.Screen name="StudyPlanDetail" component={StudyPlanDetailScreen} />
       <RootStackNav.Screen name="AddStudyTask" component={AddStudyTaskScreen} />
       <RootStackNav.Screen name="AddSpacedRepetitionItem" component={AddSpacedRepetitionItemScreen} />
+      <RootStackNav.Screen name="GPACalculatorScreen" component={GPACalculatorScreen} />
     </RootStackNav.Navigator>
   );
 };

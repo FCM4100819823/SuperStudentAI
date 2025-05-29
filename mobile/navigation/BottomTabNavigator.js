@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
+import { Platform, Text, View } from 'react-native'; // Added Text and View
 
 // Import your screens
 import Dashboard from '../screens/Dashboard'; // Changed from HomeScreen to Dashboard
@@ -10,6 +10,7 @@ import AppSettingsScreen from '../screens/AppSettingsScreen'; // Changed from Se
 import FocusTimerScreen from '../screens/FocusTimerScreen'; // Added FocusTimerScreen
 import WellbeingScreen from '../screens/WellbeingScreen'; // Added WellbeingScreen
 import FinanceScreen from '../screens/FinanceScreen'; // Added FinanceScreen
+import AIScreen from '../screens/AIScreen'; // Import AIScreen
 
 const Tab = createBottomTabNavigator();
 
@@ -42,10 +43,22 @@ const BottomTabNavigator = () => {
           paddingBottom: Platform.OS === 'ios' ? 30 : 5, // Padding for notch/home indicator
           paddingTop: 5,
         },
-        tabBarLabelStyle: {
-          fontFamily: defaultFallbackFonts.medium,
-          fontSize: 10,
-          marginBottom: Platform.OS === 'ios' ? -5 : 0, // Adjust label position
+        tabBarLabel: ({ focused, color }) => { // Changed from tabBarLabelStyle to tabBarLabel function
+          let label;
+          if (route.name === 'Dashboard') {
+            label = 'Home';
+          } else if (route.name === 'Study') {
+            label = 'Study Hub';
+          } else if (route.name === 'Wellbeing') {
+            label = 'Wellbeing';
+          } else if (route.name === 'Finance') {
+            label = 'Finances';
+          } else if (route.name === 'AI') { // Added AI label
+            label = 'AI Chat';
+          } else if (route.name === 'SettingsTab') {
+            label = 'Settings';
+          }
+          return <Text style={{ color, fontFamily: defaultFallbackFonts.medium, fontSize: 10, marginBottom: Platform.OS === 'ios' ? -5 : 0 }}>{label}</Text>;
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
@@ -73,37 +86,31 @@ const BottomTabNavigator = () => {
       <Tab.Screen
         name="Dashboard"
         component={Dashboard}
-        options={{
-          title: 'Home',
-        }}
+        // options={{ title: 'Home' }} // Title is now handled by tabBarLabel
       />
       <Tab.Screen
         name="Study"
         component={StudyScreen} 
-        options={{
-          title: 'Study Hub', // Updated title
-        }}
+        // options={{ title: 'Study Hub' }} // Title is now handled by tabBarLabel
       />
       <Tab.Screen // Added Wellbeing Tab
         name="Wellbeing"
         component={WellbeingScreen}
-        options={{
-          title: 'Wellbeing',
-        }}
+        // options={{ title: 'Wellbeing' }} // Title is now handled by tabBarLabel
       />
       <Tab.Screen // Added Finance Tab
         name="Finance"
         component={FinanceScreen}
-        options={{
-          title: 'Finances',
-        }}
+        // options={{ title: 'Finances' }} // Title is now handled by tabBarLabel
+      />
+      <Tab.Screen // Added AI Tab
+        name="AI"
+        component={AIScreen}
       />
       <Tab.Screen
         name="SettingsTab" 
         component={AppSettingsScreen} 
-        options={{
-          title: 'Settings',
-        }}
+        // options={{ title: 'Settings' }} // Title is now handled by tabBarLabel
       />
     </Tab.Navigator>
   );

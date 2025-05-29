@@ -85,7 +85,7 @@ const AppSettingsScreen = ({ navigation }) => {
     if (!userId) {
       Alert.alert("Error", "User not authenticated.");
       setLoading(false);
-      navigation.replace('Auth'); 
+      navigation.replace('Login'); // Changed from 'Auth' to 'Login'
       return;
     }
     setLoading(true);

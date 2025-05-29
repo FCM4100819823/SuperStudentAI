@@ -106,7 +106,8 @@ const AIScreen = ({ navigation }) => {
       const isSyllabusTextAnalysis = currentInput.toLowerCase().includes('analyze syllabus text:') || currentInput.toLowerCase().startsWith('syllabus text:');
       
       let endpoint = NLP_API_ENDPOINT;
-      let payload = { text: currentInput, model: 'mistralai/Mistral-7B-Instruct-v0.1' };
+      // Remove model from payload, backend will handle model selection
+      let payload = { text: currentInput };
 
       if (isSyllabusTextAnalysis) {
         endpoint = SYLLABUS_TEXT_ANALYSIS_ENDPOINT;
@@ -125,10 +126,12 @@ const AIScreen = ({ navigation }) => {
       if (isSyllabusTextAnalysis && response.data.analysis) {
         const { assignments, topics, dates } = response.data.analysis;
         aiResponseText = `Syllabus Text Analysis Complete:\n\nAssignments (${assignments.length}):\n${assignments.map(a => `- ${a.name}${a.dueDate ? ` (Due: ${a.dueDate.dateString})` : ''}`).join('\n')}\n\nTopics (${topics.length}):\n${topics.map(t => `- ${t.name}`).join('\n')}\n\nKey Dates Found (${dates.length}):\n${dates.map(d => `- ${d.dateString}${d.parsedDate ? ` (Parsed: ${new Date(d.parsedDate).toLocaleDateString()})` : ''}`).join('\n')}`;
-      } else if (response.data.result && Array.isArray(response.data.result) && response.data.result[0]?.generated_text) {
-        aiResponseText = response.data.result[0].generated_text;
-      } else if (response.data.result && typeof response.data.result === 'string') {
+      } else if (response.data.result && typeof response.data.result === 'string') { // Check for string first
         aiResponseText = response.data.result;
+      } else if (response.data.result && Array.isArray(response.data.result) && response.data.result[0]?.generated_text) { // Then check for the array structure
+        aiResponseText = response.data.result[0].generated_text;
+      } else if (response.data.generated_text && typeof response.data.generated_text === 'string') { // Check for top-level generated_text (OpenRouter direct response)
+        aiResponseText = response.data.generated_text;
       } else if (response.data.message) {
         aiResponseText = response.data.message;
       } else {

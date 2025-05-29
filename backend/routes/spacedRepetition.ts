@@ -17,14 +17,14 @@ import {
 const router = express.Router();
 
 // Middleware to get user ID (adapt to your actual auth middleware)
-const getUserId = (req: AuthenticatedRequest): mongoose.Types.ObjectId => {
+const getUserId = (req: AuthenticatedRequest): string => {
   if (!req.user?.uid) {
     // Ensure req.user and req.user.uid exist
     throw new Error(
       'User ID not found in request. Authentication might have failed or user object is not populated correctly.',
     );
   }
-  return new mongoose.Types.ObjectId(req.user.uid);
+  return req.user.uid; // Return the Firebase UID string directly
 };
 
 // POST /api/srs/items - Add a new spaced repetition item
@@ -37,8 +37,8 @@ router.post(
       const {
         originalContent,
         answerContent,
-        studyPlanId,
-        taskId,
+        studyPlanId, // Keep as string or undefined
+        taskId,      // Keep as string or undefined
         source,
         tags,
       } = req.body;
@@ -49,12 +49,23 @@ router.post(
           .json({ message: 'Original content is required.' });
       }
 
+      // Validate ObjectId strings before conversion
+      const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id);
+
+      const validStudyPlanId = studyPlanId && isValidObjectId(studyPlanId) 
+        ? new mongoose.Types.ObjectId(studyPlanId) 
+        : undefined;
+      
+      const validTaskId = taskId && isValidObjectId(taskId)
+        ? new mongoose.Types.ObjectId(taskId)
+        : undefined;
+
       const newItem = await addSpacedRepetitionItem(
-        userId,
+        userId, // Pass the string userId directly
         originalContent,
         answerContent,
-        studyPlanId ? new mongoose.Types.ObjectId(studyPlanId) : undefined,
-        taskId ? new mongoose.Types.ObjectId(taskId) : undefined,
+        validStudyPlanId, // Pass validated ObjectId or undefined
+        validTaskId,      // Pass validated ObjectId or undefined
         source,
         tags,
       );
@@ -71,7 +82,7 @@ router.get(
   authenticateToken,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = getUserId(req);
+      const userId = getUserId(req); // userId is now a string
       const dueItems = await getDueReviewItems(userId);
       res.status(200).json(dueItems);
     } catch (error) {
@@ -86,8 +97,8 @@ router.get(
   authenticateToken,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = getUserId(req);
-      const itemId = new mongoose.Types.ObjectId(req.params.itemId);
+      const userId = getUserId(req); // userId is now a string
+      const itemId = new mongoose.Types.ObjectId(req.params.itemId); // itemId is still an ObjectId
       const item = await getSpacedRepetitionItemById(itemId, userId);
       if (!item) {
         return res.status(404).json({ message: 'Item not found.' });
@@ -105,8 +116,8 @@ router.put(
   authenticateToken,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = getUserId(req);
-      const itemId = new mongoose.Types.ObjectId(req.params.itemId);
+      const userId = getUserId(req); // userId is now a string
+      const itemId = new mongoose.Types.ObjectId(req.params.itemId); // itemId is still an ObjectId
       const { quality } = req.body; // User's performance rating (e.g., 0-5)
 
       if (quality === undefined || quality < 0 || quality > 5) {
@@ -134,8 +145,8 @@ router.put(
   authenticateToken,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = getUserId(req);
-      const itemId = new mongoose.Types.ObjectId(req.params.itemId);
+      const userId = getUserId(req); // userId is now a string
+      const itemId = new mongoose.Types.ObjectId(req.params.itemId); // itemId is still an ObjectId
       const { originalContent, answerContent, tags } = req.body;
 
       const updatedItem = await updateSpacedRepetitionItemContent(

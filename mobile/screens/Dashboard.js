@@ -12,6 +12,7 @@ import {
   Platform,
   StatusBar,
   Dimensions,
+  Animated, // Added Animated
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context'; // Added import from react-native-safe-area-context
 import { signOut } from 'firebase/auth';
@@ -67,9 +68,9 @@ const STATIC_COLORS = {
   moodSad: '#A9A9A9',
   moodStressed: '#FFA07A',
   // Updated Colors for "Your Day At a Glance" cards
-  overviewTaskCard: ['#5E35B1', '#4527A0'], // Deeper Purple gradient for tasks
-  overviewCalendarCard: ['#00796B', '#004D40'], // Teal gradient for calendar
-  overviewTipCard: ['#FF8F00', '#FF6F00'], // Darker Amber gradient for tips
+  overviewTaskCard: ['#6D55F7', '#5438DC'], // Vibrant Blue/Purple
+  overviewCalendarCard: ['#10B981', '#059669'], // Emerald Green
+  overviewTipCard: ['#F59E0B', '#D97706'],    // Amber/Orange
 };
 
 
@@ -135,6 +136,13 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
   const [currentMood, setCurrentMood] = useState(null);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [currentStudyTip, setCurrentStudyTip] = useState('');
+
+  // Animated values for "Your Day At a Glance" cards
+  const [taskCardAnim] = useState(new Animated.ValueXY({ x: 0, y: 50 })); // y for slide, x for opacity
+  const [calendarCardAnim] = useState(new Animated.ValueXY({ x: 0, y: 50 }));
+  const [tipCardAnim] = useState(new Animated.ValueXY({ x: 0, y: 50 }));
+  const [animationsDone, setAnimationsDone] = useState(false);
+
 
   const getRandomTip = useCallback(() => {
     const randomIndex = Math.floor(Math.random() * studyTips.length);
@@ -309,9 +317,12 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
           fetchUpcomingTasks(),
         ]);
       }
-      // setLoading(false) is primarily handled by fetchUserProfile\'s onSnapshot callback.
+      // setLoading(false) is primarily handled by fetchUserProfile\\\'s onSnapshot callback.
       // If the Promise.all above takes significant time, the UI might show "loaded" 
       // (from profile fetch) while these are still pending. This is a common pattern.
+      
+      // Start animations after initial data load attempt (loading might still be true due to onSnapshot)
+      // We will trigger animations more reliably when `loading` becomes false.
     };
 
     initializeDashboard();
@@ -324,6 +335,53 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
     // REMOVED profileData from the dependency array to prevent the infinite loop.
     // The onSnapshot within fetchUserProfile handles reactivity for profileData changes.
   }, [currentUser?.uid, fetchUserProfile, fetchDashboardData, fetchCurrentMood, fetchUpcomingTasks, getRandomTip]);
+
+  // Effect to run animations when loading is complete
+  useEffect(() => {
+    if (!loading && !animationsDone) {
+      Animated.stagger(150, [
+        Animated.parallel([
+          Animated.timing(taskCardAnim.y, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(taskCardAnim.x, { // Using x for opacity
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(calendarCardAnim.y, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(calendarCardAnim.x, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(tipCardAnim.y, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(tipCardAnim.x, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start(() => {
+        setAnimationsDone(true); // Ensure animations run only once per load
+      });
+    }
+  }, [loading, animationsDone, taskCardAnim, calendarCardAnim, tipCardAnim]);
+
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -442,20 +500,48 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
     return (
       <View style={styles.centeredLoader}>
         <ActivityIndicator size="large" color={STATIC_COLORS.primary} />
-        <Text style={styles.loadingText}>Loading Dashboard...</Text>
+        <Text style={styles.loadingText}>Loading your dashboard...</Text>
       </View>
     );
   }
 
+  if (error && !profileData) { // Show error if profile data failed to load and there's an error message
+    return (
+      <SafeAreaView style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity onPress={onRefresh} style={styles.retryButton}>
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+  
+  // Fallback if profileData is null but no specific error message (e.g. user not found but not an API error)
+  if (!profileData) {
+    return (
+      <SafeAreaView style={styles.centeredLoader}>
+        <Text style={styles.errorText}>Could not load profile. Please try logging out and back in.</Text>
+        <TouchableOpacity onPress={handleSignOut} style={[styles.retryButton, {marginTop: 20}]}>
+            <Text style={styles.retryButtonText}>Sign Out</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+
   return (
-    <SafeAreaView style={styles.screenContainer}>
-      <View style={{flex: 1, width: '100%'}}>
+    // <LinearGradient
+    //   colors={STATIC_COLORS.gradientPrimary} // Using Deep Purple Gradient
+    //   style={styles.container}
+    // >
+    <View style={styles.container}>
+      <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'light-content'} backgroundColor={STATIC_COLORS.primaryDark} />
+      <SafeAreaView style={styles.safeArea}>
         <ScrollView
           style={styles.screen}
           contentContainerStyle={styles.scrollContentContainer}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[STATIC_COLORS.primary]} />}
         >
-          <StatusBar barStyle="light-content" backgroundColor={STATIC_COLORS.primaryDark} />
           <LinearGradient
             colors={STATIC_COLORS.gradientPrimary}
             style={styles.header}
@@ -574,87 +660,94 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
             <Text style={styles.sectionTitle}>Your Day At a Glance</Text>
             
             {/* Upcoming Tasks Card */}
-            <LinearGradient colors={STATIC_COLORS.overviewTaskCard} style={[styles.overviewCard, styles.overviewCardShadow]}>
-              <View style={styles.overviewCardHeader}>
-                <Ionicons name="list-circle-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
-                <Text style={styles.overviewCardTitle}>Upcoming Tasks</Text>
-              </View>
-              {upcomingTasks.length > 0 ? (
-                upcomingTasks.map(task => (
-                  <TouchableOpacity 
-                    key={task.id} 
-                    style={styles.overviewItem}
-                    onPress={() => navigation.navigate('TaskManager', { screen: 'AddTask', params: { task: task }})} // Navigate to task details or edit
-                  >
-                    <Ionicons name="chevron-forward-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
-                    <View style={styles.overviewItemTextContainer}>
-                      <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>{task.title}</Text>
-                      {task.dueDate && (
-                        <Text style={[styles.overviewItemTextSecondary, styles.textOnOverviewCardMuted]}>
-                          Due: {new Date(task.dueDate.seconds * 1000).toLocaleDateString()}
-                        </Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <View style={styles.overviewItem}>
-                  <Ionicons name="checkmark-done-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
-                  <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>No pressing tasks. Well done!</Text>
+            <Animated.View style={{ opacity: taskCardAnim.x, transform: [{ translateY: taskCardAnim.y }] }}>
+              <LinearGradient colors={STATIC_COLORS.overviewTaskCard} style={[styles.overviewCard, styles.overviewCardShadow]}>
+                <View style={styles.overviewCardHeader}>
+                  <Ionicons name="list-circle-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
+                  <Text style={styles.overviewCardTitle}>Upcoming Tasks</Text>
                 </View>
-              )}
-              <TouchableOpacity onPress={() => navigation.navigate('Study', { screen: 'TaskManager' })} style={[styles.viewAllButton, styles.viewAllButtonTasks]}>
+                {upcomingTasks.length > 0 ? (
+                  upcomingTasks.map(task => (
+                    <TouchableOpacity 
+                      key={task.id} 
+                      style={styles.overviewItem}
+                      onPress={() => navigation.navigate('TaskManager', { screen: 'AddTask', params: { task: task }})} // Navigate to task details or edit
+                    >
+                      <Ionicons name="chevron-forward-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+                      <View style={styles.overviewItemTextContainer}>
+                        <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>{task.title}</Text>
+                        {task.dueDate && (
+                          <Text style={[styles.overviewItemTextSecondary, styles.textOnOverviewCardMuted]}>
+                            Due: {new Date(task.dueDate.seconds * 1000).toLocaleDateString()}
+                          </Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <View style={styles.overviewItem}>
+                    <Ionicons name="checkmark-done-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+                    <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>No pressing tasks. Well done!</Text>
+                  </View>
+                )}
+                <TouchableOpacity onPress={() => navigation.navigate('Study', { screen: 'TaskManager' })} style={[styles.viewAllButton, styles.viewAllButtonTasks]}>
                  <Text style={styles.viewAllButtonText}>View All Tasks</Text>
-              </TouchableOpacity>
-            </LinearGradient>
+                </TouchableOpacity>
+              </LinearGradient>
+            </Animated.View>
 
             {/* Calendar Events Placeholder Card */}
-            <LinearGradient colors={STATIC_COLORS.overviewCalendarCard} style={[styles.overviewCard, styles.overviewCardShadow]}>
-              <View style={styles.overviewCardHeader}>
-                <Ionicons name="calendar-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
-                <Text style={styles.overviewCardTitle}>Calendar Events</Text>
-              </View>
-              <View style={styles.overviewItem}>
-                <Ionicons name="information-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
-                <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>Device calendar integration coming soon!</Text>
-              </View>
-               {/* <TouchableOpacity onPress={() => {}} style={[styles.viewAllButton, styles.viewAllButtonCalendar]}>
-                 <Text style={styles.viewAllButtonText}>Open Calendar</Text>
-               </TouchableOpacity> */}
-            </LinearGradient>
+            <Animated.View style={{ opacity: calendarCardAnim.x, transform: [{ translateY: calendarCardAnim.y }] }}>
+              <LinearGradient colors={STATIC_COLORS.overviewCalendarCard} style={[styles.overviewCard, styles.overviewCardShadow]}>
+                <View style={styles.overviewCardHeader}>
+                  <Ionicons name="calendar-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
+                  <Text style={styles.overviewCardTitle}>Calendar Events</Text>
+                </View>
+                <View style={styles.overviewItem}>
+                  <Ionicons name="information-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+                  <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>Device calendar integration coming soon!</Text>
+                </View>
+                 {/* <TouchableOpacity onPress={() => {}} style={[styles.viewAllButton, styles.viewAllButtonCalendar]}>
+                   <Text style={styles.viewAllButtonText}>Open Calendar</Text>
+                 </TouchableOpacity> */}
+              </LinearGradient>
+            </Animated.View>
 
             {/* Study Tip Card */}
             {currentStudyTip && (
-              <LinearGradient colors={STATIC_COLORS.overviewTipCard} style={[styles.overviewCard, styles.overviewCardShadow]}>
-                <View style={styles.overviewCardHeader}>
-                  <Ionicons name="bulb-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
-                  <Text style={styles.overviewCardTitle}>Study Tip</Text>
-                </View>
-                <View style={styles.overviewItem}>
-                    <Ionicons name="star-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
-                    <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>{currentStudyTip}</Text>
-                </View>
-                <TouchableOpacity onPress={getRandomTip} style={[styles.viewAllButton, styles.viewAllButtonTip]}>
-                    <Text style={styles.viewAllButtonText}>Get Another Tip</Text>
-                </TouchableOpacity>
-              </LinearGradient>
+              <Animated.View style={{ opacity: tipCardAnim.x, transform: [{ translateY: tipCardAnim.y }] }}>
+                <LinearGradient colors={STATIC_COLORS.overviewTipCard} style={[styles.overviewCard, styles.overviewCardShadow]}>
+                  <View style={styles.overviewCardHeader}>
+                    <Ionicons name="bulb-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
+                    <Text style={styles.overviewCardTitle}>Study Tip</Text>
+                  </View>
+                  <View style={styles.overviewItem}>
+                      <Ionicons name="star-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+                      <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>{currentStudyTip}</Text>
+                  </View>
+                  <TouchableOpacity onPress={getRandomTip} style={[styles.viewAllButton, styles.viewAllButtonTip]}>
+                      <Text style={styles.viewAllButtonText}>Get Another Tip</Text>
+                  </TouchableOpacity>
+                </LinearGradient>
+              </Animated.View>
             )}
           </View>
 
         </ScrollView>
-        {/* Floating Action Button for AI Assistant - Placed outside ScrollView for fixed positioning */}
-        <TouchableOpacity
-            style={styles.fab}
-            onPress={() => navigation.navigate('AIScreen')} // Ensure AIScreen is a valid route name in your navigator
-          >
-            <Ionicons name="sparkles-outline" size={30} color={STATIC_COLORS.textOnPrimary} />
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView> // Changed View to SafeAreaView
+      </SafeAreaView>
+    {/* </LinearGradient> */}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: STATIC_COLORS.primary, // Added fallback background color
+  },
+  safeArea: {
+    flex: 1,
+  },
   screenContainer: { // New style to wrap ScrollView and FAB
     flex: 1,
     backgroundColor: STATIC_COLORS.background,

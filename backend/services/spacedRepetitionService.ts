@@ -58,7 +58,7 @@ export const calculateNextReview = (
 };
 
 export const addSpacedRepetitionItem = async (
-  userId: mongoose.Types.ObjectId,
+  userId: string, // Changed to string
   originalContent: string,
   answerContent?: string,
   studyPlanId?: mongoose.Types.ObjectId,
@@ -91,7 +91,7 @@ export const addSpacedRepetitionItem = async (
 
 export const reviewSpacedRepetitionItem = async (
   itemId: mongoose.Types.ObjectId,
-  userId: mongoose.Types.ObjectId, // Ensure the item belongs to the user
+  userId: string, // Changed to string
   performance: ReviewPerformance,
 ): Promise<ISpacedRepetitionItem | null> => {
   const item = await SpacedRepetitionItem.findOne({ _id: itemId, userId });
@@ -107,7 +107,7 @@ export const reviewSpacedRepetitionItem = async (
 };
 
 export const getDueReviewItems = async (
-  userId: mongoose.Types.ObjectId,
+  userId: string, // Changed to string
 ): Promise<ISpacedRepetitionItem[]> => {
   return SpacedRepetitionItem.find({
     userId,
@@ -117,14 +117,14 @@ export const getDueReviewItems = async (
 
 export const getSpacedRepetitionItemById = async (
   itemId: mongoose.Types.ObjectId,
-  userId: mongoose.Types.ObjectId,
+  userId: string, // Changed to string
 ): Promise<ISpacedRepetitionItem | null> => {
   return SpacedRepetitionItem.findOne({ _id: itemId, userId });
 };
 
 export const updateSpacedRepetitionItemContent = async (
   itemId: mongoose.Types.ObjectId,
-  userId: mongoose.Types.ObjectId,
+  userId: string, // Changed to string
   updates: {
     originalContent?: string;
     answerContent?: string;
@@ -145,7 +145,7 @@ export const updateSpacedRepetitionItemContent = async (
 
 export const deleteSpacedRepetitionItem = async (
   itemId: mongoose.Types.ObjectId,
-  userId: mongoose.Types.ObjectId,
+  userId: string, // Changed to string
 ): Promise<boolean> => {
   const result = await SpacedRepetitionItem.deleteOne({ _id: itemId, userId });
   if (result.deletedCount === 0) {

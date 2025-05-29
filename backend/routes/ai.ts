@@ -23,6 +23,18 @@ const limiter: ExpressRequestHandler = rateLimitImport({
 const aiCache: Record<string, { result: any; timestamp: number }> = {};
 const CACHE_TTL = 60 * 1000; // 1 minute
 
+// Define a new interface for the NLP request body
+interface NlpRequest {
+  text: string;
+  model?: string; // Optional: specify a model
+  user?: string; // Optional: user identifier for logging
+}
+
+// Commenting out unused constants, as the specific Hugging Face endpoint will be used directly
+// const EXTERNAL_AI_SERVICE_URL = process.env.EXTERNAL_AI_NLP_URL || \'https://api.example.com/nlp\';
+// const EXTERNAL_AI_API_KEY = process.env.EXTERNAL_AI_API_KEY || \'your-api-key\';
+
+
 // Configure multer for file uploads (memory storage)
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -174,7 +186,8 @@ function parseAIOptimizationResponse(aiResponse: any): {
     } catch (e) {
       console.error('Failed to parse AI optimization response:', e);
     }
-    return { tasks: [], suggestions: generatedText };
+    // If parsing fails or structure is not as expected, return generatedText as suggestion
+    return { tasks: [], suggestions: generatedText }; 
   }
   console.warn('Could not parse optimization from AI response.');
   return {
@@ -186,37 +199,93 @@ function parseAIOptimizationResponse(aiResponse: any): {
 router.post('/nlp', limiter, async (req: Request, res: Response) => {
   const {
     text,
-    model = 'distilbert-base-uncased-finetuned-sst-2-english',
-    user = 'anonymous',
-  } = req.body;
-  if (!text) return res.status(400).json({ message: 'Text is required.' });
-  console.log(
-    `[AI] User: ${user}, Model: ${model}, Text length: ${text.length}, Time: ${new Date().toISOString()}`,
-  );
-  const cacheKey = `${model}:${text}`;
-  const cached = aiCache[cacheKey];
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return res.json({ result: cached.result, cached: true });
+    // model: requestedModel, // Keep this if you want to allow model selection from frontend
+    user,
+  }: NlpRequest = req.body;
+
+  if (!text) {
+    return res.status(400).json({ error: 'Text is required' });
   }
-  try {
-    const hfResponse = await axios.post(
-      `https://api-inference.huggingface.co/models/${model}`,
-      { inputs: text },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.HF_API_TOKEN}`,
-          'Content-Type': 'application/json',
+
+  const cacheKey = `nlp-${text}`;
+  if (aiCache[cacheKey] && Date.now() - aiCache[cacheKey].timestamp < CACHE_TTL) {
+    console.log('Returning cached NLP result for:', text);
+    return res.json(aiCache[cacheKey].result);
+  }
+
+  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+
+  if (!openRouterApiKey) {
+    console.error('OpenRouter API key not configured.');
+    return res.status(500).json({ error: 'AI service not configured.' });
+  }
+
+  const modelsToTry = [
+    'mistralai/mistral-7b-instruct', // Preferred
+    'openai/gpt-3.5-turbo',
+    'google/gemini-flash-1.5',
+    'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', // Free model
+    // 'huggingfaceh4/zephyr-7b-beta', // Removed as per user preference
+  ];
+
+  let lastError: any = null;
+
+  for (const model of modelsToTry) {
+    try {
+      console.log(`Attempting AI NLP request with model: ${model} for text: "${text}"`);
+      const response = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        {
+          model: model,
+          messages: [{ role: 'user', content: text }],
         },
-        timeout: 13000,
-      },
-    );
-    aiCache[cacheKey] = { result: hfResponse.data, timestamp: Date.now() };
-    res.json({ result: hfResponse.data, cached: false });
-  } catch (error: any) {
-    const msg =
-      error.response?.data?.error || error.message || 'AI request failed.';
-    res.status(500).json({ message: `Hugging Face API error: ${msg}` });
+        {
+          headers: {
+            Authorization: `Bearer ${openRouterApiKey}`,
+            'Content-Type': 'application/json',
+            // 'HTTP-Referer': 'YOUR_SITE_URL', // Optional: Replace with your actual site URL
+            // 'X-Title': 'YOUR_SITE_NAME', // Optional: Replace with your actual site name
+          },
+        },
+      );
+
+      if (response.data && response.data.choices && response.data.choices.length > 0 && response.data.choices[0].message && response.data.choices[0].message.content) {
+        const result = { generated_text: response.data.choices[0].message.content };
+        aiCache[cacheKey] = { result, timestamp: Date.now() };
+        console.log(`AI NLP request successful with model: ${model}. Response:`, result);
+        return res.json(result);
+      } else {
+        console.warn(`Received unexpected response structure from OpenRouter with model ${model}:\n`, response.data);
+        lastError = {
+          status: 500,
+          message: 'AI service returned an unexpected response structure.',
+          details: response.data,
+        };
+      }
+    } catch (error: any) {
+      lastError = error;
+      console.error(
+        `Error calling OpenRouter API with model ${model}:`,
+        error.response ? JSON.stringify(error.response.data, null, 2) : error.message,
+      );
+    }
   }
+
+  // If all models failed
+  console.error(
+    'All AI models failed. Last error:',
+    lastError.response ? JSON.stringify(lastError.response.data, null, 2) : lastError.message,
+  );
+  
+  const status = lastError.response?.status || 500;
+  const message = lastError.response?.data?.error?.message || 'AI service request failed after multiple attempts.';
+  const details = lastError.response?.data || lastError.message;
+
+  return res.status(status).json({
+    error: message,
+    details: details,
+    message: `AI request failed for text: "${text}" after trying models: ${modelsToTry.join(', ')}. Last model tried: ${modelsToTry[modelsToTry.length -1]}.`,
+  });
 });
 
 router.post('/study-plan/generate', async (req: Request, res: Response) => {
@@ -234,66 +303,111 @@ router.post('/study-plan/generate', async (req: Request, res: Response) => {
   console.log(
     `[AI Study Plan Generate] User: ${userId}, Time: ${new Date().toISOString()}`,
   );
-  const model =
-    process.env.STUDY_PLAN_MODEL || 'mistralai/Mistral-7B-Instruct-v0.1';
-  let prompt = `You are an AI assistant helping a student create a study plan. Based on the following information, generate a list of actionable tasks. Each task should include a title, a brief description, and an estimated number of hours to complete. Try to order the tasks logically. Return the tasks as a JSON array of objects, where each object has "title", "description", and "estimatedHours" keys. Example: [{"title": "Read Chapter 1", "description": "Focus on key concepts.", "estimatedHours": 2}] Syllabus Information: ${syllabusText || 'Not provided.'} User Goals: ${userGoals || 'Not provided.'} Existing Tasks (if any, to avoid duplication or to build upon): ${existingTasks.length > 0 ? JSON.stringify(existingTasks) : 'None.'} Generated JSON Task Array:`;
-  try {
-    console.log(
-      `[AI Study Plan Generate] Sending request to Hugging Face model: ${model}`,
-    );
-    const hfResponse = await axios.post(
-      `https://api-inference.huggingface.co/models/${model}`,
-      {
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 512,
-          return_full_text: false,
-          temperature: 0.7,
-        },
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.HF_API_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 30000,
-      },
-    );
-    const generatedTasks = parseAIResponseToTasks(hfResponse.data);
-    if (generatedTasks.length === 0 && hfResponse.data[0]?.generated_text) {
-      return res
-        .status(200)
-        .json({
-          tasks: [],
-          message:
-            "AI generated some text, but it couldn't be parsed into tasks. Raw output: " +
-            hfResponse.data[0].generated_text,
-        });
-    }
-    res.json({
-      tasks: generatedTasks,
-      message:
-        generatedTasks.length > 0
-          ? 'Study plan tasks generated successfully.'
-          : 'AI could not generate tasks based on the input.',
-    });
-  } catch (error: any) {
-    console.error(
-      'Error generating study plan tasks with AI:',
-      error.response ? error.response.data : error.message,
-    );
-    let errorMessage = 'Failed to generate study plan tasks with AI.';
-    if (error.response && error.response.data && error.response.data.error) {
-      errorMessage += ` Model Error: ${error.response.data.error}`;
-      if (error.response.data.error_type === 'Overloaded') {
-        errorMessage +=
-          ' The model is currently overloaded. Please try again later.';
-      }
-    } else if (error.code === 'ECONNABORTED') {
-      errorMessage += ' The request to the AI model timed out.';
-    }
-    res.status(500).json({ message: errorMessage, error: error.message });
+
+  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+  if (!openRouterApiKey) {
+    console.error('[AI Study Plan Generate] OpenRouter API key not configured.');
+    return res.status(500).json({ error: 'AI service not configured (key missing).' });
   }
+
+  // Define models to try with OpenRouter for study plan generation
+  const preferredModel = process.env.STUDY_PLAN_MODEL || 'mistralai/mistral-7b-instruct';
+  const fallbackModels = [
+    'openai/gpt-3.5-turbo',
+    'google/gemini-flash-1.5',
+    'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', // Free model
+    // 'huggingfaceh4/zephyr-7b-beta', // Removed as per user preference
+  ];
+  const modelsToTry = [preferredModel, ...fallbackModels.filter(m => m !== preferredModel)];
+
+  let prompt = `You are an AI assistant helping a student create a study plan. Based on the following information, generate a list of actionable tasks. Each task should include a title, a brief description, and an estimated number of hours to complete. Try to order the tasks logically. Return the tasks as a JSON array of objects, where each object has "title", "description", and "estimatedHours" keys. Example: [{"title": "Read Chapter 1", "description": "Focus on key concepts.", "estimatedHours": 2}] Syllabus Information: ${syllabusText || 'Not provided.'} User Goals: ${userGoals || 'Not provided.'} Existing Tasks (if any, to avoid duplication or to build upon): ${existingTasks.length > 0 ? JSON.stringify(existingTasks) : 'None.'} Generated JSON Task Array:`;
+
+  let lastError: any = null;
+
+  for (const model of modelsToTry) {
+    try {
+      console.log(
+        `[AI Study Plan Generate] Attempting with OpenRouter model: ${model}`,
+      );
+      const response = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        {
+          model: model,
+          messages: [{ role: 'user', content: prompt }],
+          // Consider response_format for models that support it, e.g., response_format: { type: "json_object" }
+          // For now, relying on prompt engineering for JSON output.
+          max_tokens: 1024, // Increased max_tokens for potentially long study plans
+          temperature: 0.5, // Adjusted temperature for more deterministic JSON output
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${openRouterApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 45000, // Increased timeout for study plan generation
+        },
+      );
+
+      if (response.data && response.data.choices && response.data.choices.length > 0 && response.data.choices[0].message && response.data.choices[0].message.content) {
+        const generatedText = response.data.choices[0].message.content;
+        // Adapt the response to what parseAIResponseToTasks expects
+        const generatedTasks = parseAIResponseToTasks([{ generated_text: generatedText }]);
+        
+        if (generatedTasks.length === 0 && generatedText) {
+          console.warn(`[AI Study Plan Generate] Model ${model} generated text, but it couldn't be parsed into tasks. Raw output: ${generatedText.substring(0, 200)}...`);
+          // Fallback or specific handling if parsing fails but text is present
+        }
+
+        // Even if parsing fails, if we have some text, we might want to return it or log it.
+        // For now, we prioritize successfully parsed tasks.
+        return res.json({
+          tasks: generatedTasks,
+          message:
+            generatedTasks.length > 0
+              ? 'Study plan tasks generated successfully.'
+              : 'AI could not generate structured tasks based on the input, though it may have provided text.',
+          modelUsed: model,
+          rawOutput: generatedTasks.length === 0 ? generatedText : undefined, // Include raw output if parsing failed
+        });
+      } else {
+        console.warn(
+          `[AI Study Plan Generate] Received unexpected response structure from OpenRouter with model ${model}:\n`,
+          JSON.stringify(response.data, null, 2)
+        );
+        lastError = {
+          message: 'AI service returned an unexpected response structure.',
+          details: response.data,
+          modelAttempted: model,
+        };
+      }
+    } catch (error: any) {
+      lastError = error;
+      console.error(
+        `[AI Study Plan Generate] Error with OpenRouter model ${model}:`,
+        error.response ? JSON.stringify(error.response.data, null, 2) : error.message,
+      );
+      if (error.code === 'ECONNABORTED') {
+        console.warn(`[AI Study Plan Generate] Request to OpenRouter model ${model} timed out.`);
+      }
+      // Continue to the next model
+    }
+  }
+
+  // If all models failed
+  console.error('[AI Study Plan Generate] All OpenRouter models failed.');
+  const statusCode = lastError?.response?.status || 500;
+  let errorMessage = 'Failed to generate study plan tasks with AI after multiple attempts.';
+  if (lastError?.response?.data?.error?.message) {
+    errorMessage = lastError.response.data.error.message;
+  } else if (lastError?.message) {
+    errorMessage = lastError.message;
+  }
+
+  return res.status(statusCode).json({ 
+    message: errorMessage, 
+    error: lastError?.response?.data || lastError?.message, 
+    modelAttempted: lastError?.modelAttempted || modelsToTry[modelsToTry.length -1]
+  });
 });
 
 router.post('/study-plan/optimize', async (req: Request, res: Response) => {
@@ -308,78 +422,457 @@ router.post('/study-plan/optimize', async (req: Request, res: Response) => {
       });
   }
   console.log(
-    `[AI Study Plan Optimize] User: ${userId}, Goal: ${optimizationGoal}, Time: ${new Date().toISOString()}`,
+    `[AI Study Plan Optimize] User: ${userId}, Goal: ${optimizationGoal}, Time: ${new Date().toISOString()}`
   );
-  const model =
-    process.env.STUDY_PLAN_OPTIMIZE_MODEL ||
-    'mistralai/Mistral-7B-Instruct-v0.1';
-  let prompt = `You are an AI assistant helping a student optimize their study plan. The student has the following list of tasks: ${JSON.stringify(tasks, null, 2)} The student's goal for optimization is: "${optimizationGoal || 'General improvement and logical ordering'}". Additional context from the student: "${userContext || 'None'}" Please analyze these tasks and provide: 1. An "optimizedTasks" list: This could be a re-ordered version of the tasks, tasks might be merged, split, or have their descriptions/estimatedHours adjusted. 2. A "suggestions" string: Textual advice on how to approach the study plan, potential issues, or other tips. Return your response as a single JSON object with two keys: "optimizedTasks" (an array of task objects) and "suggestions" (a string). Example: {"optimizedTasks": [{"title": "Review Topic B (priority)", "description": "...", "estimatedHours": 2}], "suggestions": "Consider allocating more time for X..."} Optimized JSON Output:`;
-  try {
-    console.log(
-      `[AI Study Plan Optimize] Sending request to Hugging Face model: ${model}`,
-    );
-    const hfResponse = await axios.post(
-      `https://api-inference.huggingface.co/models/${model}`,
-      {
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 768,
-          return_full_text: false,
-          temperature: 0.5,
+
+  const preferredModel = process.env.STUDY_PLAN_OPTIMIZE_MODEL || 'mistralai/mistral-7b-instruct';
+  const fallbackModels = [
+    'openai/gpt-3.5-turbo',
+    'google/gemini-flash-1.5',
+    'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', // Free model
+    // 'huggingfaceh4/zephyr-7b-beta', // Removed as per user preference
+  ];
+  const allModels = [preferredModel, ...fallbackModels.filter(m => m !== preferredModel)]; // Ensures preferred is first and no duplicates
+
+  let prompt = `You are an AI assistant helping a student optimize their study plan.
+The student has the following list of tasks:
+${JSON.stringify(tasks, null, 2)}
+
+The student's goal for optimization is: "${optimizationGoal || 'General improvement and logical ordering'}"
+Additional context from the student: "${userContext || 'None'}"
+
+Please analyze these tasks and provide:
+1.  An "optimizedTasks" list: This could be a re-ordered version of the tasks, tasks might be merged, split, or have their descriptions/estimatedHours adjusted. Each task in the list should be an object with "title", "description", and "estimatedHours".
+2.  A "suggestions" string: Textual advice on how to approach the study plan, potential issues, or other tips.
+
+Return your response as a single well-formed JSON object with two keys: "optimizedTasks" (an array of task objects) and "suggestions" (a string).
+Ensure the JSON is valid. Example:
+{
+  "optimizedTasks": [
+    {"title": "Review Topic B (priority)", "description": "Focus on key concepts and examples.", "estimatedHours": 2},
+    {"title": "Practice exercises for Topic A", "description": "Complete all exercises from chapter 3.", "estimatedHours": 3}
+  ],
+  "suggestions": "Consider allocating more time for Topic B as it is a prerequisite for Topic C. Break down larger tasks into smaller, manageable chunks."
+}
+
+Optimized JSON Output:`;
+
+  let lastError: any = null;
+
+  for (const model of allModels) {
+    try {
+      console.log(
+        `[AI Study Plan Optimize] Sending request to OpenRouter model: ${model}`
+      );
+      const openRouterResponse = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        {
+          model: model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.3, // Lower temperature for more deterministic JSON output
+          max_tokens: 1024, // Increased max_tokens for potentially larger study plans
+          response_format: { type: "json_object" } // Request JSON output
         },
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.HF_API_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 43000,
-      },
-    );
-    const { tasks: optimizedTasks, suggestions } = parseAIOptimizationResponse(
-      hfResponse.data,
-    );
-    if (
-      optimizedTasks.length === 0 &&
-      !suggestions &&
-      hfResponse.data[0]?.generated_text
-    ) {
-      return res
-        .status(200)
-        .json({
-          tasks: [],
-          suggestions:
-            "AI generated some text, but it couldn't be parsed. Raw output: " +
-            hfResponse.data[0].generated_text,
-        });
-    }
-    res.json({
-      tasks: optimizedTasks,
-      suggestions,
-      message: 'Study plan optimization processed.',
-    });
-  } catch (error: any) {
-    console.error(
-      'Error optimizing study plan tasks with AI:',
-      error.response ? error.response.data : error.message,
-    );
-    let errorMessage = 'Failed to optimize study plan tasks with AI.';
-    if (error.response && error.response.data && error.response.data.error) {
-      errorMessage += ` Model Error: ${error.response.data.error}`;
-      if (error.response.data.error_type === 'Overloaded') {
-        errorMessage +=
-          ' The model is currently overloaded. Please try again later.';
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.APP_URL, // Replace with your actual app URL
+            'X-Title': process.env.APP_NAME, // Replace with your actual app name
+          },
+          timeout: 60000, // Increased timeout to 60 seconds
+        }
+      );
+
+      let aiResponseContent = openRouterResponse.data.choices[0]?.message?.content;
+      if (!aiResponseContent) {
+        throw new Error('No content in AI response');
       }
-    } else if (error.code === 'ECONNABORTED') {
-      errorMessage += ' The request to the AI model timed out.';
+
+      // Attempt to parse the JSON response
+      // The response might be a stringified JSON or a JSON object within a string.
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(aiResponseContent);
+      } catch (parseError: any) {
+        // If direct parsing fails, try to extract JSON from a code block if present
+        const jsonMatch = aiResponseContent.match(/```json\\n([\\s\\S]*?)\\n```/);
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            parsedResponse = JSON.parse(jsonMatch[1]);
+          } catch (e) {
+            console.error('[AI Study Plan Optimize] Failed to parse extracted JSON from model:', model, e);
+            throw new Error(`Failed to parse JSON from AI response (model: ${model}). Raw content: ${aiResponseContent}`);
+          }
+        } else {
+          console.error('[AI Study Plan Optimize] Failed to parse JSON from model:', model, parseError);
+          throw new Error(`Failed to parse JSON from AI response (model: ${model}). Raw content: ${aiResponseContent}`);
+        }
+      }
+      
+      const { optimizedTasks, suggestions } = parsedResponse;
+
+      if (!optimizedTasks || !suggestions) {
+         console.warn('[AI Study Plan Optimize] Parsed response missing optimizedTasks or suggestions from model:', model, 'Parsed:', parsedResponse);
+         throw new Error('AI response was parsed but did not contain the expected "optimizedTasks" or "suggestions" fields.');
+      }
+      
+      // Basic validation of optimizedTasks structure
+      if (!Array.isArray(optimizedTasks) || !optimizedTasks.every(task => typeof task.title === 'string' && typeof task.description === 'string' && typeof task.estimatedHours === 'number')) {
+        console.warn('[AI Study Plan Optimize] optimizedTasks has incorrect structure from model:', model, 'Tasks:', optimizedTasks);
+        throw new Error('AI response field "optimizedTasks" has an invalid structure.');
+      }
+
+
+      return res.json({
+        tasks: optimizedTasks,
+        suggestions,
+        message: 'Study plan optimization processed successfully.',
+        modelUsed: model,
+      });
+    } catch (error: any) {
+      lastError = error;
+      console.error(
+        `[AI Study Plan Optimize] Error with model ${model}:`,
+        error.response ? error.response.data : error.message
+      );
+      if (error.code === 'ECONNABORTED') {
+        console.warn(`[AI Study Plan Optimize] Request to ${model} timed out.`);
+      }
+      // If it's the last model in the list and it failed, then return the error
+      if (allModels.indexOf(model) === allModels.length - 1) {
+        let errorMessage = 'Failed to optimize study plan tasks with AI after trying all available models.';
+        if (lastError.response && lastError.response.data && lastError.response.data.error) {
+          errorMessage += ` Last Model Error (${model}): ${JSON.stringify(lastError.response.data.error)}`;
+        } else if (lastError.message) {
+          errorMessage += ` Last Error (${model}): ${lastError.message}`;
+        }
+        return res.status(500).json({ message: errorMessage, error: lastError.message, modelUsed: model });
+      }
+      // Otherwise, try the next model
     }
-    res.status(500).json({ message: errorMessage, error: error.message });
+  }
+  // Should not be reached if at least one model is tried, but as a fallback:
+  if (lastError) {
+     return res.status(500).json({ message: 'Failed to optimize study plan tasks with AI.', error: lastError.message });
   }
 });
 
+// New route for /api/ai/nlp
+router.post('/nlp', limiter, async (req: Request, res: Response, next: NextFunction) => {
+  const { text, user = 'anonymous' } = req.body as NlpRequest; // Removed requestedModel
+
+  if (!text) {
+    return res.status(400).json({ message: 'Text is required for NLP processing.' });
+  }
+
+  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+  if (!openRouterApiKey) {
+    console.error('[AI NLP] OpenRouter API key not configured.');
+    return res.status(500).json({ error: 'AI service not configured (key missing).' });
+  }
+
+  // Define models to try with OpenRouter
+  const modelsToTry = [
+    'mistralai/mistral-7b-instruct', // Preferred
+    'openai/gpt-3.5-turbo',
+    'google/gemini-flash-1.5',
+    'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', // Free model
+    // 'huggingfaceh4/zephyr-7b-beta', // Removed as per user preference
+  ];
+
+  let lastError: any = null;
+  const cacheKey = `nlp-openrouter-${text.substring(0,100).replace(/\s+/g, '_')}`;
+
+  if (aiCache[cacheKey] && (Date.now() - aiCache[cacheKey].timestamp < CACHE_TTL)) {
+    console.log(`[AI NLP] Returning cached OpenRouter result for text snippet: "${text.substring(0,30)}..."`);
+    return res.json({ generated_text: aiCache[cacheKey].result.generated_text, cached: true, modelUsed: aiCache[cacheKey].result.modelUsed });
+  }
+
+  for (const model of modelsToTry) {
+    console.log(
+      `[AI NLP] Attempting with OpenRouter model: ${model}. User: ${user}, Text length: ${text.length}, Time: ${new Date().toISOString()}`
+    );
+    try {
+      const response = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        {
+          model: model,
+          messages: [{ role: 'user', content: text }],
+          // You can add other parameters like max_tokens, temperature here if needed
+          // stream: false, // Explicitly set stream to false if not streaming
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${openRouterApiKey}`,
+            'Content-Type': 'application/json',
+            // Recommended headers by OpenRouter, though not strictly necessary for all requests
+            // 'HTTP-Referer': 'YOUR_SITE_URL', // Replace with your actual site URL or a generic one
+            // 'X-Title': 'YOUR_SITE_NAME', // Replace with your actual site name or a generic one
+          },
+          timeout: 25000, // Timeout for the API call
+        }
+      );
+
+      if (response.data && response.data.choices && response.data.choices.length > 0 && response.data.choices[0].message && response.data.choices[0].message.content) {
+        const result = { 
+          generated_text: response.data.choices[0].message.content,
+          modelUsed: model 
+        };
+        aiCache[cacheKey] = { result, timestamp: Date.now() };
+        console.log(`[AI NLP] OpenRouter request successful with model: ${model}.`);
+        return res.json({ generated_text: result.generated_text, cached: false, modelUsed: result.modelUsed });
+      } else {
+        console.warn(
+          `[AI NLP] Received unexpected response structure from OpenRouter with model ${model}:\n`,
+          JSON.stringify(response.data, null, 2)
+        );
+        lastError = {
+          status: 500,
+          message: 'AI service returned an unexpected response structure.',
+          details: response.data,
+          modelAttempted: model,
+        };
+        // Continue to next model if structure is not as expected
+      }
+    } catch (error: any) {
+      lastError = error; // Store the error and try the next model
+      console.error(
+        `[AI NLP] Error calling OpenRouter API with model ${model}:`,
+        error.response ? JSON.stringify(error.response.data, null, 2) : error.message,
+      );
+      // If a model specifically is not found (e.g. 404 from OpenRouter for a model name)
+      // or if there's a specific error related to the model, we should definitely continue.
+      // for other errors (like auth, rate limits), retrying with a different model might not help,
+      // but the loop structure handles this by trying all specified models.
+      if (error.response && error.response.status === 429) {
+        // Specific handling for rate limits - maybe break and return this error immediately
+        console.warn(`[AI NLP] Rate limited by OpenRouter with model ${model}.`);
+        // For now, we'll let it try other models, though if one is rate-limited, others might be too.
+      }
+    }
+  }
+
+  // If all models failed
+  console.error(`[AI NLP] All OpenRouter models failed for text: "${text.substring(0,30)}..."`);
+  if (lastError) {
+    const statusCode = lastError.response?.status || 500;
+    let message = 'AI service request failed after multiple attempts.';
+    if (lastError.response?.data?.error?.message) {
+      message = lastError.response.data.error.message;
+    } else if (lastError.message) {
+      message = lastError.message;
+    }
+    
+    return res.status(statusCode).json({
+      error: 'AI Service Error',
+      message: message,
+      details: lastError.response?.data || lastError.message,
+      modelAttempted: lastError.modelAttempted || modelsToTry[modelsToTry.length -1],
+      messageFromCopilot: `AI request failed for text: "${text.substring(0,30)}..." after trying models: ${modelsToTry.join(', ')}.`
+    });
+  } else {
+    // This case should ideally not be reached if lastError is always set in catch blocks
+    return res.status(500).json({ 
+      error: 'AI Service Error',
+      message: 'AI request failed after trying all fallbacks and no specific error was caught.',
+      messageFromCopilot: `AI request failed for text: "${text.substring(0,30)}..." after trying models: ${modelsToTry.join(', ')}.`
+    });
+  }
+});
+
+// Extracted NER calling function - now using OpenRouter
+async function callOpenRouterNER(
+  text: string,
+  preferredModel: string = 'mistralai/mistral-7b-instruct',
+  fallbackModels: string[] = [
+    'openai/gpt-3.5-turbo',
+    'google/gemini-flash-1.5',
+    'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', // Free model
+    // 'huggingfaceh4/zephyr-7b-beta', // Removed as per user preference
+  ]
+): Promise<any[]> { // Define a more specific return type based on expected NER output
+  const allModels = [preferredModel, ...fallbackModels.filter(m => m !== preferredModel)];
+  let lastError: any = null;
+
+  // Updated prompt for NER to be more specific for syllabus content
+  const prompt = `You are an expert syllabus analyzer. From the following text, extract key academic entities.
+Focus on identifying:
+- "ASSIGNMENT": Specific tasks, homework, projects, quizzes, exams (e.g., "Midterm Exam", "Research Paper Due", "Quiz 1").
+- "TOPIC": Main subjects, chapters, themes, or concepts to be covered (e.g., "Chapter 3: Cell Division", "Introduction to Quantum Mechanics").
+- "EVENT": Important academic events or deadlines that are not assignments (e.g., "Spring Break", "Add/Drop Deadline", "Final Exam Period").
+- "DATE": Specific dates or date-related phrases (e.g., "October 26th", "next Tuesday", "Week 5").
+- "PERSON": Names of people (e.g., "Professor Smith").
+- "LOCATION": Places relevant to the course (e.g., "Room 301", "Online via Zoom").
+- "ORGANIZATION": Institutions or groups (e.g., "University Name", "Study Group B").
+
+Return the entities as a single, well-formed JSON array of objects. Each object in the array must have the following keys:
+- "text": The exact text of the extracted entity.
+- "entity_group": One of the predefined types: "ASSIGNMENT", "TOPIC", "EVENT", "DATE", "PERSON", "LOCATION", "ORGANIZATION".
+- "start": The starting character index of the entity in the original text.
+- "end": The ending character index of the entity in the original text.
+
+Example of a valid JSON array response:
+[
+  {"text": "Midterm Exam", "entity_group": "ASSIGNMENT", "start": 25, "end": 37},
+  {"text": "Chapter 1", "entity_group": "TOPIC", "start": 50, "end": 59},
+  {"text": "October 26th", "entity_group": "DATE", "start": 70, "end": 82}
+]
+
+Syllabus Text to Analyze:
+"${text}"
+
+JSON Output:`;
+
+  for (const model of allModels) {
+    try {
+      console.log(`[OpenRouter NER] Sending request to model: ${model}`);
+      const response = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        {
+          model: model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.2, // Lower temperature for more factual extraction
+          max_tokens: 512, // Adjust as needed
+          response_format: { type: "json_object" } // Request JSON output, if model supports it
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.APP_URL, 
+            'X-Title': process.env.APP_NAME, 
+          },
+          timeout: 30000, // 30 seconds timeout
+        }
+      );
+
+      let aiResponseContent = response.data.choices[0]?.message?.content;
+      if (!aiResponseContent) {
+        throw new Error('No content in AI response for NER');
+      }
+      
+      let parsedResponse;
+      try {
+        // Assuming the model returns a JSON string that needs to be parsed.
+        // The top-level response might be an object with a key containing the array, e.g. { "entities": [...] }
+        // Or it might be the array directly.
+        const rawJson = JSON.parse(aiResponseContent);
+        if (Array.isArray(rawJson)) {
+            parsedResponse = rawJson;
+        } else if (rawJson.entities && Array.isArray(rawJson.entities)) {
+            parsedResponse = rawJson.entities;
+        } else {
+            // Try to find an array in the response object if the structure is unknown
+            const arrayKey = Object.keys(rawJson).find(key => Array.isArray(rawJson[key]));
+            if (arrayKey) {
+                parsedResponse = rawJson[arrayKey];
+            } else {
+                 throw new Error('NER response is not a JSON array and does not contain an \'entities\' array key.');
+            }
+        }
+
+      } catch (parseError: any) {
+        const jsonMatch = aiResponseContent.match(/```json\\n([\\s\\S]*?)\\n```/);
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            const extractedJson = JSON.parse(jsonMatch[1]);
+            if (Array.isArray(extractedJson)) {
+                parsedResponse = extractedJson;
+            } else if (extractedJson.entities && Array.isArray(extractedJson.entities)) {
+                parsedResponse = extractedJson.entities;
+            } else {
+                const arrayKey = Object.keys(extractedJson).find(key => Array.isArray(extractedJson[key]));
+                if (arrayKey) {
+                    parsedResponse = extractedJson[arrayKey];
+                } else {
+                    throw new Error('Extracted NER response is not a JSON array and does not contain an \'entities\' array key.');
+                }
+            }
+          } catch (e) {
+            console.error('[OpenRouter NER] Failed to parse extracted JSON from model:', model, e);
+            throw new Error(`Failed to parse extracted JSON for NER from AI response (model: ${model}). Raw content: ${aiResponseContent}`);
+          }
+        } else {
+          console.error('[OpenRouter NER] Failed to parse JSON from model:', model, parseError);
+          throw new Error(`Failed to parse JSON for NER from AI response (model: ${model}). Raw content: ${aiResponseContent}`);
+        }
+      }
+
+      // Validate structure of parsedResponse (array of objects with expected keys)
+      if (!Array.isArray(parsedResponse) || !parsedResponse.every(item => 
+          typeof item === 'object' &&
+          item !== null &&
+          'text' in item &&
+          'entity_group' in item &&
+          'start' in item &&
+          'end' in item )) {
+            console.warn('[OpenRouter NER] NER response has incorrect structure from model:', model, 'Response:', parsedResponse);
+            throw new Error('AI NER response has an invalid structure.');
+      }
+
+      console.log(`[OpenRouter NER] Successfully received and parsed NER data from model: ${model}`);
+      return parsedResponse; // Return the array of entities
+
+    } catch (error: any) {
+      lastError = error;
+      console.error(
+        `[OpenRouter NER] Error with model ${model}:`,
+        error.response ? error.response.data : error.message
+      );
+      if (allModels.indexOf(model) === allModels.length - 1) {
+        let errorMessage = `Failed to perform NER with OpenRouter after trying all models.`;
+        if (lastError.response && lastError.response.data && lastError.response.data.error) {
+          errorMessage += ` Last Model Error (${model}): ${JSON.stringify(lastError.response.data.error)}`;
+        } else if (lastError.message) {
+          errorMessage += ` Last Error (${model}): ${lastError.message}`;
+        }
+        throw new Error(errorMessage);
+      }
+    }
+  }
+  // Fallback if all models fail, though the loop should throw before this.
+  throw new Error('Failed to get NER data from OpenRouter. Last error: ' + (lastError?.message || 'Unknown error'));
+}
+
+// Update the call site for NER in /api/ai/syllabus/process route
+router.post('/syllabus/process', async (req: Request, res: Response) => {
+  const { syllabusText, userGoals } = req.body;
+
+  // @ts-ignore
+  const userId = req.user?.uid || 'anonymous';
+
+  if (!syllabusText) {
+    return res.status(400).json({ message: 'Syllabus text is required.' });
+  }
+
+  console.log(
+    `[API AI Syllabus Process] User: ${userId}, Time: ${new Date().toISOString()}`,
+  );
+
+  try {
+    // Call OpenRouter NER instead of Hugging Face
+    const nerResults = await callOpenRouterNER(syllabusText);
+    
+    // ... existing processing logic for nerResults ...
+
+  } catch (error: any) {
+    console.error(
+      '[API AI Syllabus Process] Error processing syllabus with AI:',
+      error.response ? error.response.data : error.message,
+    );
+    return res.status(500).json({
+      message: 'Failed to process syllabus with AI.',
+      error: error.response?.data || error.message,
+    });
+  }
+});
+
+// Comment out or remove the old callHuggingFaceNER function
+/*
 async function callHuggingFaceNER(
   text: string,
-  model: string = 'dbmdz/bert-large-cased-finetuned-conll03-english',
+  model: string = \'dbmdz/bert-large-cased-finetuned-conll03-english\',
 ) {
   try {
     const hfResponse = await axios.post(
@@ -388,7 +881,7 @@ async function callHuggingFaceNER(
       {
         headers: {
           Authorization: `Bearer ${process.env.HF_API_TOKEN}`,
-          'Content-Type': 'application/json',
+          \'Content-Type\': \'application/json\',
         },
         timeout: 20000,
       },
@@ -403,7 +896,7 @@ async function callHuggingFaceNER(
       error.response &&
       error.response.data &&
       error.response.data.error ===
-        'Model dbmdz/bert-large-cased-finetuned-conll03-english is currently loading'
+        \'Model dbmdz/bert-large-cased-finetuned-conll03-english is currently loading\'
     ) {
       throw new Error(
         `NER model is loading, please try again shortly. Details: ${error.response.data.error}`,
@@ -414,445 +907,6 @@ async function callHuggingFaceNER(
     );
   }
 }
-
-function extractDatesWithContext(
-  text: string,
-  contextWindow = 30,
-): ExtractedDate[] {
-  const dates: ExtractedDate[] = [];
-  const dateRegex =
-    /\b(?:(?:(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4})|(?:\d{1,2}[\/-]\d{1,2}[\/-](?:\d{2}|\d{4}))|(?:due(?:\s+on|\s+by)?\s+((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}|\d{1,2}[\/-]\d{1,2}[\/-](?:\d{2}|\d{4})))|next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(tomorrow|today|yesterday))\b/gi;
-  let match;
-  const dateFormats = [
-    'MM/dd/yyyy',
-    'M/d/yyyy',
-    'MM-dd-yyyy',
-    'M-d-yyyy',
-    'MM/dd/yy',
-    'M/d/yy',
-    'MM-dd-yy',
-    'M-d-yy',
-    'yyyy-MM-dd',
-    'yyyy/MM/dd',
-    'MMMM d, yyyy',
-    'MMM d, yyyy',
-    'MMMM d yyyy',
-    'MMM d yyyy',
-    'd MMMM yyyy',
-    'd MMM yyyy',
-    'do MMMM yyyy',
-  ];
-  while ((match = dateRegex.exec(text)) !== null) {
-    const dateString = match[0];
-    let parsedDate: Date | null = null;
-    let dateToParse = dateString;
-    if (match[1]) {
-      dateToParse = match[1];
-    } else if (match[2]) {
-      // Skip precise parsing of "next weekday"
-    } else if (match[3]) {
-      const today = new Date();
-      if (match[3].toLowerCase() === 'today') parsedDate = today;
-      else if (match[3].toLowerCase() === 'tomorrow')
-        parsedDate = new Date(new Date().setDate(today.getDate() + 1)); // Corrected: Use new Date() for tomorrow
-      else if (match[3].toLowerCase() === 'yesterday')
-        parsedDate = new Date(new Date().setDate(today.getDate() - 1)); // Corrected: Use new Date() for yesterday
-    }
-    if (!parsedDate) {
-      for (const fmt of dateFormats) {
-        const d = parse(dateToParse, fmt, new Date());
-        if (isValid(d)) {
-          parsedDate = d;
-          break;
-        }
-      }
-      if (!parsedDate) {
-        const d = new Date(dateToParse);
-        if (isValid(d) && d.getFullYear() > 1900) {
-          parsedDate = d;
-        }
-      }
-    }
-    const startIndex = Math.max(0, match.index - contextWindow);
-    const endIndex = Math.min(
-      text.length,
-      match.index + dateString.length + contextWindow,
-    );
-    const context = text.substring(startIndex, endIndex);
-    dates.push({ dateString, parsedDate, context });
-  }
-  return dates;
-}
-
-function extractAssignmentsAndTopics(
-  text: string,
-  nerEntities: SyllabusEntity[],
-  contextWindow = 50,
-) {
-  const assignments: ExtractedAssignment[] = [];
-  const topics: ExtractedTopic[] = [];
-  const assignmentKeywords = [
-    'assignment',
-    'homework',
-    'project',
-    'paper',
-    'essay',
-    'exam',
-    'quiz',
-    'test',
-    'midterm',
-    'final',
-  ];
-  const topicKeywords = [
-    'topic',
-    'module',
-    'unit',
-    'chapter',
-    'lecture',
-    'week',
-    'section',
-    'theme',
-  ];
-  const sentences = text.split(/[\.\n]+/);
-  for (const sentence of sentences) {
-    const lowerSentence = sentence.toLowerCase();
-    for (const keyword of assignmentKeywords) {
-      if (lowerSentence.includes(keyword)) {
-        let assignmentName = keyword;
-        const potentialNameMatch = sentence.match(
-          new RegExp(`${keyword}[\\s:]*([^\\.,\\(]+)`, 'i'),
-        );
-        if (
-          potentialNameMatch &&
-          potentialNameMatch[1] &&
-          potentialNameMatch[1].trim().length > 3
-        ) {
-          assignmentName = potentialNameMatch[1].trim();
-        } else {
-          nerEntities.forEach((entity) => {
-            if (
-              (entity.entity_group === 'MISC' ||
-                entity.entity_group === 'ORG') &&
-              sentence.includes(entity.word) &&
-              Math.abs(
-                sentence.indexOf(entity.word) - lowerSentence.indexOf(keyword),
-              ) < 30
-            ) {
-              assignmentName = entity.word;
-            }
-          });
-        }
-        const startIndex = Math.max(0, text.indexOf(sentence) - contextWindow);
-        const endIndex = Math.min(
-          text.length,
-          text.indexOf(sentence) + sentence.length + contextWindow,
-        );
-        const context = text.substring(startIndex, endIndex); // This context is broader
-        if (
-          !assignments.find(
-            (a) =>
-              a.name.toLowerCase() === assignmentName.toLowerCase() &&
-              a.context.includes(sentence),
-          )
-        ) {
-          assignments.push({ name: assignmentName, context: sentence.trim() });
-        }
-        break;
-      }
-    }
-    for (const keyword of topicKeywords) {
-      if (lowerSentence.includes(keyword)) {
-        let topicName = keyword;
-        const potentialNameMatch = sentence.match(
-          new RegExp(`${keyword}[\\s:]*([^\\.,\\(]+)`, 'i'),
-        );
-        if (
-          potentialNameMatch &&
-          potentialNameMatch[1] &&
-          potentialNameMatch[1].trim().length > 3
-        ) {
-          topicName = potentialNameMatch[1].trim();
-        } else {
-          nerEntities.forEach((entity) => {
-            if (
-              (entity.entity_group === 'MISC' ||
-                entity.entity_group === 'ORG' ||
-                entity.entity_group === 'WORK_OF_ART') &&
-              sentence.includes(entity.word) &&
-              Math.abs(
-                sentence.indexOf(entity.word) - lowerSentence.indexOf(keyword),
-              ) < 30
-            ) {
-              topicName = entity.word;
-            }
-          });
-        }
-        const startIndex = Math.max(0, text.indexOf(sentence) - contextWindow);
-        const endIndex = Math.min(
-          text.length,
-          text.indexOf(sentence) + sentence.length + contextWindow,
-        );
-        const context = text.substring(startIndex, endIndex); // Broader context
-        if (
-          !topics.find(
-            (t) =>
-              t.name.toLowerCase() === topicName.toLowerCase() &&
-              t.context.includes(sentence),
-          )
-        ) {
-          topics.push({ name: topicName, context: sentence.trim() });
-        }
-        break;
-      }
-    }
-  }
-  return { assignments, topics };
-}
-
-async function parseSyllabusText(
-  syllabusText: string,
-  userId?: string,
-  sourceAnalysisId?: string,
-): Promise<SyllabusAnalysisResult> {
-  // Added userId and sourceAnalysisId
-  if (!syllabusText || syllabusText.trim().length === 0) {
-    throw new Error('Syllabus text cannot be empty.');
-  }
-  let nerEntities: SyllabusEntity[] = [];
-  try {
-    const nerResults = await callHuggingFaceNER(syllabusText);
-    if (Array.isArray(nerResults)) {
-      nerEntities = nerResults.map((entity: any) => ({
-        entity_group: entity.entity_group,
-        score: entity.score,
-        word: entity.word,
-        start: entity.start,
-        end: entity.end,
-      }));
-    }
-  } catch (error) {
-    console.warn(
-      'NER processing failed, proceeding with keyword extraction only:',
-      error,
-    );
-  }
-  const extractedDates = extractDatesWithContext(syllabusText);
-  const { assignments: keywordAssignments, topics: keywordTopics } =
-    extractAssignmentsAndTopics(syllabusText, nerEntities);
-
-  // Link due dates to assignments (this part was already here, ensuring it remains)
-  keywordAssignments.forEach((assignment) => {
-    if (assignment.dueDate) return; // Already has a date from initial extraction if any
-    const assignmentContextLower = assignment.context.toLowerCase();
-    let closestDate: ExtractedDate | null = null;
-    let minDistance = Infinity;
-
-    extractedDates.forEach((date) => {
-      const dateMentionIndex = assignmentContextLower.indexOf(
-        date.dateString.toLowerCase(),
-      );
-      if (dateMentionIndex !== -1) {
-        // Basic proximity check, can be improved
-        if (!closestDate || dateMentionIndex < minDistance) {
-          closestDate = date;
-          minDistance = dateMentionIndex;
-        }
-      }
-    });
-    if (closestDate) {
-      assignment.dueDate = closestDate;
-    }
-  });
-
-  // Create calendar events for assignments with due dates
-  if (userId) {
-    // Only create events if userId is provided
-    for (const assignment of keywordAssignments) {
-      if (assignment.dueDate && assignment.dueDate.parsedDate) {
-        try {
-          const newEvent = new CalendarEvent({
-            userId: new mongoose.Types.ObjectId(userId),
-            title: `Assignment: ${assignment.name}`,
-            description: assignment.context, // Use the sentence/context as description
-            startDate: assignment.dueDate.parsedDate,
-            eventType: 'assignment',
-            sourceSyllabusAnalysisId: sourceAnalysisId
-              ? new mongoose.Types.ObjectId(sourceAnalysisId)
-              : undefined,
-            allDay: true, // Assume assignments are all-day events unless specified otherwise
-          });
-          await newEvent.save();
-          console.log(
-            `[AI Syllabus Parse] Created calendar event for assignment: ${assignment.name}`,
-          );
-        } catch (err: any) {
-          console.error(
-            `[AI Syllabus Parse] Error creating calendar event for assignment ${assignment.name}:`,
-            err.message,
-          );
-        }
-      }
-    }
-  }
-
-  return {
-    assignments: keywordAssignments,
-    topics: keywordTopics,
-    dates: extractedDates,
-    entities: nerEntities,
-    rawText: syllabusText,
-  };
-}
-
-// New route for text-based syllabus analysis
-router.post(
-  '/ai/syllabus/analyze-text',
-  async (req: Request, res: Response) => {
-    const { syllabusText, createCalendarEvents = false } = req.body; // Added createCalendarEvents flag
-    // @ts-ignore
-    const userId = req.user?.uid || req.body.userId; // Allow passing userId for now, replace with actual auth
-
-    if (!syllabusText) {
-      return res.status(400).json({ message: 'Syllabus text is required.' });
-    }
-    console.log(
-      `[AI Syllabus Analyze Text] User: ${userId}, Text length: ${syllabusText.length}, Create Calendar Events: ${createCalendarEvents}, Time: ${new Date().toISOString()}`,
-    );
-
-    // Placeholder for a sourceAnalysisId if you were to save the analysis itself
-    const sourceAnalysisId = new mongoose.Types.ObjectId().toString(); // Example ID
-
-    try {
-      const analysisResult = await parseSyllabusText(
-        syllabusText,
-        createCalendarEvents && userId ? userId : undefined,
-        sourceAnalysisId,
-      );
-      res.json({
-        message: 'Syllabus text analyzed successfully.',
-        analysis: analysisResult,
-        calendarEventsCreated:
-          createCalendarEvents && userId
-            ? 'Attempted to create calendar events based on analysis.'
-            : 'Calendar event creation not requested or user ID missing.',
-      });
-    } catch (error: any) {
-      console.error('Error analyzing syllabus text:', error);
-      res
-        .status(500)
-        .json({ message: `Failed to analyze syllabus text. ${error.message}` });
-    }
-  },
-);
-
-// Define the handler for OCR and analysis
-const analyzeFileHandler: ExpressRequestHandler = async (req, res) => {
-  // @ts-ignore
-  const userId = req.user?.uid || req.body.userId; // Allow passing userId for now, replace with actual auth
-  // @ts-ignore
-  const file = req.file;
-  const createCalendarEvents =
-    req.body.createCalendarEvents === 'true' ||
-    req.body.createCalendarEvents === true;
-
-  // @ts-ignore
-  console.log(
-    `[AI Syllabus Analyze File] User: ${userId}, File received: ${file ? file.originalname : 'No file'}, Create Calendar Events: ${createCalendarEvents}, Time: ${new Date().toISOString()}`,
-  );
-
-  // @ts-ignore
-  if (!file) {
-    return res.status(400).json({ message: 'Syllabus file is required.' });
-  }
-  // Placeholder for a sourceAnalysisId
-  const sourceAnalysisId = new mongoose.Types.ObjectId().toString(); // Example ID
-
-  try {
-    // @ts-ignore
-    console.log(
-      `[AI Syllabus Analyze File] Starting OCR for file: ${file.originalname}, size: ${file.size} bytes`,
-    );
-    const {
-      data: { text: ocrText },
-    } = await Tesseract.recognize(
-      // @ts-ignore
-      file.buffer,
-      'eng',
-      {
-        logger: (m) => {
-          if (m.status === 'recognizing text') {
-            console.log(
-              `[Tesseract OCR Progress] status: ${m.status}, progress: ${Math.round(m.progress * 100)}%`,
-            );
-          }
-        },
-      },
-    );
-    // @ts-ignore
-    console.log(
-      `[AI Syllabus Analyze File] OCR finished for file: ${file.originalname}`,
-    );
-
-    if (!ocrText || ocrText.trim().length === 0) {
-      // @ts-ignore
-      console.warn(
-        `[AI Syllabus Analyze File] OCR processing for ${file.originalname} yielded no text.`,
-      );
-      return res
-        .status(500)
-        .json({
-          message:
-            'OCR processing failed to extract text or extracted text was empty.',
-        });
-    }
-
-    console.log(
-      `[AI Syllabus Analyze File] OCR Extracted Text length: ${ocrText.length}, (first 100 chars): ${ocrText.substring(0, 100)}...`,
-    );
-
-    const analysisResult = await parseSyllabusText(
-      ocrText,
-      createCalendarEvents && userId ? userId : undefined,
-      sourceAnalysisId,
-    );
-
-    res.json({
-      message: 'Syllabus file analyzed successfully.',
-      ocrText: ocrText,
-      analysis: analysisResult,
-      calendarEventsCreated:
-        createCalendarEvents && userId
-          ? 'Attempted to create calendar events based on analysis.'
-          : 'Calendar event creation not requested or user ID missing.',
-    });
-  } catch (error: any) {
-    // @ts-ignore
-    console.error(
-      `[AI Syllabus Analyze File] Error processing file ${file?.originalname}:`,
-      error,
-    );
-    let errorMessage = `Failed to analyze syllabus file.`;
-    if (error.message) {
-      errorMessage += ` ${error.message}`;
-    }
-    if (
-      error.name === 'TesseractError' ||
-      (error.message && error.message.toLowerCase().includes('tesseract'))
-    ) {
-      errorMessage = `OCR processing error: ${error.message}`;
-    }
-    res.status(500).json({ message: errorMessage });
-  }
-};
-
-// New route for file-based syllabus analysis (OCR)
-// The type assertion `as any` is used here as a workaround for potential type conflicts
-// between multer's RequestHandler and Express's RequestHandler.
-// This is a common issue when integrating middleware with differing @types versions or specifics.
-router.post(
-  '/ai/syllabus/analyze-file',
-  upload.single('syllabusFile') as any,
-  analyzeFileHandler,
-);
+*/
 
 export default router;
