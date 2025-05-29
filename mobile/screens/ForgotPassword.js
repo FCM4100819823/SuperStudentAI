@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { auth } from '../firebaseConfig';
+import { auth } from '../config/firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
 
 // Define static colors and fonts directly

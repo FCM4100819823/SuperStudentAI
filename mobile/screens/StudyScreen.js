@@ -17,7 +17,8 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
-import { auth } from '../firebaseConfig';
+import { auth } from '../config/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format, parseISO, differenceInDays } from 'date-fns';
 
 const { width, height } = Dimensions.get('window');
@@ -143,7 +144,7 @@ const DESIGN_TOKENS = {
   },
 };
 
-const API_URL = 'http://192.168.1.10:3000';
+const API_URL = 'http://172.20.10.2:3000';
 
 const StudyScreen = () => {
   const navigation = useNavigation();

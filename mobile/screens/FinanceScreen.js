@@ -1,253 +1,208 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   TextInput,
+  TouchableOpacity,
+  FlatList,
   StyleSheet,
-  ScrollView,
+  Dimensions,
   Alert,
   ActivityIndicator,
-  TouchableOpacity,
-  Modal,
   Platform,
-  RefreshControl,
-  Animated,
-  Dimensions,
-  StatusBar,
+  KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Icon from 'react-native-vector-icons/Ionicons';
-import { BarChart, PieChart } from 'react-native-gifted-charts';
+import { collection, addDoc, query, where, getDocs, Timestamp, deleteDoc, doc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { firestoreDb, auth } from '../config/firebase'; // Assuming firebase.js exports firestoreDb
+import { Ionicons } from '@expo/vector-icons'; // Assuming you use Expo and have vector icons
 
 // Try to import LinearGradient, fallback to View if not available
 let LinearGradient;
 try {
-  LinearGradient = require('react-native-linear-gradient').default;
+  LinearGradient = require('expo-linear-gradient').LinearGradient;
 } catch (error) {
-  LinearGradient = View;
+  console.warn('LinearGradient not available, using fallback View:', error);
+  LinearGradient = View; // Fallback to a simple View
 }
 
 const { width, height } = Dimensions.get('window');
-const API_URL = 'http://localhost:3000/api/finance';
 
-// Modern Design System
+// Enhanced Design System
 const colors = {
-  primary: '#6366F1',
-  primaryDark: '#4F46E5',
-  secondary: '#10B981',
-  accent: '#F59E0B',
-  danger: '#EF4444',
-  success: '#10B981',
-  warning: '#F59E0B',
-  background: '#FAFBFC',
-  surface: '#FFFFFF',
+  primary: '#6A1B9A', // Deep Purple
+  primaryDark: '#4A0072',
+  primaryLight: '#9C4DCC',
+  secondary: '#4CAF50', // Green
+  accent: '#F59E0B', // Amber
+  danger: '#EF4444', // Red
+  success: '#4CAF50', // Green (same as secondary for consistency here)
+  warning: '#F59E0B', // Amber
+  
+  background: '#F4F6F8', // Lighter, cleaner background
+  surface: '#FFFFFF', // For cards and interactive elements
   surfaceElevated: '#FFFFFF',
-  text: '#1F2937',
-  textSecondary: '#6B7280',
-  textMuted: '#9CA3AF',
-  border: '#E5E7EB',
-  borderLight: '#F3F4F6',
-  shadow: 'rgba(0, 0, 0, 0.1)',
-  overlay: 'rgba(0, 0, 0, 0.5)',
-  income: '#10B981',
-  expense: '#EF4444',
-  incomeLight: '#D1FAE5',
-  expenseLight: '#FEE2E2',
-  gradientStart: '#6366F1',
-  gradientEnd: '#8B5CF6',
+
+  text: '#1A202C', // Darker text for better contrast
+  textSecondary: '#4A5568',
+  textMuted: '#718096',
+  textOnPrimary: '#FFFFFF',
+  textOnSecondary: '#FFFFFF',
+
+  border: '#E2E8F0',
+  borderLight: '#F1F5F9',
+  
+  shadow: 'rgba(0, 0, 0, 0.05)', // Softer shadow
+  overlay: 'rgba(0, 0, 0, 0.6)',
+
+  income: '#4CAF50', // Green
+  expense: '#EF4444', // Red
+  incomeBackground: 'rgba(76, 175, 80, 0.1)', // Light green
+  expenseBackground: 'rgba(239, 68, 68, 0.1)', // Light red
+  
+  gradientStart: '#6A1B9A',
+  gradientEnd: '#8E24AA',
+  disabled: '#CBD5E0',
 };
 
-const typography = {
-  h1: { fontSize: 32, fontWeight: '800', lineHeight: 40 },
-  h2: { fontSize: 24, fontWeight: '700', lineHeight: 32 },
-  h3: { fontSize: 20, fontWeight: '600', lineHeight: 28 },
-  body: { fontSize: 16, fontWeight: '400', lineHeight: 24 },
-  bodyMedium: { fontSize: 16, fontWeight: '500', lineHeight: 24 },
-  caption: { fontSize: 14, fontWeight: '400', lineHeight: 20 },
-  captionMedium: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
-  small: { fontSize: 12, fontWeight: '400', lineHeight: 16 },
-};
-
-const spacing = {
-  xs: 4,
-  sm: 8,
+const spacing = { // Define spacing here to be accessible by typography
+  xxs: 4,
+  xs: 8,
+  sm: 12,
   md: 16,
   lg: 24,
   xl: 32,
   xxl: 48,
 };
 
-const shadows = {
-  small: {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  medium: {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  large: {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-  },
+const typography = {
+  h1: { fontSize: 28, fontWeight: 'bold', color: colors.text, marginBottom: spacing.sm },
+  h2: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: spacing.xs },
+  h3: { fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: spacing.xs },
+  body: { fontSize: 16, fontWeight: '400', color: colors.textSecondary, lineHeight: 24 },
+  bodyBold: { fontSize: 16, fontWeight: '600', color: colors.text, lineHeight: 24 },
+  caption: { fontSize: 14, fontWeight: '400', color: colors.textMuted, lineHeight: 20 },
+  captionBold: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, lineHeight: 20 },
+  small: { fontSize: 12, fontWeight: '400', color: colors.textMuted, lineHeight: 16 },
+  button: { fontSize: 16, fontWeight: 'bold', color: colors.textOnPrimary },
 };
+
 
 const FinanceScreen = ({ navigation }) => {
   const [transactions, setTransactions] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState(null);
-  const [newTransactionData, setNewTransactionData] = useState({
-    description: '',
-    amount: '',
-    type: 'income',
-    category: '',
-    date: '',
-  });
-  const [refreshing, setRefreshing] = useState(false);
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [type, setType] = useState('expense'); // 'expense' or 'income'
+  const [filter, setFilter] = useState('all'); // 'all', 'income', 'expense'
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(50));
+  const [editingTransaction, setEditingTransaction] = useState(null); // To hold transaction being edited
+
+  const userId = auth.currentUser?.uid;
 
   useEffect(() => {
-    fetchTransactions();
-    
-    // Entrance animation
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  // Calculate totals
-  const totalIncome = transactions
-    .filter((item) => item.type === 'income')
-    .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
-
-  const totalExpenses = transactions
-    .filter((item) => item.type === 'expense')
-    .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
-
-  const totalBalance = totalIncome - totalExpenses;
-
-  // Fetch transactions
-  const fetchTransactions = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/transactions`);
-      const data = await response.json();
-      setTransactions(data);
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Connection Error', 'Could not fetch transactions. Please check your connection.');
-    } finally {
-      setIsLoading(false);
+    if (!userId) {
+      Alert.alert("Authentication Error", "User not found. Please log in again.");
+      setLoading(false);
+      // Ensure 'Login' is the correct route name for your login screen
+      // If using a different navigator structure, adjust accordingly
+      if (navigation.canGoBack()) {
+        navigation.popToTop(); // Go to the top of the current stack
+      }
+      navigation.replace('Auth'); // Replace current nav state with Auth stack
+      return;
     }
-  };
 
-  // Add transaction
-  const handleAddTransaction = async () => {
-    if (!newTransactionData.description || !newTransactionData.amount || !newTransactionData.category) {
-      return Alert.alert('Missing Information', 'Please fill in all required fields to continue.');
+    setLoading(true);
+    const transactionsRef = collection(firestoreDb, 'users', userId, 'financeTransactions');
+    // Order by date descending to get newest transactions first
+    const q = query(transactionsRef, orderBy('date', 'desc')); 
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const fetchedTransactions = [];
+      querySnapshot.forEach((doc) => {
+        fetchedTransactions.push({ id: doc.id, ...doc.data() });
+      });
+      setTransactions(fetchedTransactions);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching transactions: ", error);
+      Alert.alert("Error", "Could not fetch transactions. " + error.message);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [userId, navigation]);
+
+  const handleAddOrUpdateTransaction = async () => {
+    if (!description.trim() || !amount.trim()) {
+      Alert.alert('Validation Error', 'Please enter description and amount.');
+      return;
+    }
+    const numericAmount = parseFloat(amount.replace(',', '.')); // Allow comma as decimal separator
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      Alert.alert('Validation Error', 'Please enter a valid positive amount.');
+      return;
+    }
+
+    if (!userId) {
+      Alert.alert("Authentication Error", "User not found. Cannot add transaction.");
+      return;
     }
 
     setIsSubmitting(true);
+    const transactionData = {
+      description: description.trim(),
+      amount: numericAmount,
+      type,
+      // If editing, use existing date (Firestore Timestamp), otherwise new serverTimestamp for creation
+      date: editingTransaction?.date instanceof Timestamp ? editingTransaction.date : serverTimestamp(),
+      updatedAt: serverTimestamp() // Always update/set updatedAt
+    };
+
     try {
-      const response = await fetch(`${API_URL}/transactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTransactionData),
-      });
-      if (!response.ok) throw new Error('Failed to add transaction');
-      
-      Alert.alert('Success!', 'Your transaction has been added successfully.');
-      fetchTransactions();
-      resetNewTransactionData();
-      setModalVisible(false);
+      const transactionsCollectionRef = collection(firestoreDb, 'users', userId, 'financeTransactions');
+      if (editingTransaction) {
+        const docRef = doc(transactionsCollectionRef, editingTransaction.id);
+        await updateDoc(docRef, transactionData);
+        Alert.alert('Success', 'Transaction updated successfully!');
+      } else {
+        await addDoc(transactionsCollectionRef, transactionData);
+        Alert.alert('Success', 'Transaction added successfully!');
+      }
+      setDescription('');
+      setAmount('');
+      setType('expense'); // Reset type
+      setEditingTransaction(null); // Reset editing state
     } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Could not add transaction. Please try again.');
+      console.error('Error saving transaction: ', error);
+      Alert.alert('Error', `Could not save transaction: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // Update transaction
-  const handleUpdateTransaction = async () => {
-    if (!editingTransaction || !newTransactionData.description || !newTransactionData.amount || !newTransactionData.category) {
-      return Alert.alert('Missing Information', 'Please fill in all required fields to continue.');
+  
+  const handleDeleteTransaction = async (id) => {
+    if (!userId) {
+      Alert.alert("Authentication Error", "User not found. Cannot delete transaction.");
+      return;
     }
-
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(`${API_URL}/transactions/${editingTransaction._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTransactionData),
-      });
-      if (!response.ok) throw new Error('Failed to update transaction');
-      
-      Alert.alert('Updated!', 'Your transaction has been updated successfully.');
-      fetchTransactions();
-      resetNewTransactionData();
-      setModalVisible(false);
-      setEditingTransaction(null);
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Could not update transaction. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Delete transaction
-  const handleDeleteTransaction = async () => {
-    if (!editingTransaction) return;
-
     Alert.alert(
-      'Delete Transaction',
-      'Are you sure you want to delete this transaction? This action cannot be undone.',
+      "Confirm Delete",
+      "Are you sure you want to delete this transaction?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
-            setIsSubmitting(true);
             try {
-              const response = await fetch(`${API_URL}/transactions/${editingTransaction._id}`, {
-                method: 'DELETE',
-              });
-              if (!response.ok) throw new Error('Failed to delete transaction');
-              
-              Alert.alert('Deleted!', 'Transaction has been deleted successfully.');
-              fetchTransactions();
-              resetNewTransactionData();
-              setModalVisible(false);
-              setEditingTransaction(null);
+              const docRef = doc(firestoreDb, 'users', userId, 'financeTransactions', id);
+              await deleteDoc(docRef);
+              Alert.alert('Success', 'Transaction deleted successfully!');
             } catch (error) {
-              console.error(error);
-              Alert.alert('Error', 'Could not delete transaction. Please try again.');
-            } finally {
-              setIsSubmitting(false);
+              console.error('Error deleting transaction: ', error);
+              Alert.alert('Error', `Could not delete transaction: ${error.message}`);
             }
           },
         },
@@ -255,699 +210,504 @@ const FinanceScreen = ({ navigation }) => {
     );
   };
 
-  // Reset form data
-  const resetNewTransactionData = () => {
-    setNewTransactionData({
-      description: '',
-      amount: '',
-      type: 'income',
-      category: '',
-      date: '',
-    });
+  const handleEditTransaction = (transaction) => {
+    setEditingTransaction(transaction);
+    setDescription(transaction.description);
+    setAmount(String(transaction.amount)); // Convert amount back to string for TextInput
+    setType(transaction.type);
+    // Optionally, scroll to the input form or open a modal here
   };
 
-  // Calculate category data for pie chart
-  const categoryData = transactions.reduce((acc, transaction) => {
-    const { category, amount, type } = transaction;
-    if (type === 'expense') {
-      const existingCategory = acc.find((item) => item.text === category);
-      if (existingCategory) {
-        existingCategory.value += parseFloat(amount);
-      } else {
-        acc.push({ 
-          text: category, 
-          value: parseFloat(amount),
-          color: getCategoryColor(category),
-        });
-      }
-    }
-    return acc;
-  }, []);
+  const filteredTransactions = useMemo(() => {
+    if (filter === 'all') return transactions;
+    return transactions.filter(t => t.type === filter);
+  }, [transactions, filter]);
 
-  // Get random color for categories
-  const getCategoryColor = (category) => {
-    const colorPalette = ['#6366F1', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4', '#84CC16', '#F97316'];
-    let hash = 0;
-    for (let i = 0; i < category.length; i++) {
-      hash = category.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colorPalette[Math.abs(hash) % colorPalette.length];
-  };
+  const totalBalance = useMemo(() => {
+    return transactions.reduce((sum, t) => {
+      return t.type === 'income' ? sum + t.amount : sum - t.amount;
+    }, 0);
+  }, [transactions]);
 
-  // Refresh handler
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchTransactions().then(() => setRefreshing(false));
-  }, []);
+  const totalIncome = useMemo(() => {
+    return transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+  }, [transactions]);
 
-  // Loading state
-  if (isLoading && transactions.length === 0) {
-    return (
-      <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-        <View style={styles.loadingContent}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[typography.h3, { color: colors.text, marginTop: spacing.md }]}>
-            Loading Your Finances...
-          </Text>
-          <Text style={[typography.caption, { color: colors.textMuted, marginTop: spacing.sm }]}>
-            Preparing your financial overview
-          </Text>
+  const totalExpenses = useMemo(() => {
+    return transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+  }, [transactions]);
+
+  const renderTransactionItem = ({ item }) => (
+    <View style={styles.transactionItemContainer}>
+      <View style={[styles.typeIndicator, { backgroundColor: item.type === 'income' ? colors.income : colors.expense }]} />
+      <View style={styles.transactionDetails}>
+        <Text style={styles.transactionDescription} numberOfLines={1} ellipsizeMode="tail">{item.description}</Text>
+        <Text style={styles.transactionDate}>
+          {item.date?.toDate ? item.date.toDate().toLocaleDateString() : 'Date N/A'}
+        </Text>
+      </View>
+      <View style={styles.transactionAmountContainer}>
+        <Text style={[styles.transactionAmount, { color: item.type === 'income' ? colors.income : colors.expense }]}>
+          {item.type === 'income' ? '+' : '-'}${item.amount.toFixed(2)}
+        </Text>
+        <View style={styles.transactionActions}>
+          <TouchableOpacity onPress={() => handleEditTransaction(item)} style={styles.actionButton}>
+            <Ionicons name="pencil-outline" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDeleteTransaction(item.id)} style={styles.actionButton}>
+            <Ionicons name="trash-outline" size={18} color={colors.danger} />
+          </TouchableOpacity>
         </View>
+      </View>
+    </View>
+  );
+
+  if (loading && transactions.length === 0) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading Finances...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      
-      {/* Header Section */}
-      <Animated.View 
-        style={[
-          styles.header,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }
-        ]}
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.screen}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0} // Adjust offset if needed
+    >
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollViewContent}
+        keyboardShouldPersistTaps="handled" // Ensures taps work inside ScrollView when keyboard is up
       >
-        <LinearGradient
-          colors={LinearGradient === View ? [] : [colors.gradientStart, colors.gradientEnd]}
-          style={[styles.headerGradient, LinearGradient === View && { backgroundColor: colors.primary }]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.headerContent}>
-            <View style={styles.headerTop}>
-              <View>
-                <Text style={[typography.h1, { color: colors.surface }]}>
-                  Finance
-                </Text>
-                <Text style={[typography.caption, { color: colors.surface, opacity: 0.9 }]}>
-                  Track your financial journey
-                </Text>
+        {LinearGradient !== View ? (
+            <LinearGradient
+              colors={[colors.gradientStart, colors.gradientEnd]}
+              style={styles.headerContainer}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 0.5}} // Adjust gradient angle
+            >
+              <Text style={styles.headerTitle}>My Finances</Text>
+              <View style={styles.summaryBalanceContainer}>
+                <Text style={styles.summaryBalanceLabel}>Total Balance</Text>
+                <Text style={styles.summaryBalanceAmount}>${totalBalance.toFixed(2)}</Text>
               </View>
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryItem}>
+                  <Ionicons name="arrow-up-circle-outline" size={24} color={colors.income} />
+                  <Text style={styles.summaryLabel}>Income</Text>
+                  <Text style={[styles.summaryAmount, { color: colors.income }]}>${totalIncome.toFixed(2)}</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Ionicons name="arrow-down-circle-outline" size={24} color={colors.expense} />
+                  <Text style={styles.summaryLabel}>Expenses</Text>
+                  <Text style={[styles.summaryAmount, { color: colors.expense }]}>${totalExpenses.toFixed(2)}</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          ) : (
+            <View style={[styles.headerContainer, {backgroundColor: colors.primary}]}>
+              <Text style={[styles.headerTitle, {color: colors.textOnPrimary}]}>My Finances</Text>
+              <View style={styles.summaryBalanceContainer}>
+                <Text style={[styles.summaryBalanceLabel, {color: colors.textOnPrimary, opacity: 0.8}]}>Total Balance</Text>
+                <Text style={[styles.summaryBalanceAmount, {color: colors.textOnPrimary}]}>${totalBalance.toFixed(2)}</Text>
+              </View>
+               {/* Simplified summary for fallback */}
+            </View>
+          )
+        }
+        
+
+        <View style={styles.contentContainer}>
+          <View style={styles.inputSection}>
+            <Text style={styles.sectionTitle}>{editingTransaction ? 'Edit Transaction' : 'Add New Transaction'}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Description (e.g., Groceries, Salary)"
+              placeholderTextColor={colors.textMuted}
+              value={description}
+              onChangeText={setDescription}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Amount (e.g., 50.00)"
+              placeholderTextColor={colors.textMuted}
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="numeric"
+            />
+            <View style={styles.typeSelector}>
               <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => {
-                  resetNewTransactionData();
-                  setModalVisible(true);
-                }}
-                activeOpacity={0.8}
+                style={[styles.typeOption, type === 'income' && styles.typeOptionActiveIncome]}
+                onPress={() => setType('income')}
               >
-                <Icon name="add" size={24} color={colors.primary} />
+                <Ionicons name="add-circle-outline" size={20} color={type === 'income' ? colors.income : colors.textSecondary} style={{marginRight: spacing.xs}}/>
+                <Text style={[styles.typeOptionText, type === 'income' && styles.typeOptionTextActiveIncome]}>Income</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.typeOption, type === 'expense' && styles.typeOptionActiveExpense]}
+                onPress={() => setType('expense')}
+              >
+                 <Ionicons name="remove-circle-outline" size={20} color={type === 'expense' ? colors.expense : colors.textSecondary} style={{marginRight: spacing.xs}}/>
+                <Text style={[styles.typeOptionText, type === 'expense' && styles.typeOptionTextActiveExpense]}>Expense</Text>
               </TouchableOpacity>
             </View>
-
-            {/* Balance Overview */}
-            <View style={styles.balanceCard}>
-              <Text style={[typography.captionMedium, { color: colors.textSecondary }]}>
-                Total Balance
-              </Text>
-              <Text style={[typography.h1, { color: colors.text, marginVertical: spacing.xs }]}>
-                ${totalBalance.toFixed(2)}
-              </Text>
-              <View style={styles.balanceRow}>
-                <View style={styles.balanceItem}>
-                  <View style={[styles.balanceIndicator, { backgroundColor: colors.income }]} />
-                  <Text style={[typography.small, { color: colors.textMuted }]}>Income</Text>
-                  <Text style={[typography.captionMedium, { color: colors.income }]}>
-                    +${totalIncome.toFixed(2)}
-                  </Text>
-                </View>
-                <View style={styles.balanceItem}>
-                  <View style={[styles.balanceIndicator, { backgroundColor: colors.expense }]} />
-                  <Text style={[typography.small, { color: colors.textMuted }]}>Expenses</Text>
-                  <Text style={[typography.captionMedium, { color: colors.expense }]}>
-                    -${totalExpenses.toFixed(2)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
-      </Animated.View>
-
-      {/* Content */}
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
-          />
-        }
-      >
-        {/* Quick Stats */}
-        <View style={styles.section}>
-          <View style={styles.statsContainer}>
-            <View style={[styles.statCard, shadows.small]}>
-              <View style={[styles.statIcon, { backgroundColor: colors.incomeLight }]}>
-                <Icon name="trending-up" size={20} color={colors.income} />
-              </View>
-              <Text style={[typography.captionMedium, { color: colors.text }]}>
-                This Month
-              </Text>
-              <Text style={[typography.h3, { color: colors.income }]}>
-                +${totalIncome.toFixed(2)}
-              </Text>
-            </View>
-
-            <View style={[styles.statCard, shadows.small]}>
-              <View style={[styles.statIcon, { backgroundColor: colors.expenseLight }]}>
-                <Icon name="trending-down" size={20} color={colors.expense} />
-              </View>
-              <Text style={[typography.captionMedium, { color: colors.text }]}>
-                This Month
-              </Text>
-              <Text style={[typography.h3, { color: colors.expense }]}>
-                -${totalExpenses.toFixed(2)}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Spending Categories Chart */}
-        {categoryData.length > 0 && (
-          <View style={[styles.section, styles.chartSection]}>
-            <View style={[styles.card, shadows.medium]}>
-              <Text style={[typography.h3, { color: colors.text, marginBottom: spacing.md }]}>
-                Spending Breakdown
-              </Text>
-              <View style={styles.chartContainer}>
-                <PieChart
-                  data={categoryData}
-                  donut
-                  radius={80}
-                  innerRadius={50}
-                  focusOnPress
-                  showText
-                  textColor={colors.text}
-                  textSize={12}
-                  strokeWidth={2}
-                  strokeColor={colors.surface}
-                />
-                <View style={styles.chartLegend}>
-                  {categoryData.slice(0, 4).map((item, index) => (
-                    <View key={index} style={styles.legendItem}>
-                      <View style={[styles.legendColor, { backgroundColor: item.color }]} />
-                      <Text style={[typography.small, { color: colors.textMuted, flex: 1 }]}>
-                        {item.text}
-                      </Text>
-                      <Text style={[typography.captionMedium, { color: colors.text }]}>
-                        ${item.value.toFixed(0)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Recent Transactions */}
-        <View style={styles.section}>
-          <View style={[styles.card, shadows.medium]}>
-            <View style={styles.sectionHeader}>
-              <Text style={[typography.h3, { color: colors.text }]}>
-                Recent Transactions
-              </Text>
-              {transactions.length > 5 && (
-                <TouchableOpacity>
-                  <Text style={[typography.captionMedium, { color: colors.primary }]}>
-                    View All
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {transactions.length > 0 ? (
-              <View style={styles.transactionsList}>
-                {transactions.slice(0, 5).map((transaction, index) => (
-                  <TouchableOpacity
-                    key={transaction._id}
-                    style={[
-                      styles.transactionItem,
-                      index === transactions.slice(0, 5).length - 1 && styles.lastTransactionItem
-                    ]}
-                    onPress={() => {
-                      setEditingTransaction(transaction);
-                      setNewTransactionData({
-                        ...transaction,
-                        date: new Date(transaction.date).toISOString().split('T')[0],
-                      });
-                      setModalVisible(true);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[
-                      styles.transactionIcon,
-                      { backgroundColor: transaction.type === 'income' ? colors.incomeLight : colors.expenseLight }
-                    ]}>
-                      <Icon
-                        name={transaction.type === 'income' ? 'arrow-down' : 'arrow-up'}
-                        size={16}
-                        color={transaction.type === 'income' ? colors.income : colors.expense}
-                      />
-                    </View>
-                    
-                    <View style={styles.transactionDetails}>
-                      <Text style={[typography.bodyMedium, { color: colors.text }]}>
-                        {transaction.description}
-                      </Text>
-                      <Text style={[typography.small, { color: colors.textMuted }]}>
-                        {transaction.category} • {new Date(transaction.date).toLocaleDateString()}
-                      </Text>
-                    </View>
-                    
-                    <Text style={[
-                      typography.bodyMedium,
-                      { color: transaction.type === 'income' ? colors.income : colors.expense }
-                    ]}>
-                      {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : (
-              <View style={styles.emptyState}>
-                <Icon name="receipt-outline" size={48} color={colors.textMuted} />
-                <Text style={[typography.h3, { color: colors.textMuted, marginTop: spacing.md }]}>
-                  No Transactions Yet
-                </Text>
-                <Text style={[typography.caption, { color: colors.textMuted, textAlign: 'center', marginTop: spacing.sm }]}>
-                  Start tracking your finances by adding your first transaction
-                </Text>
-                <TouchableOpacity
-                  style={[styles.primaryButton, { marginTop: spacing.lg }]}
-                  onPress={() => {
-                    resetNewTransactionData();
-                    setModalVisible(true);
-                  }}
-                >
-                  <Text style={[typography.bodyMedium, { color: colors.surface }]}>
-                    Add Transaction
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Bottom Spacing */}
-        <View style={{ height: spacing.xxl }} />
-      </ScrollView>
-
-      {/* Transaction Modal */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => {
-          setModalVisible(false);
-          setEditingTransaction(null);
-          resetNewTransactionData();
-        }}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              onPress={() => {
-                setModalVisible(false);
-                setEditingTransaction(null);
-                resetNewTransactionData();
-              }}
+            <TouchableOpacity 
+              style={[styles.button, isSubmitting && styles.buttonDisabled]} 
+              onPress={handleAddOrUpdateTransaction}
+              disabled={isSubmitting}
             >
-              <Icon name="close" size={24} color={colors.text} />
+              {isSubmitting ? (
+                <ActivityIndicator color={colors.textOnPrimary} />
+              ) : (
+                <Text style={styles.buttonText}>{editingTransaction ? 'Update Transaction' : 'Add Transaction'}</Text>
+              )}
             </TouchableOpacity>
-            <Text style={[typography.h3, { color: colors.text }]}>
-              {editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
-            </Text>
-            <View style={{ width: 24 }} />
-          </View>
-
-          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-            {/* Transaction Type Selector */}
-            <View style={styles.formSection}>
-              <Text style={[typography.captionMedium, { color: colors.text, marginBottom: spacing.sm }]}>
-                Transaction Type
-              </Text>
-              <View style={styles.typeSelector}>
-                <TouchableOpacity
-                  style={[
-                    styles.typeOption,
-                    newTransactionData.type === 'income' && styles.typeOptionActive,
-                    { borderColor: newTransactionData.type === 'income' ? colors.income : colors.border }
-                  ]}
-                  onPress={() => setNewTransactionData({ ...newTransactionData, type: 'income' })}
-                >
-                  <Icon
-                    name="arrow-down"
-                    size={20}
-                    color={newTransactionData.type === 'income' ? colors.income : colors.textMuted}
-                  />
-                  <Text style={[
-                    typography.bodyMedium,
-                    { color: newTransactionData.type === 'income' ? colors.income : colors.textMuted }
-                  ]}>
-                    Income
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.typeOption,
-                    newTransactionData.type === 'expense' && styles.typeOptionActive,
-                    { borderColor: newTransactionData.type === 'expense' ? colors.expense : colors.border }
-                  ]}
-                  onPress={() => setNewTransactionData({ ...newTransactionData, type: 'expense' })}
-                >
-                  <Icon
-                    name="arrow-up"
-                    size={20}
-                    color={newTransactionData.type === 'expense' ? colors.expense : colors.textMuted}
-                  />
-                  <Text style={[
-                    typography.bodyMedium,
-                    { color: newTransactionData.type === 'expense' ? colors.expense : colors.textMuted }
-                  ]}>
-                    Expense
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Description Field */}
-            <View style={styles.formSection}>
-              <Text style={[typography.captionMedium, { color: colors.text, marginBottom: spacing.sm }]}>
-                Description
-              </Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Enter description"
-                placeholderTextColor={colors.textMuted}
-                value={newTransactionData.description}
-                onChangeText={(text) => setNewTransactionData({ ...newTransactionData, description: text })}
-              />
-            </View>
-
-            {/* Amount Field */}
-            <View style={styles.formSection}>
-              <Text style={[typography.captionMedium, { color: colors.text, marginBottom: spacing.sm }]}>
-                Amount
-              </Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="0.00"
-                placeholderTextColor={colors.textMuted}
-                value={newTransactionData.amount}
-                onChangeText={(text) => setNewTransactionData({ ...newTransactionData, amount: text })}
-                keyboardType="numeric"
-              />
-            </View>
-
-            {/* Category Field */}
-            <View style={styles.formSection}>
-              <Text style={[typography.captionMedium, { color: colors.text, marginBottom: spacing.sm }]}>
-                Category
-              </Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Enter category"
-                placeholderTextColor={colors.textMuted}
-                value={newTransactionData.category}
-                onChangeText={(text) => setNewTransactionData({ ...newTransactionData, category: text })}
-              />
-            </View>
-
-            {/* Date Field */}
-            <View style={styles.formSection}>
-              <Text style={[typography.captionMedium, { color: colors.text, marginBottom: spacing.sm }]}>
-                Date
-              </Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.textMuted}
-                value={newTransactionData.date}
-                onChangeText={(text) => setNewTransactionData({ ...newTransactionData, date: text })}
-              />
-            </View>
-
-            {/* Action Buttons */}
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.primaryButton, { opacity: isSubmitting ? 0.7 : 1 }]}
-                onPress={editingTransaction ? handleUpdateTransaction : handleAddTransaction}
+            {editingTransaction && (
+              <TouchableOpacity 
+                style={[styles.button, styles.cancelButton]} 
+                onPress={() => {
+                  setEditingTransaction(null);
+                  setDescription('');
+                  setAmount('');
+                  setType('expense');
+                }}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? (
-                  <ActivityIndicator color={colors.surface} />
-                ) : (
-                  <Text style={[typography.bodyMedium, { color: colors.surface }]}>
-                    {editingTransaction ? 'Update Transaction' : 'Add Transaction'}
-                  </Text>
-                )}
+                <Text style={styles.cancelButtonText}>Cancel Edit</Text>
               </TouchableOpacity>
+            )}
+          </View>
 
-              {editingTransaction && (
+          <View style={styles.filterContainer}>
+            <Text style={styles.sectionTitle}>History</Text>
+            <View style={styles.filterButtons}>
+              {['all', 'income', 'expense'].map((f) => (
                 <TouchableOpacity
-                  style={[styles.dangerButton, { opacity: isSubmitting ? 0.7 : 1, marginTop: spacing.md }]}
-                  onPress={handleDeleteTransaction}
-                  disabled={isSubmitting}
+                  key={f}
+                  style={[styles.filterButton, filter === f && styles.filterButtonActive]}
+                  onPress={() => setFilter(f)}
                 >
-                  <Text style={[typography.bodyMedium, { color: colors.surface }]}>
-                    Delete Transaction
+                  <Text style={[styles.filterButtonText, filter === f && styles.filterButtonTextActive]}>
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
                   </Text>
                 </TouchableOpacity>
-              )}
+              ))}\
             </View>
-          </ScrollView>
+          </View>
+
+          {loading && transactions.length > 0 && <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md}} />}
+
+          {filteredTransactions.length === 0 && !loading ? (
+            <View style={styles.emptyStateContainer}>
+              <Ionicons name="receipt-outline" size={60} color={colors.textMuted} />
+              <Text style={styles.emptyStateText}>No transactions yet.</Text>
+              <Text style={styles.emptyStateSubText}>
+                {filter === 'all' ? 'Add your first transaction to get started.' : `No ${filter} transactions found.`}
+              </Text>
+            </View>
+          ) : (
+            // Using View instead of FlatList directly inside ScrollView to avoid virtualization issues
+            // For very long lists, consider a virtualized list component designed for ScrollView if performance drops.
+            <View> 
+              {filteredTransactions.map(item => renderTransactionItem({ item }))}
+            </View>
+          )}
         </View>
-      </Modal>
-    </View>
+        <View style={{ height: spacing.xxl }} /> {/* Extra space at the bottom */}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
+  scrollViewContent: {
+    flexGrow: 1,
   },
-  loadingContent: {
+  centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.background,
   },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+  loadingText: {
+    ...typography.body,
+    marginTop: spacing.sm,
+    color: colors.primary,
   },
-  headerGradient: {
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerContent: {
+  headerContainer: {
+    paddingTop: Platform.OS === 'android' ? spacing.lg + 20 : spacing.xl + 20, // Adjust for status bar
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    marginBottom: spacing.md, // Space between header and content
+    shadowColor: colors.shadow, // Shadow for header
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 10,
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.xl,
+  headerTitle: {
+    ...typography.h1,
+    fontSize: 32, // Larger title
+    color: colors.textOnPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+    fontWeight: 'bold',
   },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.medium,
-  },
-  balanceCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
-    ...shadows.medium,
-  },
-  balanceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.md,
-  },
-  balanceItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  balanceIndicator: {
-    width: 4,
-    height: 20,
-    borderRadius: 2,
-    marginBottom: spacing.xs,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-  },
-  section: {
-    marginTop: spacing.lg,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
-    flex: 1,
-    marginHorizontal: spacing.xs,
-    alignItems: 'center',
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  chartSection: {
-    marginTop: spacing.lg,
-  },
-  chartContainer: {
-    alignItems: 'center',
-  },
-  chartLegend: {
-    marginTop: spacing.lg,
-    width: '100%',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  legendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: spacing.sm,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  summaryBalanceContainer: {
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  transactionsList: {
-    marginTop: spacing.sm,
+  summaryBalanceLabel: {
+    ...typography.caption,
+    color: colors.textOnPrimary,
+    opacity: 0.85, // Slightly more opaque
+    marginBottom: spacing.xxs,
   },
-  transactionItem: {
+  summaryBalanceAmount: {
+    ...typography.h1,
+    fontSize: 40, // Larger for emphasis
+    color: colors.textOnPrimary,
+    fontWeight: 'bold',
+  },
+  summaryRow: {
     flexDirection: 'row',
+    justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    marginTop: spacing.sm, // Add some top margin
   },
-  lastTransactionItem: {
-    borderBottomWidth: 0,
-  },
-  transactionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  summaryItem: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
+    paddingHorizontal: spacing.sm,
+    minWidth: width / 3.5, // Ensure items have some minimum width
   },
-  transactionDetails: {
-    flex: 1,
+  summaryLabel: {
+    ...typography.small,
+    color: colors.textOnPrimary,
+    opacity: 0.9,
+    marginTop: spacing.xxs,
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
+  summaryAmount: {
+    ...typography.bodyBold,
+    fontSize: 18, // Slightly larger summary amounts
+    color: colors.textOnPrimary, 
+    marginTop: spacing.xxs,
   },
-  primaryButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: spacing.md,
+  contentContainer: {
     paddingHorizontal: spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1, // Ensure content takes available space
+    paddingBottom: spacing.lg, // Padding at the bottom of content
   },
-  dangerButton: {
-    backgroundColor: colors.danger,
-    borderRadius: 12,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+  inputSection: {
+    backgroundColor: colors.surface,
+    borderRadius: 16, // More rounded corners
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10, // Softer shadow
+    elevation: 5,
   },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
+  sectionTitle: {
+    ...typography.h3,
+    color: colors.primaryDark, // Use a darker primary for section titles
+    marginBottom: spacing.md,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    paddingTop: Platform.OS === 'ios' ? 50 : spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  modalContent: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-  },
-  formSection: {
-    marginTop: spacing.lg,
+  input: {
+    backgroundColor: colors.background, 
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10, // More rounded inputs
+    paddingHorizontal: spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? spacing.sm : spacing.xs, // Adjust padding for platforms
+    marginBottom: spacing.sm,
+    ...typography.body,
+    color: colors.text,
   },
   typeSelector: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
   typeOption: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'row', // For icon and text
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
-    borderWidth: 2,
-    borderRadius: 12,
-    marginHorizontal: spacing.xs,
-  },
-  typeOptionActive: {
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-  },
-  textInput: {
-    borderWidth: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: 10,
+    borderWidth: 1.5, // Slightly thicker border
     borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.surface,
+    marginHorizontal: spacing.xs, // Spacing between options
+    backgroundColor: colors.surface, // Default background
   },
-  modalActions: {
-    marginTop: spacing.xl,
-    marginBottom: spacing.xxl,
+  typeOptionActiveIncome: {
+    backgroundColor: colors.incomeBackground,
+    borderColor: colors.income,
+  },
+  typeOptionActiveExpense: {
+    backgroundColor: colors.expenseBackground,
+    borderColor: colors.expense,
+  },
+  typeOptionText: {
+    ...typography.bodyBold,
+    color: colors.textSecondary,
+  },
+  typeOptionTextActiveIncome: {
+    color: colors.income,
+  },
+  typeOptionTextActiveExpense: {
+    color: colors.expense,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 50,
+    shadowColor: colors.primaryDark, // Shadow for button
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  buttonDisabled: {
+    backgroundColor: colors.disabled,
+    shadowOpacity: 0, // No shadow for disabled button
+    elevation: 0,
+  },
+  buttonText: {
+    ...typography.button,
+    color: colors.textOnPrimary, // Ensure text is white
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+    borderColor: colors.textMuted,
+    borderWidth: 1.5,
+    marginTop: spacing.sm,
+    shadowOpacity: 0, // No shadow for cancel
+    elevation: 0,
+  },
+  cancelButtonText: {
+    ...typography.button,
+    color: colors.textMuted,
+  },
+  filterContainer: {
+    marginBottom: spacing.sm,
+    marginTop: spacing.sm, 
+  },
+  filterButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around', 
+    backgroundColor: colors.surface,
+    borderRadius: 12, // More rounded filter bar
+    padding: spacing.xs,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    marginBottom: spacing.md, // Space below filters
+  },
+  filterButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 8, // Rounded individual buttons
+    marginHorizontal: spacing.xxs, 
+  },
+  filterButtonActive: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primaryDark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  filterButtonText: {
+    ...typography.captionBold,
+    color: colors.textSecondary,
+  },
+  filterButtonTextActive: {
+    color: colors.textOnPrimary,
+  },
+  transactionItemContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: 12, // More rounded items
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 3 }, // Slightly more pronounced shadow
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  typeIndicator: {
+    width: 6,
+    height: '90%', // Make it slightly shorter than the card
+    borderRadius: 3,
+    marginRight: spacing.md, // More space next to indicator
+  },
+  transactionDetails: {
+    flex: 1,
+    marginRight: spacing.sm, // Space before amount
+  },
+  transactionDescription: {
+    ...typography.bodyBold,
+    color: colors.text, // Darker description
+    marginBottom: spacing.xxs,
+  },
+  transactionDate: {
+    ...typography.small,
+    color: colors.textMuted,
+  },
+  transactionAmountContainer: {
+    alignItems: 'flex-end',
+  },
+  transactionAmount: {
+    ...typography.bodyBold,
+    fontSize: 18, 
+    marginBottom: spacing.xxs,
+  },
+  transactionActions: {
+    flexDirection: 'row',
+    marginTop: spacing.xxs,
+  },
+  actionButton: {
+    padding: spacing.xs, 
+    marginLeft: spacing.sm,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+    minHeight: height * 0.3, // Ensure it takes some space
+    marginTop: spacing.lg,
+  },
+  emptyStateText: {
+    ...typography.h3,
+    color: colors.textMuted,
+    marginTop: spacing.md,
+    textAlign: 'center',
+  },
+  emptyStateSubText: {
+    ...typography.body,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg, // Add padding for longer text
   },
 });
 

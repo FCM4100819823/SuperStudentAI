@@ -14,7 +14,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { signOut } from 'firebase/auth';
-import { auth, firestore } from '../firebaseConfig';
+import { auth, db as firestore } from '../config/firebase'; // Corrected import path and alias db as firestore
 import { doc, onSnapshot } from 'firebase/firestore';
 import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -145,7 +145,7 @@ const Dashboard = ({ navigation, route }) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        timeout: 10000,
+        timeout: 30000, // Increased timeout to 30 seconds
       });
 
       setStudyStats(statsResponse.data);
@@ -161,6 +161,9 @@ const Dashboard = ({ navigation, route }) => {
   const fetchUserProfile = useCallback(async () => {
     try {
       const user = auth.currentUser;
+      console.log('Dashboard - firestore instance:', firestore); // Add this line
+      console.log('Dashboard - auth.currentUser:', user); // Add this line
+
       if (!user) {
         setError('You are not logged in. Please log in again.');
         setLoading(false);
@@ -239,7 +242,7 @@ const Dashboard = ({ navigation, route }) => {
   };
 
   const handleViewSettings = () => {
-    navigation.navigate('Settings');
+    navigation.navigate('SettingsTab'); // Corrected navigation target
   };
 
   const handleSignOut = async () => {

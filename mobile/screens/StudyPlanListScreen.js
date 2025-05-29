@@ -14,11 +14,11 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
-import { auth } from '../firebaseConfig';
+import { auth } from '../config/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { format, parseISO, differenceInDays } from 'date-fns';
 
 const { width, height } = Dimensions.get('window');

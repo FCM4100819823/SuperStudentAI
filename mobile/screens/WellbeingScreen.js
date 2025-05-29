@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { auth, db } from '../firebaseConfig';
+import { auth, db as firestoreDb } from '../config/firebase'; // Corrected import path & aliased db
 import {
   collection,
   addDoc,
@@ -80,7 +80,7 @@ const WellbeingScreen = ({ navigation }) => {
       if (auth.currentUser) {
         try {
           const q = query(
-            collection(db, 'moodEntries'),
+            collection(firestoreDb, 'moodEntries'), // Use aliased firestoreDb
             where('userId', '==', auth.currentUser.uid),
             orderBy('timestamp', 'desc'),
             limit(1),
@@ -137,7 +137,7 @@ const WellbeingScreen = ({ navigation }) => {
         color: selectedMood.color,
         timestamp: serverTimestamp(),
       };
-      await addDoc(collection(db, 'moodEntries'), moodEntry);
+      await addDoc(collection(firestoreDb, 'moodEntries'), moodEntry); // Use aliased firestoreDb
       Alert.alert(
         'Mood Logged',
         `You've logged your mood as ${selectedMood.name}.`,

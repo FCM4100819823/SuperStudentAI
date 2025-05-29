@@ -14,8 +14,12 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { doc, getDoc, deleteDoc } from 'firebase/firestore';
-import { ref, deleteObject } from 'firebase/storage';
-import { auth, db, storage } from '../firebaseConfig'; // Ensure this path is correct
+import {
+  ref,
+  getDownloadURL,
+  deleteObject,
+} from 'firebase/storage';
+import { auth, db, storage } from '../config/firebase'; // Ensure this path is correct
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 

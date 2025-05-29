@@ -20,7 +20,7 @@ import {
   getDownloadURL,
   deleteObject,
 } from 'firebase/storage';
-import { auth, db, storage } from '../firebaseConfig'; // Ensure this path is correct
+import { auth, db, storage } from '../config/firebase'; // Ensure this path is correct
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define static colors and fonts directly

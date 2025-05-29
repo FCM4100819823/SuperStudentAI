@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View, StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './navigation/AppNavigator';
-import { auth } from './firebaseConfig';
+import { auth } from './config/firebase';
 
 // Default color for loading indicator if not using theme
 const DEFAULT_PRIMARY_COLOR = '#6200EE'; // Example color, adjust as needed
