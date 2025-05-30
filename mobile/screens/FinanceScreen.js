@@ -1,146 +1,400 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   FlatList,
-  StyleSheet,
-  Dimensions,
   Alert,
-  ActivityIndicator,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  Modal,
   Platform,
   KeyboardAvoidingView,
-  ScrollView,
-  SafeAreaView, // Added SafeAreaView
 } from 'react-native';
-import { collection, addDoc, query, where, getDocs, Timestamp, deleteDoc, doc, updateDoc, onSnapshot, serverTimestamp, orderBy } from 'firebase/firestore'; // Added orderBy
-import { db as firestoreDb, auth } from '../config/firebase'; // Corrected import: db as firestoreDb
-import { Ionicons } from '@expo/vector-icons'; // Assuming you use Expo and have vector icons
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  runTransaction,
+} from 'firebase/firestore';
+import { auth, firestoreDb } from '../config/firebase';
 
-// Try to import LinearGradient, fallback to View if not available
-let LinearGradient;
-try {
-  LinearGradient = require('expo-linear-gradient').LinearGradient;
-} catch (error) {
-  console.warn('LinearGradient not available, using fallback View:', error);
-  LinearGradient = View; // Fallback to a simple View
-}
-
-const { width, height } = Dimensions.get('window');
-
-// Enhanced Design System
-const colors = {
-  primary: '#6A1B9A', // Deep Purple
-  primaryDark: '#4A0072',
-  primaryLight: '#9C4DCC',
-  secondary: '#4CAF50', // Green
-  accent: '#F59E0B', // Amber
-  danger: '#EF4444', // Red
-  success: '#4CAF50', // Green (same as secondary for consistency here)
-  warning: '#F59E0B', // Amber
-  
-  background: '#F4F6F8', // Lighter, cleaner background
-  surface: '#FFFFFF', // For cards and interactive elements
-  surfaceElevated: '#FFFFFF',
-
-  text: '#1A202C', // Darker text for better contrast
-  textSecondary: '#4A5568',
-  textMuted: '#718096',
-  textOnPrimary: '#FFFFFF',
-  textOnSecondary: '#FFFFFF',
-
-  border: '#E2E8F0',
-  borderLight: '#F1F5F9',
-  
-  shadow: 'rgba(0, 0, 0, 0.05)', // Softer shadow
-  overlay: 'rgba(0, 0, 0, 0.6)',
-
-  income: '#4CAF50', // Green
-  expense: '#EF4444', // Red
-  incomeBackground: 'rgba(76, 175, 80, 0.1)', // Light green
-  expenseBackground: 'rgba(239, 68, 68, 0.1)', // Light red
-  
-  gradientStart: '#6A1B9A',
-  gradientEnd: '#8E24AA',
-  disabled: '#CBD5E0',
+// Static colors for now
+const STATIC_COLORS = {
+  primary: '#2A9D8F', // Teal
+  secondary: '#E9C46A', // Yellow
+  background: '#F4F1DE', // Light Beige
+  card: '#FFFFFF',
+  text: '#264653', // Dark Blue/Green
+  subtext: '#2A9D8F', // Teal for subtext
+  accent: '#F4A261', // Orange
+  error: '#E76F51', // Darker Orange/Red
+  white: '#FFFFFF',
+  lightBorder: '#D3D3D3',
+  success: '#2A9D8F', // Teal for success messages
+  disabled: '#A9A9A9',
 };
 
-const spacing = { // Define spacing here to be accessible by typography
-  xxs: 4,
-  xs: 8,
-  sm: 12,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
-};
+const getStyles = (colors) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+    },
+    scrollContainer: {
+      padding: 20,
+    },
+    headerTitle: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: colors.primary,
+      textAlign: 'center',
+      marginBottom: 10,
+    },
+    headerSubtitle: {
+      fontSize: 16,
+      color: colors.subtext,
+      textAlign: 'center',
+      marginBottom: 20,
+    },
+    sectionContainer: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 15,
+      marginBottom: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.lightBorder,
+      paddingBottom: 10,
+    },
+    inputGroup: {
+      marginBottom: 15,
+    },
+    inputLabel: {
+      fontSize: 15,
+      color: colors.text,
+      marginBottom: 8,
+      fontWeight: '500',
+    },
+    input: {
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      paddingHorizontal: 15,
+      paddingVertical: Platform.OS === 'ios' ? 15 : 12,
+      fontSize: 16,
+      color: colors.text,
+      borderWidth: 1,
+      borderColor: colors.lightBorder,
+    },
+    pickerContainer: {
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.lightBorder,
+      marginBottom: 15,
+    },
+    picker: {
+      color: colors.text,
+    },
+    datePickerButton: {
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      padding: 15,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.lightBorder,
+      marginBottom: 15,
+    },
+    datePickerButtonText: {
+      fontSize: 16,
+      color: colors.primary,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      paddingVertical: 15,
+      borderRadius: 8,
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'center',
+    },
+    buttonText: {
+      color: colors.white,
+      fontSize: 17,
+      fontWeight: 'bold',
+      marginLeft: 8,
+    },
+    listItem: {
+      backgroundColor: colors.background,
+      padding: 15,
+      borderRadius: 8,
+      marginBottom: 10,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    listItemTextContainer: {
+      flex: 1,
+    },
+    listItemTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    listItemSubtitle: {
+      fontSize: 14,
+      color: colors.subtext,
+    },
+    listItemAmount: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.primary,
+    },
+    actionsContainer: {
+      flexDirection: 'row',
+    },
+    actionButton: {
+      padding: 8,
+      marginLeft: 10,
+    },
+    emptyListText: {
+      textAlign: 'center',
+      color: colors.subtext,
+      marginTop: 15,
+      fontSize: 15,
+    },
+    // Modal Styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContainer: {
+      width: '90%',
+      backgroundColor: colors.card,
+      borderRadius: 15,
+      padding: 25,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+    },
+    modalTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 20,
+      textAlign: 'center',
+    },
+    modalButtonContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 20,
+    },
+    modalButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+      marginHorizontal: 5,
+    },
+    saveButton: {
+      backgroundColor: colors.primary,
+    },
+    cancelButton: {
+      backgroundColor: colors.lightBorder,
+    },
+    modalButtonText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    budgetItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 10,
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      marginBottom: 10,
+    },
+    budgetTextContainer: {
+      flex: 1,
+    },
+    budgetCategory: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    budgetAmount: {
+      fontSize: 14,
+      color: colors.subtext,
+    },
+    budgetSpent: {
+      fontSize: 14,
+      color: colors.accent,
+      fontWeight: '500',
+    },
+    budgetRemaining: {
+        fontSize: 14,
+        color: colors.success,
+        fontWeight: '500',
+    },
+    progressBarContainer: {
+        height: 8,
+        backgroundColor: colors.lightBorder,
+        borderRadius: 4,
+        marginTop: 5,
+        overflow: 'hidden',
+    },
+    progressBar: {
+        height: '100%',
+        backgroundColor: colors.primary,
+        borderRadius: 4,
+    },
+    addBudgetButton: {
+        backgroundColor: colors.accent,
+        marginTop: 10,
+    }
+  });
 
-const typography = {
-  h1: { fontSize: 28, fontWeight: 'bold', color: colors.text, marginBottom: spacing.sm },
-  h2: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: spacing.xs },
-  h3: { fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: spacing.xs },
-  body: { fontSize: 16, fontWeight: '400', color: colors.textSecondary, lineHeight: 24 },
-  bodyBold: { fontSize: 16, fontWeight: '600', color: colors.text, lineHeight: 24 },
-  caption: { fontSize: 14, fontWeight: '400', color: colors.textMuted, lineHeight: 20 },
-  captionBold: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, lineHeight: 20 },
-  small: { fontSize: 12, fontWeight: '400', color: colors.textMuted, lineHeight: 16 },
-  button: { fontSize: 16, fontWeight: 'bold', color: colors.textOnPrimary },
-};
-
+const TRANSACTION_CATEGORIES = [
+  { label: 'Select Category...', value: '' },
+  { label: 'Food & Dining', value: 'Food & Dining' },
+  { label: 'Transport', value: 'Transport' },
+  { label: 'Utilities (Bills)', value: 'Utilities' },
+  { label: 'Shopping', value: 'Shopping' },
+  { label: 'Entertainment', value: 'Entertainment' },
+  { label: 'Healthcare', value: 'Healthcare' },
+  { label: 'Education', value: 'Education' },
+  { label: 'Salary/Wages', value: 'Salary' },
+  { label: 'Freelance/Gigs', value: 'Freelance' },
+  { label: 'Investments', value: 'Investments' },
+  { label: 'Gifts', value: 'Gifts' },
+  { label: 'Travel', value: 'Travel' },
+  { label: 'Personal Care', value: 'Personal Care' },
+  { label: 'Other', value: 'Other' },
+];
 
 const FinanceScreen = ({ navigation }) => {
-  const [transactions, setTransactions] = useState([]);
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [type, setType] = useState('expense'); // 'expense' or 'income'
-  const [filter, setFilter] = useState('all'); // 'all', 'income', 'expense'
-  const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState(null); // To hold transaction being edited
-
+  const colors = STATIC_COLORS;
+  const styles = getStyles(colors);
   const userId = auth.currentUser?.uid;
 
-  useEffect(() => {
-    if (!userId) {
-      Alert.alert("Authentication Error", "User not found. Please log in again.");
-      setLoading(false);
-      // Ensure 'Login' is the correct route name for your login screen
-      // If using a different navigator structure, adjust accordingly
-      if (navigation.canGoBack()) {
-        navigation.popToTop(); // Go to the top of the current stack
-      }
-      navigation.replace('Login'); // Changed from 'Auth' to 'Login'
-      return;
+  // Transactions State
+  const [transactions, setTransactions] = useState([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [transactionName, setTransactionName] = useState('');
+  const [transactionAmount, setTransactionAmount] = useState('');
+  const [transactionCategory, setTransactionCategory] = useState(
+    TRANSACTION_CATEGORIES[0],
+  );
+  const [transactionDate, setTransactionDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null); // null or transaction object
+
+  // Budgets State
+  const [budgets, setBudgets] = useState([]);
+  const [loadingBudgets, setLoadingBudgets] = useState(true);
+  const [isBudgetModalVisible, setIsBudgetModalVisible] = useState(false);
+  const [budgetCategoryInput, setBudgetCategoryInput] = useState(TRANSACTION_CATEGORIES[0]);
+  const [budgetAmountInput, setBudgetAmountInput] = useState('');
+  const [editingBudget, setEditingBudget] = useState(null); // null or budget object
+
+  // Financial Goals State (placeholders for now)
+  const [goals, setGoals] = useState([
+    { id: '1', name: 'Save for New Laptop', targetAmount: 1200, currentAmount: 300, deadline: '2025-12-31' },
+    { id: '2', name: 'Emergency Fund', targetAmount: 1000, currentAmount: 750, deadline: '2026-06-30' },
+  ]);
+
+
+  const fetchTransactions = useCallback(async () => {
+    if (!userId) return;
+    setLoadingTransactions(true);
+    try {
+      const q = query(
+        collection(firestoreDb, 'users', userId, 'financeTransactions'),
+        orderBy('date', 'desc'),
+      );
+      const querySnapshot = await getDocs(q);
+      const transactionList = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setTransactions(transactionList);
+    } catch (error) {
+      console.error('Error fetching transactions: ', error);
+      Alert.alert('Error', 'Could not fetch transactions.');
     }
+    setLoadingTransactions(false);
+  }, [userId]);
 
-    setLoading(true);
-    const transactionsRef = collection(firestoreDb, 'users', userId, 'financeTransactions');
-    // Order by date descending to get newest transactions first
-    const q = query(transactionsRef, orderBy('date', 'desc')); 
+  const fetchBudgets = useCallback(async () => {
+    if (!userId) return;
+    setLoadingBudgets(true);
+    try {
+      const q = query(
+        collection(firestoreDb, 'userBudgets'),
+        where('userId', '==', userId),
+      );
+      const querySnapshot = await getDocs(q);
+      const userBudgets = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setBudgets(userBudgets);
+    } catch (error) {
+      console.error('Error fetching budgets: ', error);
+      Alert.alert('Error', 'Could not fetch budgets.');
+    }
+    setLoadingBudgets(false);
+  }, [userId]);
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const fetchedTransactions = [];
-      querySnapshot.forEach((doc) => {
-        fetchedTransactions.push({ id: doc.id, ...doc.data() });
-      });
-      setTransactions(fetchedTransactions);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching transactions: ", error);
-      Alert.alert("Error", "Could not fetch transactions. " + error.message);
-      setLoading(false);
-    });
+  useEffect(() => {
+    if (userId) {
+      fetchTransactions();
+      fetchBudgets();
+    }
+  }, [userId, fetchTransactions, fetchBudgets]);
 
-    return () => unsubscribe();
-  }, [userId, navigation]);
+  const handleDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || transactionDate;
+    setShowDatePicker(Platform.OS === 'ios');
+    setTransactionDate(currentDate);
+  };
 
   const handleAddOrUpdateTransaction = async () => {
-    if (!description.trim() || !amount.trim()) {
-      Alert.alert('Validation Error', 'Please enter description and amount.');
+    if (!transactionName.trim() || !transactionAmount.trim() || !transactionCategory) {
+      Alert.alert('Validation Error', 'Please enter description, amount, and select a category.');
       return;
     }
-    const numericAmount = parseFloat(amount.replace(',', '.')); // Allow comma as decimal separator
+    const numericAmount = parseFloat(transactionAmount.replace(',', '.')); // Allow comma as decimal separator
     if (isNaN(numericAmount) || numericAmount <= 0) {
       Alert.alert('Validation Error', 'Please enter a valid positive amount.');
       return;
@@ -151,39 +405,48 @@ const FinanceScreen = ({ navigation }) => {
       return;
     }
 
-    setIsSubmitting(true);
-    const transactionData = {
-      description: description.trim(),
-      amount: numericAmount,
-      type,
-      // If editing, use existing date (Firestore Timestamp), otherwise new serverTimestamp for creation
-      date: editingTransaction?.date instanceof Timestamp ? editingTransaction.date : serverTimestamp(),
-      updatedAt: serverTimestamp() // Always update/set updatedAt
-    };
-
     try {
-      const transactionsCollectionRef = collection(firestoreDb, 'users', userId, 'financeTransactions');
+      const transactionData = {
+        description: transactionName.trim(),
+        amount: numericAmount,
+        category: transactionCategory,
+        date: transactionDate,
+        userId,
+        createdAt: serverTimestamp(),
+      };
+
       if (editingTransaction) {
-        const docRef = doc(transactionsCollectionRef, editingTransaction.id);
-        await updateDoc(docRef, transactionData);
+        const transactionRef = doc(firestoreDb, 'users', userId, 'financeTransactions', editingTransaction.id);
+        await updateDoc(transactionRef, transactionData);
         Alert.alert('Success', 'Transaction updated successfully!');
       } else {
-        await addDoc(transactionsCollectionRef, transactionData);
+        await addDoc(collection(firestoreDb, 'users', userId, 'financeTransactions'), transactionData);
         Alert.alert('Success', 'Transaction added successfully!');
       }
-      setDescription('');
-      setAmount('');
-      setType('expense'); // Reset type
-      setEditingTransaction(null); // Reset editing state
+      setTransactionName('');
+      setTransactionAmount('');
+      setTransactionCategory(TRANSACTION_CATEGORIES[0]);
+      setTransactionDate(new Date());
+      setEditingTransaction(null);
+      fetchTransactions(); // Refresh list
+      // After adding/updating transaction, recalculate budget spent amounts
+      fetchBudgets(); // This will re-fetch budgets, consider a more targeted update if performance is an issue
     } catch (error) {
       console.error('Error saving transaction: ', error);
       Alert.alert('Error', `Could not save transaction: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
     }
   };
   
-  const handleDeleteTransaction = async (id) => {
+  const handleEditTransaction = (transaction) => {
+    setEditingTransaction(transaction);
+    setTransactionName(transaction.description);
+    setTransactionAmount(String(transaction.amount)); // Convert amount back to string for TextInput
+    setTransactionCategory(transaction.category);
+    setTransactionDate(transaction.date.toDate());
+    // Optionally, scroll to the input form or open a modal here
+  };
+
+  const handleDeleteTransaction = async (transactionId) => {
     if (!userId) {
       Alert.alert("Authentication Error", "User not found. Cannot delete transaction.");
       return;
@@ -198,9 +461,12 @@ const FinanceScreen = ({ navigation }) => {
           style: "destructive",
           onPress: async () => {
             try {
-              const docRef = doc(firestoreDb, 'users', userId, 'financeTransactions', id);
+              const docRef = doc(firestoreDb, 'users', userId, 'financeTransactions', transactionId);
               await deleteDoc(docRef);
               Alert.alert('Success', 'Transaction deleted successfully!');
+              fetchTransactions(); // Refresh list
+              // After deleting transaction, recalculate budget spent amounts
+              fetchBudgets(); // Similar to add/update, consider targeted update
             } catch (error) {
               console.error('Error deleting transaction: ', error);
               Alert.alert('Error', `Could not delete transaction: ${error.message}`);
@@ -211,555 +477,362 @@ const FinanceScreen = ({ navigation }) => {
     );
   };
 
-  const handleEditTransaction = (transaction) => {
-    setEditingTransaction(transaction);
-    setDescription(transaction.description);
-    setAmount(String(transaction.amount)); // Convert amount back to string for TextInput
-    setType(transaction.type);
-    // Optionally, scroll to the input form or open a modal here
+  const handleAddOrUpdateBudget = async () => {
+    if (!budgetCategoryInput || !budgetAmountInput) {
+      Alert.alert('Missing Info', 'Please select a category and enter an amount for your budget.');
+      return;
+    }
+    if (!userId) {
+      Alert.alert('Not Logged In', 'You need to be logged in.');
+      return;
+    }
+    const amount = parseFloat(budgetAmountInput);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid positive amount for the budget.');
+      return;
+    }
+
+    const budgetData = {
+      userId,
+      category: budgetCategoryInput,
+      amount: amount,
+      createdAt: serverTimestamp(),
+    };
+
+    try {
+      if (editingBudget) {
+        // Check if category is being changed for an existing budget
+        if (editingBudget.category !== budgetCategoryInput) {
+            const existingBudgetForNewCategory = budgets.find(b => b.category === budgetCategoryInput && b.id !== editingBudget.id);
+            if (existingBudgetForNewCategory) {
+                Alert.alert('Budget Exists', `A budget for '${budgetCategoryInput}' already exists. You can edit that one or choose a different category.`);
+                return;
+            }
+        }
+        const budgetRef = doc(firestoreDb, 'userBudgets', editingBudget.id);
+        await updateDoc(budgetRef, { // Only update amount and category if changed
+            category: budgetCategoryInput,
+            amount: amount,
+        });
+        Alert.alert('Budget Updated', `Budget for ${budgetCategoryInput} updated successfully.`);
+      } else {
+        // Check if budget for this category already exists
+        const existingBudget = budgets.find(b => b.category === budgetCategoryInput);
+        if (existingBudget) {
+            Alert.alert('Budget Exists', `A budget for '${budgetCategoryInput}' already exists. You can edit that one.`);
+            return;
+        }
+        await addDoc(collection(firestoreDb, 'userBudgets'), budgetData);
+        Alert.alert('Budget Set', `Budget for ${budgetCategoryInput} set successfully.`);
+      }
+      closeBudgetModal();
+      fetchBudgets(); // Refresh budget list
+    } catch (error) {
+      console.error('Error saving budget: ', error);
+      Alert.alert('Error', 'Could not save budget. ' + error.message);
+    }
   };
 
-  const filteredTransactions = useMemo(() => {
-    if (filter === 'all') return transactions;
-    return transactions.filter(t => t.type === filter);
-  }, [transactions, filter]);
+  const openBudgetModal = (budget = null) => {
+    if (budget) {
+      setEditingBudget(budget);
+      setBudgetCategoryInput(budget.category);
+      setBudgetAmountInput(budget.amount.toString());
+    } else {
+      setEditingBudget(null);
+      setBudgetCategoryInput(TRANSACTION_CATEGORIES[0]);
+      setBudgetAmountInput('');
+    }
+    setIsBudgetModalVisible(true);
+  };
 
-  const totalBalance = useMemo(() => {
-    return transactions.reduce((sum, t) => {
-      return t.type === 'income' ? sum + t.amount : sum - t.amount;
-    }, 0);
-  }, [transactions]);
+  const closeBudgetModal = () => {
+    setIsBudgetModalVisible(false);
+    setEditingBudget(null);
+    setBudgetCategoryInput(TRANSACTION_CATEGORIES[0]);
+    setBudgetAmountInput('');
+  };
 
-  const totalIncome = useMemo(() => {
-    return transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-  }, [transactions]);
-
-  const totalExpenses = useMemo(() => {
-    return transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-  }, [transactions]);
+  const handleDeleteBudget = async (budgetId, budgetCategory) => {
+    Alert.alert(
+      'Confirm Delete',
+      `Are you sure you want to delete the budget for '${budgetCategory}'? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!userId) return;
+            try {
+              await deleteDoc(doc(firestoreDb, 'userBudgets', budgetId));
+              Alert.alert('Budget Deleted', `Budget for ${budgetCategory} has been removed.`);
+              fetchBudgets(); // Refresh list
+            } catch (error) {
+              console.error('Error deleting budget: ', error);
+              Alert.alert('Error', 'Could not delete budget.');
+            }
+          },
+        },
+      ],
+    );
+  };
+  
+  const calculateSpentAmount = (category) => {
+    return transactions
+      .filter((t) => t.category === category)
+      .reduce((sum, t) => sum + t.amount, 0);
+  };
 
   const renderTransactionItem = ({ item }) => (
-    <View style={styles.transactionItemContainer}>
-      <View style={[styles.typeIndicator, { backgroundColor: item.type === 'income' ? colors.income : colors.expense }]} />
-      <View style={styles.transactionDetails}>
-        <Text style={styles.transactionDescription} numberOfLines={1} ellipsizeMode="tail">{item.description}</Text>
-        <Text style={styles.transactionDate}>
-          {item.date?.toDate ? item.date.toDate().toLocaleDateString() : 'Date N/A'}
-        </Text>
+    <View style={styles.listItem}>
+      <View style={styles.listItemTextContainer}>
+        <Text style={styles.listItemTitle} numberOfLines={1} ellipsizeMode="tail">{item.description}</Text>
+        <Text style={styles.listItemSubtitle}>{item.category || 'Uncategorized'}</Text>
       </View>
-      <View style={styles.transactionAmountContainer}>
-        <Text style={[styles.transactionAmount, { color: item.type === 'income' ? colors.income : colors.expense }]}>
-          {item.type === 'income' ? '+' : '-'}${item.amount.toFixed(2)}
-        </Text>
-        <View style={styles.transactionActions}>
-          <TouchableOpacity onPress={() => handleEditTransaction(item)} style={styles.actionButton}>
-            <Ionicons name="pencil-outline" size={18} color={colors.textSecondary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDeleteTransaction(item.id)} style={styles.actionButton}>
-            <Ionicons name="trash-outline" size={18} color={colors.danger} />
-          </TouchableOpacity>
-        </View>
+      <Text style={styles.listItemAmount}>
+        {item.type === 'income' ? '+' : '-'}${item.amount.toFixed(2)}
+      </Text>
+      <View style={styles.actionsContainer}>
+        <TouchableOpacity onPress={() => handleEditTransaction(item)} style={styles.actionButton}>
+          <Ionicons name="pencil-outline" size={18} color={colors.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => handleDeleteTransaction(item.id)} style={styles.actionButton}>
+          <Ionicons name="trash-outline" size={18} color={colors.error} />
+        </TouchableOpacity>
       </View>
     </View>
   );
 
-  if (loading && transactions.length === 0) {
+  const renderBudgetItem = ({ item }) => {
+    const spent = calculateSpentAmount(item.category);
+    const remaining = item.amount - spent;
+    const progress = item.amount > 0 ? (spent / item.amount) : 0;
+    const progressBarColor = progress > 1 ? colors.error : progress > 0.75 ? colors.accent : colors.primary;
+
+
     return (
-      <SafeAreaView style={styles.flexOne}> {/* Ensure SafeAreaView wraps the loading state as well */} 
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading Finances...</Text>
+      <View style={styles.budgetItem}>
+        <View style={styles.budgetTextContainer}>
+          <Text style={styles.budgetCategory}>{item.category}</Text>
+          <Text style={styles.budgetAmount}>
+            Budgeted: ${item.amount.toFixed(2)}
+          </Text>
+          <Text style={[styles.budgetSpent, spent > item.amount && {color: colors.error}]}>
+            Spent: ${spent.toFixed(2)}
+          </Text>
+          <Text style={[styles.budgetRemaining, remaining < 0 && {color: colors.error}]}>
+            {remaining >= 0 ? `Remaining: $${remaining.toFixed(2)}` : `Overspent: $${Math.abs(remaining).toFixed(2)}`}
+          </Text>
+          <View style={styles.progressBarContainer}>
+            <View style={[styles.progressBar, { width: `${Math.min(progress * 100, 100)}%`, backgroundColor: progressBarColor }]} />
+          </View>
         </View>
-      </SafeAreaView>
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            onPress={() => openBudgetModal(item)}
+            style={styles.actionButton}>
+            <Ionicons name="pencil-outline" size={22} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleDeleteBudget(item.id, item.category)}
+            style={styles.actionButton}>
+            <Ionicons name="trash-outline" size={22} color={colors.error} />
+          </TouchableOpacity>
+        </View>
+      </View>
     );
-  }
+  };
+
+  const renderFinancialGoalItem = ({ item }) => (
+    <View style={styles.listItem}>
+      <View style={styles.listItemTextContainer}>
+        <Text style={styles.listItemTitle}>{item.name}</Text>
+        <Text style={styles.listItemSubtitle}>Target: ${item.targetAmount.toFixed(2)}</Text>
+      </View>
+      <Text style={styles.listItemAmount}>
+        Saved: ${item.currentAmount.toFixed(2)}
+      </Text>
+    </View>
+  );
 
   return (
-    <SafeAreaView style={styles.flexOne}>
+    <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.screen}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0} // Adjust offset if needed
+        style={{ flex: 1 }}
       >
-        <ScrollView 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollViewContent}
-          keyboardShouldPersistTaps="handled" // Ensures taps work inside ScrollView when keyboard is up
-        >
-          {LinearGradient !== View ? (
-              <LinearGradient
-                colors={[colors.gradientStart, colors.gradientEnd]}
-                style={styles.headerContainer}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 0.5}} // Adjust gradient angle
-              >
-                <Text style={styles.headerTitle}>My Finances</Text>
-                <View style={styles.summaryBalanceContainer}>
-                  <Text style={styles.summaryBalanceLabel}>Total Balance</Text>
-                  <Text style={styles.summaryBalanceAmount}>${totalBalance.toFixed(2)}</Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <View style={styles.summaryItem}>
-                    <Ionicons name="arrow-up-circle-outline" size={24} color={colors.income} />
-                    <View style={styles.summaryTextContainer}> {/* Added View to wrap texts */}
-                      <Text style={styles.summaryItemLabel}>Income</Text>
-                      <Text style={[styles.summaryItemAmount, { color: colors.income }]}>
-                        ${totalIncome.toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.summaryItem}>
-                    <Ionicons name="arrow-down-circle-outline" size={24} color={colors.expense} />
-                    <View style={styles.summaryTextContainer}> {/* Added View to wrap texts */}
-                      <Text style={styles.summaryItemLabel}>Expenses</Text>
-                      <Text style={[styles.summaryItemAmount, { color: colors.expense }]}>
-                        ${totalExpenses.toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </LinearGradient>
-            ) : (
-              <View style={styles.headerContainer}> {/* Fallback for when LinearGradient is not available */}
-                <Text style={styles.headerTitle}>My Finances</Text>
-                <View style={styles.summaryBalanceContainer}>
-                  <Text style={styles.summaryBalanceLabel}>Total Balance</Text>
-                  <Text style={styles.summaryBalanceAmount}>${totalBalance.toFixed(2)}</Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <View style={styles.summaryItem}>
-                    <Ionicons name="arrow-up-circle-outline" size={24} color={colors.income} />
-                    <View style={styles.summaryTextContainer}> {/* Added View to wrap texts */}
-                      <Text style={styles.summaryItemLabel}>Income</Text>
-                      <Text style={[styles.summaryItemAmount, { color: colors.income }]}>
-                        ${totalIncome.toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.summaryItem}>
-                    <Ionicons name="arrow-down-circle-outline" size={24} color={colors.expense} />
-                    <View style={styles.summaryTextContainer}> {/* Added View to wrap texts */}
-                      <Text style={styles.summaryItemLabel}>Expenses</Text>
-                      <Text style={[styles.summaryItemAmount, { color: colors.expense }]}>
-                        ${totalExpenses.toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            )
-          }
-          
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContainer}>
+        <Text style={styles.headerTitle}>Financial Dashboard</Text>
+        <Text style={styles.headerSubtitle}>
+          Manage your transactions, budgets, and goals.
+        </Text>
 
-          <View style={styles.contentContainer}>
-            <View style={styles.inputSection}>
-              <Text style={styles.sectionTitle}>{editingTransaction ? 'Edit Transaction' : 'Add New Transaction'}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Description (e.g., Groceries, Salary)"
-                placeholderTextColor={colors.textMuted}
-                value={description}
-                onChangeText={setDescription}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Amount (e.g., 50.00)"
-                placeholderTextColor={colors.textMuted}
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="numeric"
-              />
-              <View style={styles.typeSelector}>
-                <TouchableOpacity
-                  style={[styles.typeOption, type === 'income' && styles.typeOptionActiveIncome]}
-                  onPress={() => setType('income')}
-                >
-                  <Ionicons name="add-circle-outline" size={20} color={type === 'income' ? colors.income : colors.textSecondary} style={{marginRight: spacing.xs}}/>
-                  <Text style={[styles.typeOptionText, type === 'income' && styles.typeOptionTextActiveIncome]}>Income</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.typeOption, type === 'expense' && styles.typeOptionActiveExpense]}
-                  onPress={() => setType('expense')}
-                >
-                   <Ionicons name="remove-circle-outline" size={20} color={type === 'expense' ? colors.expense : colors.textSecondary} style={{marginRight: spacing.xs}}/>
-                  <Text style={[styles.typeOptionText, type === 'expense' && styles.typeOptionTextActiveExpense]}>Expense</Text>
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity 
-                style={[styles.button, isSubmitting && styles.buttonDisabled]} 
-                onPress={handleAddOrUpdateTransaction}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color={colors.textOnPrimary} />
-                ) : (
-                  <Text style={styles.buttonText}>{editingTransaction ? 'Update Transaction' : 'Add Transaction'}</Text>
-                )}
-              </TouchableOpacity>
-              {editingTransaction && (
-                <TouchableOpacity 
-                  style={[styles.button, styles.cancelButton]} 
-                  onPress={() => {
-                    setEditingTransaction(null);
-                    setDescription('');
-                    setAmount('');
-                    setType('expense');
-                  }}
-                  disabled={isSubmitting}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel Edit</Text>
-                </TouchableOpacity>
-              )}
+        {/* Budget Management Section */}
+        <View style={styles.sectionContainer}>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+            <Text style={styles.sectionTitle}>Budget Management</Text>
+            <TouchableOpacity onPress={() => openBudgetModal()} style={[styles.button, styles.addBudgetButton, {paddingVertical: 10, paddingHorizontal: 15, marginBottom: 10}]}>
+                 <Ionicons name="add-circle-outline" size={20} color={colors.white} />
+                <Text style={[styles.buttonText, {fontSize: 15, marginLeft: 5}]}>Set Budget</Text>
+            </TouchableOpacity>
+          </View>
+          {loadingBudgets ? (
+            <Text style={styles.emptyListText}>Loading budgets...</Text>
+          ) : budgets.length > 0 ? (
+            <FlatList
+              data={budgets}
+              renderItem={renderBudgetItem}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false} // if nested in ScrollView
+            />
+          ) : (
+            <Text style={styles.emptyListText}>
+              No budgets set yet. Tap 'Set Budget' to create one.
+            </Text>
+          )}
+        </View>
+
+        {/* Add/Edit Transaction Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>{editingTransaction ? 'Edit Transaction' : 'Add New Transaction'}</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Description</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g., Groceries, Salary"
+              value={transactionName}
+              onChangeText={setTransactionName}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Amount ($)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g., 50.00"
+              value={transactionAmount}
+              onChangeText={setTransactionAmount}
+              keyboardType="numeric"
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Category</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={transactionCategory}
+                onValueChange={(itemValue) => setTransactionCategory(itemValue)}
+                style={styles.picker}
+                prompt="Select Transaction Category">
+                {TRANSACTION_CATEGORIES.map((cat) => (
+                  <Picker.Item key={cat.value} label={cat.label} value={cat.value} />
+                ))}
+              </Picker>
             </View>
-
-            <View style={styles.filterContainer}>
-              <Text style={styles.sectionTitle}>History</Text>
-              <View style={styles.filterButtons}>
-                {['all', 'income', 'expense'].map((f) => (
-                  <TouchableOpacity
-                    key={f}
-                    style={[styles.filterButton, filter === f && styles.filterButtonActive]}
-                    onPress={() => setFilter(f)}
-                  >
-                    <Text style={[styles.filterButtonText, filter === f && styles.filterButtonTextActive]}>
-                      {f.charAt(0).toUpperCase() + f.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}\
-              </View>
-            </View>
-
-            {loading && transactions.length > 0 && <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md}} />}
-
-            {filteredTransactions.length === 0 && !loading ? (
-              <View style={styles.emptyStateContainer}>
-                <Ionicons name="receipt-outline" size={60} color={colors.textMuted} />
-                <Text style={styles.emptyStateText}>No transactions yet.</Text>
-                <Text style={styles.emptyStateSubText}>
-                  {filter === 'all' ? 'Add your first transaction to get started.' : `No ${filter} transactions found.`}
-                </Text>
-              </View>
-            ) : (
-              // Using View instead of FlatList directly inside ScrollView to avoid virtualization issues
-              // For very long lists, consider a virtualized list component designed for ScrollView if performance drops.
-              <View>
-                {filteredTransactions.map(item =>
-                  // Ensure each item rendered by map has a unique key.
-                  // React.cloneElement can add a key to the element returned by renderTransactionItem.
-                  React.cloneElement(renderTransactionItem({ item }), { key: item.id })
-                )}
-              </View>
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Date</Text>
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => setShowDatePicker(true)}>
+              <Text style={styles.datePickerButtonText}>
+                {transactionDate.toLocaleDateString()}
+              </Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={transactionDate}
+                mode="date"
+                display="default"
+                onChange={handleDateChange}
+              />
             )}
           </View>
-          <View style={{ height: spacing.xxl }} /> {/* Extra space at the bottom */}
-        </ScrollView>
+          <TouchableOpacity 
+            style={[styles.button, { marginTop: 10 }]} 
+            onPress={handleAddOrUpdateTransaction}
+          >
+            <Text style={styles.buttonText}>{editingTransaction ? 'Update Transaction' : 'Add Transaction'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Financial Goals Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Financial Goals</Text>
+          {goals.length > 0 ? (
+            <FlatList
+              data={goals}
+              renderItem={renderFinancialGoalItem}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false} // if nested in ScrollView
+            />
+          ) : (
+            <Text style={styles.emptyListText}>
+              No financial goals set. Consider adding some.
+            </Text>
+          )}
+        </View>
+      </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Budget Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isBudgetModalVisible}
+        onRequestClose={closeBudgetModal}>
+        <KeyboardAvoidingView 
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.modalOverlay}
+        >
+            <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>
+                {editingBudget ? 'Edit Budget' : 'Set New Budget'}
+            </Text>
+            <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Category</Text>
+                <View style={styles.pickerContainer}>
+                <Picker
+                    selectedValue={budgetCategoryInput}
+                    onValueChange={(itemValue) => setBudgetCategoryInput(itemValue)}
+                    style={styles.picker}
+                    prompt="Select Budget Category">
+                    {TRANSACTION_CATEGORIES.map((cat) => (
+                    <Picker.Item key={cat} label={cat} value={cat} />
+                    ))}
+                </Picker>
+                </View>
+            </View>
+            <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Budget Amount ($)</Text>
+                <TextInput
+                style={styles.input}
+                placeholder="e.g., 500"
+                keyboardType="numeric"
+                value={budgetAmountInput}
+                onChangeText={setBudgetAmountInput}
+                />
+            </View>
+            <View style={styles.modalButtonContainer}>
+                <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={closeBudgetModal}>
+                <Text style={[styles.modalButtonText, { color: colors.text }]}>
+                    Cancel
+                </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={handleAddOrUpdateBudget}>
+                <Text style={[styles.modalButtonText, { color: colors.white }]}>
+                    {editingBudget ? 'Update Budget' : 'Set Budget'}
+                </Text>
+                </TouchableOpacity>
+            </View>
+            </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  flexOne: { // Added style for SafeAreaView
-    flex: 1,
-    backgroundColor: colors.background, // Match screen background
-  },
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollViewContent: {
-    flexGrow: 1,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  loadingText: {
-    ...typography.body,
-    marginTop: spacing.sm,
-    color: colors.primary,
-  },
-  headerContainer: {
-    paddingTop: Platform.OS === 'android' ? spacing.lg + 20 : spacing.xl + 20, // Adjust for status bar
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-    marginBottom: spacing.md, // Space between header and content
-    shadowColor: colors.shadow, // Shadow for header
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-  headerTitle: {
-    ...typography.h1,
-    fontSize: 32, // Larger title
-    color: colors.textOnPrimary,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-    fontWeight: 'bold',
-  },
-  summaryBalanceContainer: {
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  summaryBalanceLabel: {
-    ...typography.caption,
-    color: colors.textOnPrimary,
-    opacity: 0.85, // Slightly more opaque
-    marginBottom: spacing.xxs,
-  },
-  summaryBalanceAmount: {
-    ...typography.h1,
-    fontSize: 40, // Larger for emphasis
-    color: colors.textOnPrimary,
-    fontWeight: 'bold',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    marginTop: spacing.sm, // Add some top margin
-  },
-  summaryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface, // Card-like background for each item
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: 8,
-    flex: 1, // Distribute space equally
-    marginHorizontal: spacing.xs, // Add some space between items
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  summaryTextContainer: { // Added style for the text container next to icon
-    marginLeft: spacing.sm,
-    flexShrink: 1, // Allow text to shrink if needed
-  },
-  summaryItemLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginBottom: spacing.xxs,
-  },
-  summaryItemAmount: {
-    ...typography.bodyBold,
-    fontSize: 18, // Slightly larger for emphasis
-  },
-  contentContainer: {
-    paddingHorizontal: spacing.lg,
-    flex: 1, // Ensure content takes available space
-    paddingBottom: spacing.lg, // Padding at the bottom of content
-  },
-  inputSection: {
-    backgroundColor: colors.surface,
-    borderRadius: 16, // More rounded corners
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10, // Softer shadow
-    elevation: 5,
-  },
-  sectionTitle: {
-    ...typography.h3,
-    color: colors.primaryDark, // Use a darker primary for section titles
-    marginBottom: spacing.md,
-  },
-  input: {
-    backgroundColor: colors.background, 
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10, // More rounded inputs
-    paddingHorizontal: spacing.md,
-    paddingVertical: Platform.OS === 'ios' ? spacing.sm : spacing.xs, // Adjust padding for platforms
-    marginBottom: spacing.sm,
-    ...typography.body,
-    color: colors.text,
-  },
-  typeSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  typeOption: {
-    flex: 1,
-    flexDirection: 'row', // For icon and text
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.sm,
-    borderRadius: 10,
-    borderWidth: 1.5, // Slightly thicker border
-    borderColor: colors.border,
-    marginHorizontal: spacing.xs, // Spacing between options
-    backgroundColor: colors.surface, // Default background
-  },
-  typeOptionActiveIncome: {
-    backgroundColor: colors.incomeBackground,
-    borderColor: colors.income,
-  },
-  typeOptionActiveExpense: {
-    backgroundColor: colors.expenseBackground,
-    borderColor: colors.expense,
-  },
-  typeOptionText: {
-    ...typography.bodyBold,
-    color: colors.textSecondary,
-  },
-  typeOptionTextActiveIncome: {
-    color: colors.income,
-  },
-  typeOptionTextActiveExpense: {
-    color: colors.expense,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 50,
-    shadowColor: colors.primaryDark, // Shadow for button
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  buttonDisabled: {
-    backgroundColor: colors.disabled,
-    shadowOpacity: 0, // No shadow for disabled button
-    elevation: 0,
-  },
-  buttonText: {
-    ...typography.button,
-    color: colors.textOnPrimary, // Ensure text is white
-  },
-  cancelButton: {
-    backgroundColor: 'transparent',
-    borderColor: colors.textMuted,
-    borderWidth: 1.5,
-    marginTop: spacing.sm,
-    shadowOpacity: 0, // No shadow for cancel
-    elevation: 0,
-  },
-  cancelButtonText: {
-    ...typography.button,
-    color: colors.textMuted,
-  },
-  filterContainer: {
-    marginBottom: spacing.sm,
-    marginTop: spacing.sm, 
-  },
-  filterButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around', 
-    backgroundColor: colors.surface,
-    borderRadius: 12, // More rounded filter bar
-    padding: spacing.xs,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    marginBottom: spacing.md, // Space below filters
-  },
-  filterButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: 8, // Rounded individual buttons
-    marginHorizontal: spacing.xxs, 
-  },
-  filterButtonActive: {
-    backgroundColor: colors.primary,
-    shadowColor: colors.primaryDark,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  filterButtonText: {
-    ...typography.captionBold,
-    color: colors.textSecondary,
-  },
-  filterButtonTextActive: {
-    color: colors.textOnPrimary,
-  },
-  transactionItemContainer: {
-    backgroundColor: colors.surface,
-    borderRadius: 12, // More rounded items
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 3 }, // Slightly more pronounced shadow
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  typeIndicator: {
-    width: 6,
-    height: '90%', // Make it slightly shorter than the card
-    borderRadius: 3,
-    marginRight: spacing.md, // More space next to indicator
-  },
-  transactionDetails: {
-    flex: 1,
-    marginRight: spacing.sm, // Space before amount
-  },
-  transactionDescription: {
-    ...typography.bodyBold,
-    color: colors.text, // Darker description
-    marginBottom: spacing.xxs,
-  },
-  transactionDate: {
-    ...typography.small,
-    color: colors.textMuted,
-  },
-  transactionAmountContainer: {
-    alignItems: 'flex-end',
-  },
-  transactionAmount: {
-    ...typography.bodyBold,
-    fontSize: 18, 
-    marginBottom: spacing.xxs,
-  },
-  transactionActions: {
-    flexDirection: 'row',
-    marginTop: spacing.xxs,
-  },
-  actionButton: {
-    padding: spacing.xs, 
-    marginLeft: spacing.sm,
-  },
-  emptyStateContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-    minHeight: height * 0.3, // Ensure it takes some space
-    marginTop: spacing.lg,
-  },
-  emptyStateText: {
-    ...typography.h3,
-    color: colors.textMuted,
-    marginTop: spacing.md,
-    textAlign: 'center',
-  },
-  emptyStateSubText: {
-    ...typography.body,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
-    textAlign: 'center',
-    paddingHorizontal: spacing.lg, // Add padding for longer text
-  },
-});
 
 export default FinanceScreen;

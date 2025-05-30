@@ -151,7 +151,7 @@ const StudyScreen = ({ navigation }) => {
       subtitle: 'Outlines, citations & more',
       iconName: 'pencil-outline',
       gradientColors: ['#4E65FF', '#748BFF'], // Custom gradient
-      onPress: () => handleComingSoon('Writing Assistant'), // To be implemented
+      onPress: () => handleNavigate('WritingAssistant'), // Updated to navigate to WritingAssistantScreen
       tag: 'AI Powered'
     },
   ];

@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import mongoose, { ConnectOptions } from 'mongoose';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express'; // Added NextFunction
 import cors from 'cors'; // Import cors
 
 // Initialize Firebase Admin (must be done before importing routes)
@@ -31,6 +31,12 @@ app.use(cors());
 //   optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 // };
 // app.use(cors(corsOptions));
+
+// Add a simple request logger middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`[GLOBAL REQUEST LOGGER] Method: ${req.method}, URL: ${req.originalUrl}`);
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -62,6 +68,28 @@ app.use('/api/file', fileRoutes); // Changed from /api/file to /file
 app.use('/api/calendar', calendarRoutes); // Added calendar routes
 app.use('/api/srs', spacedRepetitionRoutes); // Add spaced repetition routes
 app.use('/api/study-plans', studyPlansRoutes); // Add study plans routes
+
+// Global Error Handling Middleware (should be defined AFTER all other app.use() and routes)
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('[GLOBAL ERROR HANDLER] Error caught:', err);
+  
+  // If headers have already been sent, delegate to the default Express error handler
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  const statusCode = err.statusCode || err.status || 500;
+  const message = err.message || 'Internal Server Error';
+
+  res.status(statusCode).json({
+    error: {
+      message: message,
+      type: err.name || 'Error',
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }), // Include stack in dev
+      ...(err.details && { details: err.details }), // Include custom details if any
+    },
+  });
+});
 
 // Start the server
 app.listen(PORT, HOST, () => {
