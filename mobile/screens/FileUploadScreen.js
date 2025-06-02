@@ -14,7 +14,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth'; // Import getAuth
 
-const backendUrl = 'http://172.20.10.2:3000'; // Ensure this is your correct backend URL
+const backendUrl = 'http://172.20.10.3.2:3000'; // Ensure this is your correct backend URL
 
 const FileUploadScreen = ({ navigation, route }) => {
   const { uploadType, nextPage, studyPlanId } = route.params || {}; // Get uploadType and nextPage

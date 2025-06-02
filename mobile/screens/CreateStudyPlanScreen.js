@@ -68,7 +68,7 @@ const CreateStudyPlanScreen = ({ navigation }) => {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
-  const API_URL = 'http://172.20.10.2:3000'; // Updated IP Address
+  const API_URL = 'http://172.20.10.3.2:3000'; // Updated IP Address
 
   const onChangeStartDate = (event, selectedDate) => {
     const currentDate = selectedDate || startDate;

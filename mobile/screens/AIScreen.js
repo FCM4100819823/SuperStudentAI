@@ -4,7 +4,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios'; // Import axios
 import * as DocumentPicker from 'expo-document-picker'; // Import DocumentPicker
 
-const API_BASE_URL = 'http://172.20.10.2:3000/api/ai'; // Ensure this is your computer's IP address
+const API_BASE_URL = 'http://172.20.10.3.2:3000/api/ai'; // Ensure this is your computer's IP address
 const NLP_API_ENDPOINT = `${API_BASE_URL}/nlp`;
 const SYLLABUS_TEXT_ANALYSIS_ENDPOINT = `${API_BASE_URL}/syllabus/analyze-text`;
 const SYLLABUS_FILE_ANALYSIS_ENDPOINT = `${API_BASE_URL}/syllabus/analyze-file`;

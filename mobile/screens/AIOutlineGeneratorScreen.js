@@ -54,7 +54,7 @@ const AIOutlineGeneratorScreen = ({ navigation }) => {
     try {
       // Assuming your backend is running on localhost:3000 or your configured port
       // You might want to put this URL in a config file
-      const backendUrl = 'http://172.20.10.2:3000'; // Replace with your actual backend URL if different
+      const backendUrl = 'http://172.20.10.3.2:3000'; // Replace with your actual backend URL if different
       const response = await fetch(`${backendUrl}/api/ai/generate-outline`, {
         method: 'POST',
         headers: {

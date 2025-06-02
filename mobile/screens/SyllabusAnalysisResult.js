@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth'; // Import getAuth
 // import CalendarEvents from 'react-native-calendar-events'; // Consider for adding to device calendar
 
-const backendUrl = 'http://172.20.10.2:3000'; // Ensure this is your correct backend URL
+const backendUrl = 'http://172.20.10.3.2:3000'; // Ensure this is your correct backend URL
 
 // Define STATIC_COLORS and SPACING for consistent styling
 const STATIC_COLORS = {

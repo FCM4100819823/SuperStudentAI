@@ -69,7 +69,7 @@ const DESIGN_TOKENS = {
   },
 };
 
-const API_URL = 'http://172.20.10.2:3000'; // Replace with your actual IP
+const API_URL = 'http://172.20.10.3.2:3000'; // Replace with your actual IP
 
 const StudyPlanDetailScreen = () => {
   const route = useRoute();

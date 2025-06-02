@@ -11,7 +11,6 @@ import Tesseract from 'tesseract.js';
 import mongoose from 'mongoose'; // Added mongoose
 import CalendarEvent from '../models/CalendarEvent'; // Added CalendarEvent model
 import dotenv from 'dotenv'; // Added for OPENROUTER_API_KEY
-import { Copyleaks } from 'plagiarism-checker';
 
 dotenv.config(); // Load .env variables
 
@@ -24,19 +23,9 @@ const limiter: ExpressRequestHandler = rateLimitImport({
   message: 'Too many AI requests from this IP, please try again later.',
 });
 
-const copyleaks = new Copyleaks();
-
 // Login to Copyleaks
 const email = process.env.COPYLEAKS_EMAIL;
 const apiKey = process.env.COPYLEAKS_API_KEY;
-
-if (email && apiKey) {
-  copyleaks.loginAsync(email, apiKey)
-    .then(res => console.log('Copyleaks login successful:', res))
-    .catch(err => console.error('Copyleaks login failed:', err));
-} else {
-  console.error('Copyleaks email or API key not found in .env. Plagiarism checker will not function.');
-}
 
 const aiCache: Record<string, { result: any; timestamp: number }> = {};
 const CACHE_TTL = 60 * 1000; // 1 minute
@@ -975,69 +964,6 @@ router.post('/generate-outline', limiter, async (req: Request, res: Response, ne
     console.error('Error calling OpenRouter API:', error.response ? error.response.data : error.message);
     // Pass the error to the global error handler
     next(error);
-  }
-});
-
-// Route for Plagiarism Detection
-router.post('/check-plagiarism', limiter, async (req: Request, res: Response) => {
-  const { text } = req.body;
-
-  if (!text) {
-    return res.status(400).json({ error: 'Text to check is required.' });
-  }
-
-  if (!apiKey || !email) {
-    console.error('Copyleaks API key or email not configured in .env');
-    return res.status(500).json({ error: 'Plagiarism checker not configured.' });
-  }
-
-  try {
-    // Example of submitting a file for scanning
-    // You'll need to adapt this based on how you want to handle the text.
-    // Copyleaks typically works with URLs or file content.
-    // For simplicity, this example assumes you might write the text to a temporary file
-    // or use a method that accepts raw text if available.
-    // The plagiarism-checker SDK documentation should provide clarity.
-
-    // Placeholder for actual Copyleaks SDK usage
-    // The SDK methods like `submitFile`, `submitText`, etc. should be used here.
-    // For instance, if there's a method to submit raw text:
-    // const scanId = await copyleaks.submitText(text, 'scan-unique-id', {
-    //   sandbox: true, // Use sandbox for testing
-    //   properties: {
-    //     action: 0, // Check
-    //     webhooks: {
-    //       status: 'https://your-webhook-url.com/copyleaks-status/{STATUS_TYPE}' // Replace with your actual webhook
-    //     }
-    //   }
-    // });
-
-    // Since the SDK's `check` method was causing issues,
-    // and direct text submission might require more setup (like webhooks for results),
-    // we'll simulate a response for now.
-    // Replace this with actual Copyleaks API call and result handling.
-
-    // Simulated response structure based on typical plagiarism checkers
-    const mockPlagiarismResult = {
-      score: Math.random() * 100, // Simulated plagiarism score
-      sources: [
-        { url: 'http://example.com/source1', percent: Math.random() * 50 },
-        { url: 'http://example.com/source2', percent: Math.random() * 50 },
-      ],
-      details: 'This is a simulated plagiarism check result. Integrate with Copyleaks API for real results.',
-    };
-
-    // console.log('Plagiarism check initiated for text snippet.'); // Or log scanId
-
-    res.json({
-      message: 'Plagiarism check request received. Processing...',
-      // scanId: scanId, // If you get a scan ID
-      result: mockPlagiarismResult // Sending mock result directly for now
-    });
-
-  } catch (error: any) {
-    console.error('Error during plagiarism check:', error);
-    res.status(500).json({ error: 'Failed to perform plagiarism check.', details: error.message });
   }
 });
 
