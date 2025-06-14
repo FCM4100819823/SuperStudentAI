@@ -1,5 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // Consistent styling (can be imported from a shared styles file later)
@@ -21,11 +27,29 @@ const STATIC_COLORS = {
 
 const TYPOGRAPHY = {
   h1: { fontSize: 28, fontWeight: 'bold', color: STATIC_COLORS.primaryDark },
-  h2: { fontSize: 24, fontWeight: 'bold', color: STATIC_COLORS.text, marginBottom: 16 },
-  h3: { fontSize: 20, fontWeight: '600', color: STATIC_COLORS.primary, marginBottom: 8 },
+  h2: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: STATIC_COLORS.text,
+    marginBottom: 16,
+  },
+  h3: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: STATIC_COLORS.primary,
+    marginBottom: 8,
+  },
   body: { fontSize: 16, color: STATIC_COLORS.textSecondary, lineHeight: 24 },
-  caption: { fontSize: 14, color: STATIC_COLORS.textMuted, fontStyle: 'italic' },
-  button: { fontSize: 16, fontWeight: 'bold', color: STATIC_COLORS.textOnPrimary },
+  caption: {
+    fontSize: 14,
+    color: STATIC_COLORS.textMuted,
+    fontStyle: 'italic',
+  },
+  button: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: STATIC_COLORS.textOnPrimary,
+  },
 };
 
 const SPACING = {
@@ -39,7 +63,12 @@ const SPACING = {
 const FeatureCard = ({ title, description, iconName }) => (
   <View style={styles.card}>
     <View style={styles.cardHeader}>
-      <Icon name={iconName} size={28} color={STATIC_COLORS.primary} style={styles.cardIcon} />
+      <Icon
+        name={iconName}
+        size={28}
+        color={STATIC_COLORS.primary}
+        style={styles.cardIcon}
+      />
       <Text style={styles.cardTitle}>{title}</Text>
     </View>
     <Text style={styles.cardDescription}>{description}</Text>
@@ -51,17 +80,48 @@ const FeatureCard = ({ title, description, iconName }) => (
 
 const WritingAssistantScreen = ({ navigation }) => {
   const features = [
-    { id: '1', title: 'AI Outline Generator', description: 'Generate structured outlines for your essays and papers.', icon: 'file-document-outline', screen: 'AIOutlineGenerator' },
-    { id: '2', title: 'Plagiarism Detection', description: 'Check your text for potential plagiarism.', icon: 'text-search', screen: 'PlagiarismChecker' }, // Updated screen name
-    { id: '3', title: 'Citation Management', description: 'Organize and manage your research citations.', icon: 'book-multiple-outline', screen: 'ResearchOrganization' }, // Assuming this is the correct screen for now
+    {
+      id: '1',
+      title: 'AI Outline Generator',
+      description: 'Generate structured outlines for your essays and papers.',
+      icon: 'file-document-outline',
+      screen: 'AIOutlineGenerator',
+    },
+    {
+      id: '2',
+      title: 'Plagiarism Detection',
+      description: 'Check your text for potential plagiarism.',
+      icon: 'text-search',
+      screen: 'PlagiarismChecker',
+    }, // Updated screen name
+    {
+      id: '3',
+      title: 'Citation Management',
+      description: 'Organize and manage your research citations.',
+      icon: 'book-multiple-outline',
+      screen: 'ResearchOrganization',
+    }, // Assuming this is the correct screen for now
     // ... more features can be added here
   ];
 
   // Helper to create navigable feature cards
-  const NavigableFeatureCard = ({ title, description, iconName, screenName }) => (
-    <TouchableOpacity onPress={() => navigation.navigate(screenName)} style={styles.card}>
+  const NavigableFeatureCard = ({
+    title,
+    description,
+    iconName,
+    screenName,
+  }) => (
+    <TouchableOpacity
+      onPress={() => navigation.navigate(screenName)}
+      style={styles.card}
+    >
       <View style={styles.cardHeader}>
-        <Icon name={iconName} size={28} color={STATIC_COLORS.primary} style={styles.cardIcon} />
+        <Icon
+          name={iconName}
+          size={28}
+          color={STATIC_COLORS.primary}
+          style={styles.cardIcon}
+        />
         <Text style={styles.cardTitle}>{title}</Text>
       </View>
       <Text style={styles.cardDescription}>{description}</Text>
@@ -75,14 +135,26 @@ const WritingAssistantScreen = ({ navigation }) => {
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+    >
       <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="arrow-back-outline" size={28} color={STATIC_COLORS.primary} />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Icon
+            name="arrow-back-outline"
+            size={28}
+            color={STATIC_COLORS.primary}
+          />
         </TouchableOpacity>
         <Text style={TYPOGRAPHY.h1}>Writing Assistant</Text>
       </View>
-      <Text style={styles.subHeader}>Tools to elevate your academic writing.</Text>
+      <Text style={styles.subHeader}>
+        Tools to elevate your academic writing.
+      </Text>
 
       {features.map((feature) => (
         <NavigableFeatureCard

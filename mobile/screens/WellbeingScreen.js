@@ -83,12 +83,10 @@ const WellbeingScreen = ({ navigation }) => {
             setLastMoodEntry({
               ...lastEntry,
               timestamp:
-                lastEntry.timestamp
-                  ?.toDate()
-                  .toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  }) +
+                lastEntry.timestamp?.toDate().toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }) +
                 ' ' +
                 lastEntry.timestamp?.toDate().toLocaleDateString(),
             });
@@ -177,14 +175,22 @@ const WellbeingScreen = ({ navigation }) => {
       );
     } catch (error) {
       console.error('Error saving journal entry: ', error);
-      Alert.alert('Error', 'Could not save your journal entry. Please try again.');
+      Alert.alert(
+        'Error',
+        'Could not save your journal entry. Please try again.',
+      );
     } finally {
       setJournalModalVisible(false);
     }
   };
 
   const FeatureCard = ({ title, icon, children, onPress, testID }) => (
-    <TouchableOpacity style={styles.card} onPress={onPress} disabled={!onPress} testID={testID}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={onPress}
+      disabled={!onPress}
+      testID={testID}
+    >
       <View style={styles.cardHeaderContainer}>
         {icon && (
           <Ionicons
@@ -210,16 +216,16 @@ const WellbeingScreen = ({ navigation }) => {
         <Text style={styles.headerSubtitle}>Take a moment for yourself.</Text>
 
         <FeatureCard title="Health Monitoring" icon="heart-circle-outline">
-          <TouchableOpacity 
-            style={styles.subFeatureButton} 
+          <TouchableOpacity
+            style={styles.subFeatureButton}
             onPress={() => navigation.navigate('ActivityTracking')}
             testID="activityTrackingButton"
           >
             <Ionicons name="walk-outline" size={22} color={colors.primary} />
             <Text style={styles.subFeatureText}>Activity Tracking</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.subFeatureButton} 
+          <TouchableOpacity
+            style={styles.subFeatureButton}
             onPress={() => navigation.navigate('SleepTracking')}
             testID="sleepTrackingButton"
           >
@@ -327,166 +333,167 @@ const WellbeingScreen = ({ navigation }) => {
   );
 };
 
-const getStyles = (colors) => StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-    paddingTop: Platform.OS === 'android' ? 25 : 0,
-  },
-  screenContainer: {
-    flex: 1,
-  },
-  scrollContentContainer: {
-    paddingBottom: 30,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.text,
-    paddingHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 5,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: colors.subtext,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 15,
-    padding: 20,
-    marginHorizontal: 15,
-    marginBottom: 20,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  cardHeaderContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  cardIcon: {
-    marginRight: 10,
-    // color is set by theme.colors.primary directly in the component
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  moodSelectorContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  moodButton: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 5,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 10,
-    minWidth: '30%',
-    marginBottom: 10,
-    // backgroundColor and icon color are dynamic based on selection and mood.color
-  },
-  selectedMoodButton: {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  moodText: {
-    fontSize: 13,
-    marginTop: 5,
-    color: colors.subtext, // Default text color for mood
-    // color changes dynamically for selected mood
-  },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonDisabled: {
-    backgroundColor: colors.disabled,
-  },
-  buttonText: {
-    color: colors.buttonText,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  lastMoodText: {
-    textAlign: 'center',
-    marginTop: 15,
-    fontSize: 13,
-    color: colors.subtext,
-  },
-  promptText: {
-    fontSize: 16,
-    color: colors.text,
-    lineHeight: 24,
-    marginBottom: 15,
-    fontStyle: 'italic',
-  },
-  secondaryButton: {
-    backgroundColor: colors.card, // Or theme.colors.secondary if defined and appropriate
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    borderColor: colors.primary,
-    borderWidth: 1,
-  },
-  secondaryButtonText: {
-    color: colors.primary,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  mindfulnessItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  mindfulnessText: {
-    fontSize: 16,
-    color: colors.text,
-    marginLeft: 12,
-  },
-  affirmationText: {
-    fontSize: 17,
-    color: colors.primary, // Or a specific affirmation color from theme if added
-    textAlign: 'center',
-    fontStyle: 'italic',
-    fontWeight: '500',
-    paddingVertical: 10,
-  },
-  subFeatureButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background, // Light background for the button itself
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    borderColor: colors.lightBorder, // Subtle border
-    borderWidth: 1,
-  },
-  subFeatureText: {
-    marginLeft: 10,
-    fontSize: 16,
-    color: colors.text,
-    fontWeight: '500',
-  },
-});
+const getStyles = (colors) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+      paddingTop: Platform.OS === 'android' ? 25 : 0,
+    },
+    screenContainer: {
+      flex: 1,
+    },
+    scrollContentContainer: {
+      paddingBottom: 30,
+    },
+    headerTitle: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: colors.text,
+      paddingHorizontal: 20,
+      marginTop: 20,
+      marginBottom: 5,
+    },
+    headerSubtitle: {
+      fontSize: 16,
+      color: colors.subtext,
+      marginBottom: 20,
+      textAlign: 'center',
+    },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 15,
+      padding: 20,
+      marginHorizontal: 15,
+      marginBottom: 20,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 5,
+      elevation: 3,
+    },
+    cardHeaderContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 15,
+    },
+    cardIcon: {
+      marginRight: 10,
+      // color is set by theme.colors.primary directly in the component
+    },
+    cardTitle: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    moodSelectorContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-around',
+      marginBottom: 20,
+    },
+    moodButton: {
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 5,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: 10,
+      minWidth: '30%',
+      marginBottom: 10,
+      // backgroundColor and icon color are dynamic based on selection and mood.color
+    },
+    selectedMoodButton: {
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 3,
+      elevation: 4,
+    },
+    moodText: {
+      fontSize: 13,
+      marginTop: 5,
+      color: colors.subtext, // Default text color for mood
+      // color changes dynamically for selected mood
+    },
+    button: {
+      backgroundColor: colors.primary,
+      paddingVertical: 15,
+      borderRadius: 10,
+      alignItems: 'center',
+      marginTop: 10,
+    },
+    buttonDisabled: {
+      backgroundColor: colors.disabled,
+    },
+    buttonText: {
+      color: colors.buttonText,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    lastMoodText: {
+      textAlign: 'center',
+      marginTop: 15,
+      fontSize: 13,
+      color: colors.subtext,
+    },
+    promptText: {
+      fontSize: 16,
+      color: colors.text,
+      lineHeight: 24,
+      marginBottom: 15,
+      fontStyle: 'italic',
+    },
+    secondaryButton: {
+      backgroundColor: colors.card, // Or theme.colors.secondary if defined and appropriate
+      paddingVertical: 12,
+      borderRadius: 10,
+      alignItems: 'center',
+      borderColor: colors.primary,
+      borderWidth: 1,
+    },
+    secondaryButtonText: {
+      color: colors.primary,
+      fontSize: 15,
+      fontWeight: '500',
+    },
+    mindfulnessItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    mindfulnessText: {
+      fontSize: 16,
+      color: colors.text,
+      marginLeft: 12,
+    },
+    affirmationText: {
+      fontSize: 17,
+      color: colors.primary, // Or a specific affirmation color from theme if added
+      textAlign: 'center',
+      fontStyle: 'italic',
+      fontWeight: '500',
+      paddingVertical: 10,
+    },
+    subFeatureButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background, // Light background for the button itself
+      paddingVertical: 12,
+      paddingHorizontal: 15,
+      borderRadius: 8,
+      marginBottom: 10,
+      borderColor: colors.lightBorder, // Subtle border
+      borderWidth: 1,
+    },
+    subFeatureText: {
+      marginLeft: 10,
+      fontSize: 16,
+      color: colors.text,
+      fontWeight: '500',
+    },
+  });
 
 export default WellbeingScreen;

@@ -49,10 +49,28 @@ const TYPOGRAPHY = {
   h1: { fontSize: 28, fontWeight: 'bold', color: STATIC_COLORS.textOnPrimary },
   h2: { fontSize: 22, fontWeight: 'bold', color: STATIC_COLORS.text },
   h3: { fontSize: 18, fontWeight: '600', color: STATIC_COLORS.text },
-  body: { fontSize: 16, fontWeight: '400', color: STATIC_COLORS.textSecondary, lineHeight: 24 },
-  caption: { fontSize: 14, fontWeight: '400', color: STATIC_COLORS.textMuted, lineHeight: 20 },
-  button: { fontSize: 16, fontWeight: 'bold', color: STATIC_COLORS.textOnPrimary },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', color: STATIC_COLORS.primaryDark },
+  body: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: STATIC_COLORS.textSecondary,
+    lineHeight: 24,
+  },
+  caption: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: STATIC_COLORS.textMuted,
+    lineHeight: 20,
+  },
+  button: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: STATIC_COLORS.textOnPrimary,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: STATIC_COLORS.primaryDark,
+  },
   cardSubtitle: { fontSize: 14, color: STATIC_COLORS.textMuted, marginTop: 4 },
 };
 
@@ -64,23 +82,48 @@ const SPACING = {
   xl: 32,
 };
 
-const FeatureCard = ({ title, subtitle, iconName, iconType = 'ionicons', gradientColors, onPress, onLongPress, tag }) => (
-  <TouchableOpacity onPress={onPress} onLongPress={onLongPress} style={styles.featureCardContainer} activeOpacity={0.8}>
+const FeatureCard = ({
+  title,
+  subtitle,
+  iconName,
+  iconType = 'ionicons',
+  gradientColors,
+  onPress,
+  onLongPress,
+  tag,
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    onLongPress={onLongPress}
+    style={styles.featureCardContainer}
+    activeOpacity={0.8}
+  >
     <LinearGradient colors={gradientColors} style={styles.featureCardGradient}>
       <View style={styles.featureCardHeader}>
         {iconType === 'ionicons' ? (
-          <Ionicons name={iconName} size={32} color={STATIC_COLORS.textOnPrimary} />
+          <Ionicons
+            name={iconName}
+            size={32}
+            color={STATIC_COLORS.textOnPrimary}
+          />
         ) : (
-          <MaterialCommunityIcons name={iconName} size={32} color={STATIC_COLORS.textOnPrimary} />
+          <MaterialCommunityIcons
+            name={iconName}
+            size={32}
+            color={STATIC_COLORS.textOnPrimary}
+          />
         )}
-        {tag && <View style={styles.tagContainer}><Text style={styles.tagText}>{tag}</Text></View>}
+        {tag && (
+          <View style={styles.tagContainer}>
+            <Text style={styles.tagText}>{tag}</Text>
+          </View>
+        )}
       </View>
       <Text style={styles.featureCardTitle}>{title}</Text>
       <Text style={styles.featureCardSubtitle}>{subtitle}</Text>
     </LinearGradient>
   </TouchableOpacity>
 );
-
 
 const StudyScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false); // For any data fetching if needed
@@ -99,11 +142,11 @@ const StudyScreen = ({ navigation }) => {
     // Removed FocusTimer specific logic as it's now a root stack screen
     navigation.navigate(screenName, params);
   };
-  
+
   const handleComingSoon = (featureName) => {
     Alert.alert(
       `${featureName} - Coming Soon!`,
-      "This feature is under active development and will be available in a future update. Stay tuned!"
+      'This feature is under active development and will be available in a future update. Stay tuned!',
     );
   };
 
@@ -113,8 +156,12 @@ const StudyScreen = ({ navigation }) => {
       subtitle: 'Upload & extract key dates',
       iconName: 'document-text-outline',
       gradientColors: STATIC_COLORS.gradientPurple,
-      onPress: () => handleNavigate('FileUpload', { uploadType: 'syllabus', nextPage: 'SyllabusAnalysisResult' }), // Example navigation
-      tag: 'AI Powered'
+      onPress: () =>
+        handleNavigate('FileUpload', {
+          uploadType: 'syllabus',
+          nextPage: 'SyllabusAnalysisResult',
+        }), // Example navigation
+      tag: 'AI Powered',
     },
     {
       title: 'Task Manager',
@@ -122,7 +169,7 @@ const StudyScreen = ({ navigation }) => {
       iconName: 'checkbox-outline',
       gradientColors: STATIC_COLORS.gradientGreen,
       onPress: () => handleNavigate('TaskManager'), // Navigate to TaskManagerScreen
-      tag: 'Key Feature' // Updated tag
+      tag: 'Key Feature', // Updated tag
     },
     {
       title: 'Spaced Repetition',
@@ -144,7 +191,7 @@ const StudyScreen = ({ navigation }) => {
       iconName: 'school-outline',
       gradientColors: ['#FF6B6B', '#FF8E8E'], // Custom gradient
       onPress: () => handleNavigate('GPACalculatorScreen'), // Updated to navigate to GPACalculatorScreen
-      tag: 'New'
+      tag: 'New',
     },
     {
       title: 'Writing Assistant',
@@ -152,27 +199,34 @@ const StudyScreen = ({ navigation }) => {
       iconName: 'pencil-outline',
       gradientColors: ['#4E65FF', '#748BFF'], // Custom gradient
       onPress: () => handleNavigate('WritingAssistant'), // Updated to navigate to WritingAssistantScreen
-      tag: 'AI Powered'
+      tag: 'AI Powered',
     },
   ];
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeAreaCenteredLoader}> {/* Added SafeAreaView for loader */}
+      <SafeAreaView style={styles.safeAreaCenteredLoader}>
+        {' '}
+        {/* Added SafeAreaView for loader */}
         <View style={styles.centeredLoader}>
           <ActivityIndicator size="large" color={STATIC_COLORS.primary} />
-          <Text style={{ marginTop: SPACING.sm, color: STATIC_COLORS.primary }}>Loading Study Hub...</Text>
+          <Text style={{ marginTop: SPACING.sm, color: STATIC_COLORS.primary }}>
+            Loading Study Hub...
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.screen}> 
-      <View style={{flex: 1, width: '100%'}}>
+    <SafeAreaView style={styles.screen}>
+      <View style={{ flex: 1, width: '100%' }}>
         <ScrollView contentContainerStyle={styles.scrollContentContainer}>
-          <StatusBar barStyle="light-content" backgroundColor={STATIC_COLORS.primaryDark} />
-          <ImageBackground 
+          <StatusBar
+            barStyle="light-content"
+            backgroundColor={STATIC_COLORS.primaryDark}
+          />
+          <ImageBackground
             source={require('../assets/study-banner.png')} // Replace with your desired banner image
             style={styles.headerContainer}
             imageStyle={styles.headerImageStyle}
@@ -182,7 +236,9 @@ const StudyScreen = ({ navigation }) => {
               style={styles.headerOverlay}
             >
               <Text style={styles.headerTitle}>Study Universe</Text>
-              <Text style={styles.headerSubtitle}>All your academic tools in one place, {userName}.</Text>
+              <Text style={styles.headerSubtitle}>
+                All your academic tools in one place, {userName}.
+              </Text>
             </LinearGradient>
           </ImageBackground>
 
@@ -202,16 +258,23 @@ const StudyScreen = ({ navigation }) => {
                 />
               ))}
             </View>
-            
+
             {/* Placeholder for upcoming tasks or quick summary */}
             <View style={styles.quickSummaryCard}>
-                <Ionicons name="newspaper-outline" size={24} color={STATIC_COLORS.primary} style={{marginRight: SPACING.sm}}/>
-                <View>
-                    <Text style={styles.quickSummaryTitle}>Today's Focus</Text>
-                    <Text style={styles.quickSummaryText}>No upcoming tasks or sessions. Plan your day!</Text>
-                    {/* <Text style={styles.quickSummaryText}>- Math Assignment due at 11:59 PM</Text>
+              <Ionicons
+                name="newspaper-outline"
+                size={24}
+                color={STATIC_COLORS.primary}
+                style={{ marginRight: SPACING.sm }}
+              />
+              <View>
+                <Text style={styles.quickSummaryTitle}>Today's Focus</Text>
+                <Text style={styles.quickSummaryText}>
+                  No upcoming tasks or sessions. Plan your day!
+                </Text>
+                {/* <Text style={styles.quickSummaryText}>- Math Assignment due at 11:59 PM</Text>
                     <Text style={styles.quickSummaryText}>- History Quiz at 2:00 PM</Text> */}
-                </View>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -221,7 +284,8 @@ const StudyScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeAreaCenteredLoader: { // Style for SafeAreaView around loader
+  safeAreaCenteredLoader: {
+    // Style for SafeAreaView around loader
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -282,7 +346,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   featureCardContainer: {
-    width: (width - (SPACING.md * 2) - SPACING.md) / 2, // Two cards per row with spacing
+    width: (width - SPACING.md * 2 - SPACING.md) / 2, // Two cards per row with spacing
     marginBottom: SPACING.md,
     borderRadius: 15,
     shadowColor: STATIC_COLORS.shadow,

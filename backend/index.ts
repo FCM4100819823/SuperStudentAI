@@ -34,7 +34,9 @@ app.use(cors());
 
 // Add a simple request logger middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
-  console.log(`[GLOBAL REQUEST LOGGER] Method: ${req.method}, URL: ${req.originalUrl}`);
+  console.log(
+    `[GLOBAL REQUEST LOGGER] Method: ${req.method}, URL: ${req.originalUrl}`,
+  );
   next();
 });
 
@@ -72,7 +74,7 @@ app.use('/api/study-plans', studyPlansRoutes); // Add study plans routes
 // Global Error Handling Middleware (should be defined AFTER all other app.use() and routes)
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('[GLOBAL ERROR HANDLER] Error caught:', err);
-  
+
   // If headers have already been sent, delegate to the default Express error handler
   if (res.headersSent) {
     return next(err);

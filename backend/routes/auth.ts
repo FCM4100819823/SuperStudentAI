@@ -110,21 +110,19 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
       `Successfully saved user data to Firestore for UID: ${userRecord.uid}`,
     );
 
-    res
-      .status(201)
-      .json({
-        message: 'Signup successful',
-        user: {
-          uid: userRecord.uid,
-          email,
-          name,
-          age,
-          level,
-          university,
-          major,
-          graduationYear,
-        },
-      });
+    res.status(201).json({
+      message: 'Signup successful',
+      user: {
+        uid: userRecord.uid,
+        email,
+        name,
+        age,
+        level,
+        university,
+        major,
+        graduationYear,
+      },
+    });
   } catch (error: any) {
     // Ensure 'any' type for error object
     console.error('Error during signup process:', error); // Log the full error object

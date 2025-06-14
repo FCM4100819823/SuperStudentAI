@@ -12,7 +12,11 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import { auth } from '../config/firebase';
-import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import {
+  useRoute,
+  useNavigation,
+  useFocusEffect,
+} from '@react-navigation/native';
 import { format, parseISO } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
 import * as Progress from 'react-native-progress'; // Using react-native-progress for progress bar
@@ -97,9 +101,16 @@ const StudyPlanDetailScreen = () => {
       });
       setStudyPlan(response.data);
     } catch (err) {
-      console.error('Error fetching study plan details:', err.response?.data || err.message);
+      console.error(
+        'Error fetching study plan details:',
+        err.response?.data || err.message,
+      );
       setError('Failed to load study plan details. Please try again.');
-      Alert.alert('Error', 'Failed to load study plan details. ' + (err.response?.data?.message || err.message));
+      Alert.alert(
+        'Error',
+        'Failed to load study plan details. ' +
+          (err.response?.data?.message || err.message),
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -109,7 +120,7 @@ const StudyPlanDetailScreen = () => {
   useFocusEffect(
     useCallback(() => {
       fetchStudyPlanDetails();
-    }, [fetchStudyPlanDetails])
+    }, [fetchStudyPlanDetails]),
   );
 
   const onRefresh = useCallback(() => {
@@ -126,15 +137,20 @@ const StudyPlanDetailScreen = () => {
       }
       const token = await user.getIdToken();
       const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
-      
-      // Optimistically update UI
-      const updatedTasks = studyPlan.tasks.map(task => 
-        task._id === taskId ? { ...task, status: newStatus } : task
-      );
-      const completedCount = updatedTasks.filter(t => t.status === 'completed').length;
-      const newProgress = studyPlan.tasks.length > 0 ? (completedCount / studyPlan.tasks.length) * 100 : 0;
 
-      setStudyPlan(prev => ({
+      // Optimistically update UI
+      const updatedTasks = studyPlan.tasks.map((task) =>
+        task._id === taskId ? { ...task, status: newStatus } : task,
+      );
+      const completedCount = updatedTasks.filter(
+        (t) => t.status === 'completed',
+      ).length;
+      const newProgress =
+        studyPlan.tasks.length > 0
+          ? (completedCount / studyPlan.tasks.length) * 100
+          : 0;
+
+      setStudyPlan((prev) => ({
         ...prev,
         tasks: updatedTasks,
         progress: newProgress,
@@ -144,17 +160,19 @@ const StudyPlanDetailScreen = () => {
       await axios.put(
         `${API_URL}/study-plans/${planId}/tasks/${taskId}`,
         { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       // No need to re-fetch, backend will confirm or we can handle error
     } catch (err) {
-      console.error('Error updating task status:', err.response?.data || err.message);
+      console.error(
+        'Error updating task status:',
+        err.response?.data || err.message,
+      );
       Alert.alert('Error', 'Failed to update task status. Please try again.');
       // Revert optimistic update if API call fails
-      fetchStudyPlanDetails(); 
+      fetchStudyPlanDetails();
     }
   };
-
 
   if (loading && !studyPlan) {
     return (
@@ -168,9 +186,16 @@ const StudyPlanDetailScreen = () => {
   if (error) {
     return (
       <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={48} color={DESIGN_TOKENS.colors.error} />
+        <Ionicons
+          name="alert-circle-outline"
+          size={48}
+          color={DESIGN_TOKENS.colors.error}
+        />
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchStudyPlanDetails}>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={fetchStudyPlanDetails}
+        >
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
@@ -180,29 +205,59 @@ const StudyPlanDetailScreen = () => {
   if (!studyPlan) {
     return (
       <View style={styles.centered}>
-        <Ionicons name="information-circle-outline" size={48} color={DESIGN_TOKENS.colors.textSecondary} />
+        <Ionicons
+          name="information-circle-outline"
+          size={48}
+          color={DESIGN_TOKENS.colors.textSecondary}
+        />
         <Text style={styles.emptyText}>Study plan not found.</Text>
       </View>
     );
   }
 
-  const { title, description, startDate, endDate, progress = 0, tasks = [], completedTasks = 0, totalTasks = 0 } = studyPlan;
-  const formattedStartDate = startDate ? format(parseISO(startDate), 'MMM dd, yyyy') : 'N/A';
-  const formattedEndDate = endDate ? format(parseISO(endDate), 'MMM dd, yyyy') : 'N/A';
+  const {
+    title,
+    description,
+    startDate,
+    endDate,
+    progress = 0,
+    tasks = [],
+    completedTasks = 0,
+    totalTasks = 0,
+  } = studyPlan;
+  const formattedStartDate = startDate
+    ? format(parseISO(startDate), 'MMM dd, yyyy')
+    : 'N/A';
+  const formattedEndDate = endDate
+    ? format(parseISO(endDate), 'MMM dd, yyyy')
+    : 'N/A';
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[DESIGN_TOKENS.colors.primary]} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[DESIGN_TOKENS.colors.primary]}
+        />
       }
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color={DESIGN_TOKENS.colors.primary} />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Ionicons
+            name="arrow-back"
+            size={28}
+            color={DESIGN_TOKENS.colors.primary}
+          />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">{title}</Text>
+        <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+          {title}
+        </Text>
       </View>
 
       <View style={styles.contentContainer}>
@@ -217,12 +272,22 @@ const StudyPlanDetailScreen = () => {
           <Text style={styles.sectionTitle}>Timeline</Text>
           <View style={styles.dateContainer}>
             <View style={styles.dateItem}>
-              <Ionicons name="calendar-outline" size={20} color={DESIGN_TOKENS.colors.primary} style={styles.dateIcon} />
+              <Ionicons
+                name="calendar-outline"
+                size={20}
+                color={DESIGN_TOKENS.colors.primary}
+                style={styles.dateIcon}
+              />
               <Text style={styles.dateLabel}>Start Date:</Text>
               <Text style={styles.dateValue}>{formattedStartDate}</Text>
             </View>
             <View style={styles.dateItem}>
-              <Ionicons name="calendar-outline" size={20} color={DESIGN_TOKENS.colors.primary} style={styles.dateIcon} />
+              <Ionicons
+                name="calendar-outline"
+                size={20}
+                color={DESIGN_TOKENS.colors.primary}
+                style={styles.dateIcon}
+              />
               <Text style={styles.dateLabel}>End Date:</Text>
               <Text style={styles.dateValue}>{formattedEndDate}</Text>
             </View>
@@ -232,17 +297,19 @@ const StudyPlanDetailScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Progress</Text>
           <View style={styles.progressContainer}>
-            <Progress.Bar 
-              progress={progress / 100} 
+            <Progress.Bar
+              progress={progress / 100}
               width={null} // Null takes full width of parent
               height={12}
-              color={DESIGN_TOKENS.colors.success} 
+              color={DESIGN_TOKENS.colors.success}
               unfilledColor={DESIGN_TOKENS.colors.lightGray}
               borderColor={DESIGN_TOKENS.colors.border}
               borderRadius={DESIGN_TOKENS.borderRadius.sm}
               style={styles.progressBar}
             />
-            <Text style={styles.progressText}>{`${Math.round(progress)}%`} ({completedTasks}/{totalTasks} tasks)</Text>
+            <Text style={styles.progressText}>
+              {`${Math.round(progress)}%`} ({completedTasks}/{totalTasks} tasks)
+            </Text>
           </View>
         </View>
 
@@ -250,49 +317,76 @@ const StudyPlanDetailScreen = () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Tasks</Text>
             {tasks.map((task, index) => (
-              <TouchableOpacity 
-                key={task._id || index} 
+              <TouchableOpacity
+                key={task._id || index}
                 style={styles.taskItem}
                 onPress={() => handleToggleTaskStatus(task._id, task.status)}
                 activeOpacity={0.7}
               >
-                <Ionicons 
-                  name={task.status === 'completed' ? "checkbox-outline" : "square-outline"} 
-                  size={24} 
-                  color={task.status === 'completed' ? DESIGN_TOKENS.colors.success : DESIGN_TOKENS.colors.primary} 
+                <Ionicons
+                  name={
+                    task.status === 'completed'
+                      ? 'checkbox-outline'
+                      : 'square-outline'
+                  }
+                  size={24}
+                  color={
+                    task.status === 'completed'
+                      ? DESIGN_TOKENS.colors.success
+                      : DESIGN_TOKENS.colors.primary
+                  }
                   style={styles.taskCheckbox}
                 />
-                <Text style={[styles.taskText, task.status === 'completed' && styles.taskTextCompleted]}>
+                <Text
+                  style={[
+                    styles.taskText,
+                    task.status === 'completed' && styles.taskTextCompleted,
+                  ]}
+                >
                   {task.title || `Task ${index + 1}`}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         )}
-         {tasks.length === 0 && (
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Tasks</Text>
-                <View style={styles.emptyTasksContainer}>
-                    <Ionicons name="list-outline" size={32} color={DESIGN_TOKENS.colors.textTertiary} />
-                    <Text style={styles.emptyTasksText}>No tasks added to this study plan yet.</Text>
-                    <TouchableOpacity 
-                        style={styles.addTaskButtonEmpty}
-                        onPress={() => navigation.navigate('AddStudyTask', { planId })}
-                    >
-                        <Ionicons name="add-circle-outline" size={22} color={DESIGN_TOKENS.colors.primary} />
-                        <Text style={styles.addTaskButtonText}>Add First Task</Text>
-                    </TouchableOpacity>
-                </View>
+        {tasks.length === 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tasks</Text>
+            <View style={styles.emptyTasksContainer}>
+              <Ionicons
+                name="list-outline"
+                size={32}
+                color={DESIGN_TOKENS.colors.textTertiary}
+              />
+              <Text style={styles.emptyTasksText}>
+                No tasks added to this study plan yet.
+              </Text>
+              <TouchableOpacity
+                style={styles.addTaskButtonEmpty}
+                onPress={() => navigation.navigate('AddStudyTask', { planId })}
+              >
+                <Ionicons
+                  name="add-circle-outline"
+                  size={22}
+                  color={DESIGN_TOKENS.colors.primary}
+                />
+                <Text style={styles.addTaskButtonText}>Add First Task</Text>
+              </TouchableOpacity>
             </View>
+          </View>
         )}
         {tasks.length > 0 && (
           <View style={styles.sectionHeaderWithButton}>
             <Text style={styles.sectionTitle}>Tasks</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.addTaskButton}
               onPress={() => navigation.navigate('AddStudyTask', { planId })}
             >
-              <Ionicons name="add-outline" size={24} color={DESIGN_TOKENS.colors.primary} />
+              <Ionicons
+                name="add-outline"
+                size={24}
+                color={DESIGN_TOKENS.colors.primary}
+              />
               <Text style={styles.addTaskButtonTextSmall}>Add Task</Text>
             </TouchableOpacity>
           </View>
@@ -342,12 +436,18 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Platform.OS === 'android' ? DESIGN_TOKENS.spacing.md : DESIGN_TOKENS.spacing.sm,
+    paddingVertical:
+      Platform.OS === 'android'
+        ? DESIGN_TOKENS.spacing.md
+        : DESIGN_TOKENS.spacing.sm,
     paddingHorizontal: DESIGN_TOKENS.spacing.md,
     backgroundColor: DESIGN_TOKENS.colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: DESIGN_TOKENS.colors.border,
-    paddingTop: Platform.OS === 'android' ? DESIGN_TOKENS.spacing.lg : DESIGN_TOKENS.spacing.xl, // Adjust for status bar
+    paddingTop:
+      Platform.OS === 'android'
+        ? DESIGN_TOKENS.spacing.lg
+        : DESIGN_TOKENS.spacing.xl, // Adjust for status bar
   },
   backButton: {
     padding: DESIGN_TOKENS.spacing.sm,
@@ -483,7 +583,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: DESIGN_TOKENS.spacing.md, // This is for the title part before the list of tasks
-  }
+  },
 });
 
 export default StudyPlanDetailScreen;

@@ -262,26 +262,26 @@ const getStyles = (colors) =>
       fontWeight: '500',
     },
     budgetRemaining: {
-        fontSize: 14,
-        color: colors.success,
-        fontWeight: '500',
+      fontSize: 14,
+      color: colors.success,
+      fontWeight: '500',
     },
     progressBarContainer: {
-        height: 8,
-        backgroundColor: colors.lightBorder,
-        borderRadius: 4,
-        marginTop: 5,
-        overflow: 'hidden',
+      height: 8,
+      backgroundColor: colors.lightBorder,
+      borderRadius: 4,
+      marginTop: 5,
+      overflow: 'hidden',
     },
     progressBar: {
-        height: '100%',
-        backgroundColor: colors.primary,
-        borderRadius: 4,
+      height: '100%',
+      backgroundColor: colors.primary,
+      borderRadius: 4,
     },
     addBudgetButton: {
-        backgroundColor: colors.accent,
-        marginTop: 10,
-    }
+      backgroundColor: colors.accent,
+      marginTop: 10,
+    },
   });
 
 const TRANSACTION_CATEGORIES = [
@@ -323,16 +323,29 @@ const FinanceScreen = ({ navigation }) => {
   const [budgets, setBudgets] = useState([]);
   const [loadingBudgets, setLoadingBudgets] = useState(true);
   const [isBudgetModalVisible, setIsBudgetModalVisible] = useState(false);
-  const [budgetCategoryInput, setBudgetCategoryInput] = useState(TRANSACTION_CATEGORIES[0]);
+  const [budgetCategoryInput, setBudgetCategoryInput] = useState(
+    TRANSACTION_CATEGORIES[0],
+  );
   const [budgetAmountInput, setBudgetAmountInput] = useState('');
   const [editingBudget, setEditingBudget] = useState(null); // null or budget object
 
   // Financial Goals State (placeholders for now)
   const [goals, setGoals] = useState([
-    { id: '1', name: 'Save for New Laptop', targetAmount: 1200, currentAmount: 300, deadline: '2025-12-31' },
-    { id: '2', name: 'Emergency Fund', targetAmount: 1000, currentAmount: 750, deadline: '2026-06-30' },
+    {
+      id: '1',
+      name: 'Save for New Laptop',
+      targetAmount: 1200,
+      currentAmount: 300,
+      deadline: '2025-12-31',
+    },
+    {
+      id: '2',
+      name: 'Emergency Fund',
+      targetAmount: 1000,
+      currentAmount: 750,
+      deadline: '2026-06-30',
+    },
   ]);
-
 
   const fetchTransactions = useCallback(async () => {
     if (!userId) return;
@@ -390,8 +403,15 @@ const FinanceScreen = ({ navigation }) => {
   };
 
   const handleAddOrUpdateTransaction = async () => {
-    if (!transactionName.trim() || !transactionAmount.trim() || !transactionCategory) {
-      Alert.alert('Validation Error', 'Please enter description, amount, and select a category.');
+    if (
+      !transactionName.trim() ||
+      !transactionAmount.trim() ||
+      !transactionCategory
+    ) {
+      Alert.alert(
+        'Validation Error',
+        'Please enter description, amount, and select a category.',
+      );
       return;
     }
     const numericAmount = parseFloat(transactionAmount.replace(',', '.')); // Allow comma as decimal separator
@@ -401,7 +421,10 @@ const FinanceScreen = ({ navigation }) => {
     }
 
     if (!userId) {
-      Alert.alert("Authentication Error", "User not found. Cannot add transaction.");
+      Alert.alert(
+        'Authentication Error',
+        'User not found. Cannot add transaction.',
+      );
       return;
     }
 
@@ -416,11 +439,20 @@ const FinanceScreen = ({ navigation }) => {
       };
 
       if (editingTransaction) {
-        const transactionRef = doc(firestoreDb, 'users', userId, 'financeTransactions', editingTransaction.id);
+        const transactionRef = doc(
+          firestoreDb,
+          'users',
+          userId,
+          'financeTransactions',
+          editingTransaction.id,
+        );
         await updateDoc(transactionRef, transactionData);
         Alert.alert('Success', 'Transaction updated successfully!');
       } else {
-        await addDoc(collection(firestoreDb, 'users', userId, 'financeTransactions'), transactionData);
+        await addDoc(
+          collection(firestoreDb, 'users', userId, 'financeTransactions'),
+          transactionData,
+        );
         Alert.alert('Success', 'Transaction added successfully!');
       }
       setTransactionName('');
@@ -436,7 +468,7 @@ const FinanceScreen = ({ navigation }) => {
       Alert.alert('Error', `Could not save transaction: ${error.message}`);
     }
   };
-  
+
   const handleEditTransaction = (transaction) => {
     setEditingTransaction(transaction);
     setTransactionName(transaction.description);
@@ -448,20 +480,29 @@ const FinanceScreen = ({ navigation }) => {
 
   const handleDeleteTransaction = async (transactionId) => {
     if (!userId) {
-      Alert.alert("Authentication Error", "User not found. Cannot delete transaction.");
+      Alert.alert(
+        'Authentication Error',
+        'User not found. Cannot delete transaction.',
+      );
       return;
     }
     Alert.alert(
-      "Confirm Delete",
-      "Are you sure you want to delete this transaction?",
+      'Confirm Delete',
+      'Are you sure you want to delete this transaction?',
       [
-        { text: "Cancel", style: "cancel" },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Delete",
-          style: "destructive",
+          text: 'Delete',
+          style: 'destructive',
           onPress: async () => {
             try {
-              const docRef = doc(firestoreDb, 'users', userId, 'financeTransactions', transactionId);
+              const docRef = doc(
+                firestoreDb,
+                'users',
+                userId,
+                'financeTransactions',
+                transactionId,
+              );
               await deleteDoc(docRef);
               Alert.alert('Success', 'Transaction deleted successfully!');
               fetchTransactions(); // Refresh list
@@ -469,17 +510,23 @@ const FinanceScreen = ({ navigation }) => {
               fetchBudgets(); // Similar to add/update, consider targeted update
             } catch (error) {
               console.error('Error deleting transaction: ', error);
-              Alert.alert('Error', `Could not delete transaction: ${error.message}`);
+              Alert.alert(
+                'Error',
+                `Could not delete transaction: ${error.message}`,
+              );
             }
           },
         },
-      ]
+      ],
     );
   };
 
   const handleAddOrUpdateBudget = async () => {
     if (!budgetCategoryInput || !budgetAmountInput) {
-      Alert.alert('Missing Info', 'Please select a category and enter an amount for your budget.');
+      Alert.alert(
+        'Missing Info',
+        'Please select a category and enter an amount for your budget.',
+      );
       return;
     }
     if (!userId) {
@@ -488,7 +535,10 @@ const FinanceScreen = ({ navigation }) => {
     }
     const amount = parseFloat(budgetAmountInput);
     if (isNaN(amount) || amount <= 0) {
-      Alert.alert('Invalid Amount', 'Please enter a valid positive amount for the budget.');
+      Alert.alert(
+        'Invalid Amount',
+        'Please enter a valid positive amount for the budget.',
+      );
       return;
     }
 
@@ -503,27 +553,45 @@ const FinanceScreen = ({ navigation }) => {
       if (editingBudget) {
         // Check if category is being changed for an existing budget
         if (editingBudget.category !== budgetCategoryInput) {
-            const existingBudgetForNewCategory = budgets.find(b => b.category === budgetCategoryInput && b.id !== editingBudget.id);
-            if (existingBudgetForNewCategory) {
-                Alert.alert('Budget Exists', `A budget for '${budgetCategoryInput}' already exists. You can edit that one or choose a different category.`);
-                return;
-            }
+          const existingBudgetForNewCategory = budgets.find(
+            (b) =>
+              b.category === budgetCategoryInput && b.id !== editingBudget.id,
+          );
+          if (existingBudgetForNewCategory) {
+            Alert.alert(
+              'Budget Exists',
+              `A budget for '${budgetCategoryInput}' already exists. You can edit that one or choose a different category.`,
+            );
+            return;
+          }
         }
         const budgetRef = doc(firestoreDb, 'userBudgets', editingBudget.id);
-        await updateDoc(budgetRef, { // Only update amount and category if changed
-            category: budgetCategoryInput,
-            amount: amount,
+        await updateDoc(budgetRef, {
+          // Only update amount and category if changed
+          category: budgetCategoryInput,
+          amount: amount,
         });
-        Alert.alert('Budget Updated', `Budget for ${budgetCategoryInput} updated successfully.`);
+        Alert.alert(
+          'Budget Updated',
+          `Budget for ${budgetCategoryInput} updated successfully.`,
+        );
       } else {
         // Check if budget for this category already exists
-        const existingBudget = budgets.find(b => b.category === budgetCategoryInput);
+        const existingBudget = budgets.find(
+          (b) => b.category === budgetCategoryInput,
+        );
         if (existingBudget) {
-            Alert.alert('Budget Exists', `A budget for '${budgetCategoryInput}' already exists. You can edit that one.`);
-            return;
+          Alert.alert(
+            'Budget Exists',
+            `A budget for '${budgetCategoryInput}' already exists. You can edit that one.`,
+          );
+          return;
         }
         await addDoc(collection(firestoreDb, 'userBudgets'), budgetData);
-        Alert.alert('Budget Set', `Budget for ${budgetCategoryInput} set successfully.`);
+        Alert.alert(
+          'Budget Set',
+          `Budget for ${budgetCategoryInput} set successfully.`,
+        );
       }
       closeBudgetModal();
       fetchBudgets(); // Refresh budget list
@@ -566,7 +634,10 @@ const FinanceScreen = ({ navigation }) => {
             if (!userId) return;
             try {
               await deleteDoc(doc(firestoreDb, 'userBudgets', budgetId));
-              Alert.alert('Budget Deleted', `Budget for ${budgetCategory} has been removed.`);
+              Alert.alert(
+                'Budget Deleted',
+                `Budget for ${budgetCategory} has been removed.`,
+              );
               fetchBudgets(); // Refresh list
             } catch (error) {
               console.error('Error deleting budget: ', error);
@@ -577,7 +648,7 @@ const FinanceScreen = ({ navigation }) => {
       ],
     );
   };
-  
+
   const calculateSpentAmount = (category) => {
     return transactions
       .filter((t) => t.category === category)
@@ -587,17 +658,35 @@ const FinanceScreen = ({ navigation }) => {
   const renderTransactionItem = ({ item }) => (
     <View style={styles.listItem}>
       <View style={styles.listItemTextContainer}>
-        <Text style={styles.listItemTitle} numberOfLines={1} ellipsizeMode="tail">{item.description}</Text>
-        <Text style={styles.listItemSubtitle}>{item.category || 'Uncategorized'}</Text>
+        <Text
+          style={styles.listItemTitle}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {item.description}
+        </Text>
+        <Text style={styles.listItemSubtitle}>
+          {item.category || 'Uncategorized'}
+        </Text>
       </View>
       <Text style={styles.listItemAmount}>
         {item.type === 'income' ? '+' : '-'}${item.amount.toFixed(2)}
       </Text>
       <View style={styles.actionsContainer}>
-        <TouchableOpacity onPress={() => handleEditTransaction(item)} style={styles.actionButton}>
-          <Ionicons name="pencil-outline" size={18} color={colors.textSecondary} />
+        <TouchableOpacity
+          onPress={() => handleEditTransaction(item)}
+          style={styles.actionButton}
+        >
+          <Ionicons
+            name="pencil-outline"
+            size={18}
+            color={colors.textSecondary}
+          />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDeleteTransaction(item.id)} style={styles.actionButton}>
+        <TouchableOpacity
+          onPress={() => handleDeleteTransaction(item.id)}
+          style={styles.actionButton}
+        >
           <Ionicons name="trash-outline" size={18} color={colors.error} />
         </TouchableOpacity>
       </View>
@@ -607,9 +696,13 @@ const FinanceScreen = ({ navigation }) => {
   const renderBudgetItem = ({ item }) => {
     const spent = calculateSpentAmount(item.category);
     const remaining = item.amount - spent;
-    const progress = item.amount > 0 ? (spent / item.amount) : 0;
-    const progressBarColor = progress > 1 ? colors.error : progress > 0.75 ? colors.accent : colors.primary;
-
+    const progress = item.amount > 0 ? spent / item.amount : 0;
+    const progressBarColor =
+      progress > 1
+        ? colors.error
+        : progress > 0.75
+          ? colors.accent
+          : colors.primary;
 
     return (
       <View style={styles.budgetItem}>
@@ -618,25 +711,47 @@ const FinanceScreen = ({ navigation }) => {
           <Text style={styles.budgetAmount}>
             Budgeted: ${item.amount.toFixed(2)}
           </Text>
-          <Text style={[styles.budgetSpent, spent > item.amount && {color: colors.error}]}>
+          <Text
+            style={[
+              styles.budgetSpent,
+              spent > item.amount && { color: colors.error },
+            ]}
+          >
             Spent: ${spent.toFixed(2)}
           </Text>
-          <Text style={[styles.budgetRemaining, remaining < 0 && {color: colors.error}]}>
-            {remaining >= 0 ? `Remaining: $${remaining.toFixed(2)}` : `Overspent: $${Math.abs(remaining).toFixed(2)}`}
+          <Text
+            style={[
+              styles.budgetRemaining,
+              remaining < 0 && { color: colors.error },
+            ]}
+          >
+            {remaining >= 0
+              ? `Remaining: $${remaining.toFixed(2)}`
+              : `Overspent: $${Math.abs(remaining).toFixed(2)}`}
           </Text>
           <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBar, { width: `${Math.min(progress * 100, 100)}%`, backgroundColor: progressBarColor }]} />
+            <View
+              style={[
+                styles.progressBar,
+                {
+                  width: `${Math.min(progress * 100, 100)}%`,
+                  backgroundColor: progressBarColor,
+                },
+              ]}
+            />
           </View>
         </View>
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             onPress={() => openBudgetModal(item)}
-            style={styles.actionButton}>
+            style={styles.actionButton}
+          >
             <Ionicons name="pencil-outline" size={22} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleDeleteBudget(item.id, item.category)}
-            style={styles.actionButton}>
+            style={styles.actionButton}
+          >
             <Ionicons name="trash-outline" size={22} color={colors.error} />
           </TouchableOpacity>
         </View>
@@ -648,7 +763,9 @@ const FinanceScreen = ({ navigation }) => {
     <View style={styles.listItem}>
       <View style={styles.listItemTextContainer}>
         <Text style={styles.listItemTitle}>{item.name}</Text>
-        <Text style={styles.listItemSubtitle}>Target: ${item.targetAmount.toFixed(2)}</Text>
+        <Text style={styles.listItemSubtitle}>
+          Target: ${item.targetAmount.toFixed(2)}
+        </Text>
       </View>
       <Text style={styles.listItemAmount}>
         Saved: ${item.currentAmount.toFixed(2)}
@@ -658,120 +775,160 @@ const FinanceScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.headerTitle}>Financial Dashboard</Text>
-        <Text style={styles.headerSubtitle}>
-          Manage your transactions, budgets, and goals.
-        </Text>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.scrollContainer}
+        >
+          <Text style={styles.headerTitle}>Financial Dashboard</Text>
+          <Text style={styles.headerSubtitle}>
+            Manage your transactions, budgets, and goals.
+          </Text>
 
-        {/* Budget Management Section */}
-        <View style={styles.sectionContainer}>
-          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-            <Text style={styles.sectionTitle}>Budget Management</Text>
-            <TouchableOpacity onPress={() => openBudgetModal()} style={[styles.button, styles.addBudgetButton, {paddingVertical: 10, paddingHorizontal: 15, marginBottom: 10}]}>
-                 <Ionicons name="add-circle-outline" size={20} color={colors.white} />
-                <Text style={[styles.buttonText, {fontSize: 15, marginLeft: 5}]}>Set Budget</Text>
-            </TouchableOpacity>
-          </View>
-          {loadingBudgets ? (
-            <Text style={styles.emptyListText}>Loading budgets...</Text>
-          ) : budgets.length > 0 ? (
-            <FlatList
-              data={budgets}
-              renderItem={renderBudgetItem}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false} // if nested in ScrollView
-            />
-          ) : (
-            <Text style={styles.emptyListText}>
-              No budgets set yet. Tap 'Set Budget' to create one.
-            </Text>
-          )}
-        </View>
-
-        {/* Add/Edit Transaction Section */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>{editingTransaction ? 'Edit Transaction' : 'Add New Transaction'}</Text>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Description</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., Groceries, Salary"
-              value={transactionName}
-              onChangeText={setTransactionName}
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Amount ($)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., 50.00"
-              value={transactionAmount}
-              onChangeText={setTransactionAmount}
-              keyboardType="numeric"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Category</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={transactionCategory}
-                onValueChange={(itemValue) => setTransactionCategory(itemValue)}
-                style={styles.picker}
-                prompt="Select Transaction Category">
-                {TRANSACTION_CATEGORIES.map((cat) => (
-                  <Picker.Item key={cat.value} label={cat.label} value={cat.value} />
-                ))}
-              </Picker>
+          {/* Budget Management Section */}
+          <View style={styles.sectionContainer}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <Text style={styles.sectionTitle}>Budget Management</Text>
+              <TouchableOpacity
+                onPress={() => openBudgetModal()}
+                style={[
+                  styles.button,
+                  styles.addBudgetButton,
+                  {
+                    paddingVertical: 10,
+                    paddingHorizontal: 15,
+                    marginBottom: 10,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="add-circle-outline"
+                  size={20}
+                  color={colors.white}
+                />
+                <Text
+                  style={[styles.buttonText, { fontSize: 15, marginLeft: 5 }]}
+                >
+                  Set Budget
+                </Text>
+              </TouchableOpacity>
             </View>
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Date</Text>
-            <TouchableOpacity
-              style={styles.datePickerButton}
-              onPress={() => setShowDatePicker(true)}>
-              <Text style={styles.datePickerButtonText}>
-                {transactionDate.toLocaleDateString()}
-              </Text>
-            </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={transactionDate}
-                mode="date"
-                display="default"
-                onChange={handleDateChange}
+            {loadingBudgets ? (
+              <Text style={styles.emptyListText}>Loading budgets...</Text>
+            ) : budgets.length > 0 ? (
+              <FlatList
+                data={budgets}
+                renderItem={renderBudgetItem}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false} // if nested in ScrollView
               />
+            ) : (
+              <Text style={styles.emptyListText}>
+                No budgets set yet. Tap 'Set Budget' to create one.
+              </Text>
             )}
           </View>
-          <TouchableOpacity 
-            style={[styles.button, { marginTop: 10 }]} 
-            onPress={handleAddOrUpdateTransaction}
-          >
-            <Text style={styles.buttonText}>{editingTransaction ? 'Update Transaction' : 'Add Transaction'}</Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* Financial Goals Section */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Financial Goals</Text>
-          {goals.length > 0 ? (
-            <FlatList
-              data={goals}
-              renderItem={renderFinancialGoalItem}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false} // if nested in ScrollView
-            />
-          ) : (
-            <Text style={styles.emptyListText}>
-              No financial goals set. Consider adding some.
+          {/* Add/Edit Transaction Section */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>
+              {editingTransaction ? 'Edit Transaction' : 'Add New Transaction'}
             </Text>
-          )}
-        </View>
-      </ScrollView>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Description</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Groceries, Salary"
+                value={transactionName}
+                onChangeText={setTransactionName}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Amount ($)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., 50.00"
+                value={transactionAmount}
+                onChangeText={setTransactionAmount}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Category</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={transactionCategory}
+                  onValueChange={(itemValue) =>
+                    setTransactionCategory(itemValue)
+                  }
+                  style={styles.picker}
+                  prompt="Select Transaction Category"
+                >
+                  {TRANSACTION_CATEGORIES.map((cat) => (
+                    <Picker.Item
+                      key={cat.value}
+                      label={cat.label}
+                      value={cat.value}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Date</Text>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={styles.datePickerButtonText}>
+                  {transactionDate.toLocaleDateString()}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={transactionDate}
+                  mode="date"
+                  display="default"
+                  onChange={handleDateChange}
+                />
+              )}
+            </View>
+            <TouchableOpacity
+              style={[styles.button, { marginTop: 10 }]}
+              onPress={handleAddOrUpdateTransaction}
+            >
+              <Text style={styles.buttonText}>
+                {editingTransaction ? 'Update Transaction' : 'Add Transaction'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Financial Goals Section */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Financial Goals</Text>
+            {goals.length > 0 ? (
+              <FlatList
+                data={goals}
+                renderItem={renderFinancialGoalItem}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false} // if nested in ScrollView
+              />
+            ) : (
+              <Text style={styles.emptyListText}>
+                No financial goals set. Consider adding some.
+              </Text>
+            )}
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
 
       {/* Budget Modal */}
@@ -779,56 +936,62 @@ const FinanceScreen = ({ navigation }) => {
         animationType="fade"
         transparent={true}
         visible={isBudgetModalVisible}
-        onRequestClose={closeBudgetModal}>
-        <KeyboardAvoidingView 
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.modalOverlay}
+        onRequestClose={closeBudgetModal}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
         >
-            <View style={styles.modalContainer}>
+          <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>
-                {editingBudget ? 'Edit Budget' : 'Set New Budget'}
+              {editingBudget ? 'Edit Budget' : 'Set New Budget'}
             </Text>
             <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Category</Text>
-                <View style={styles.pickerContainer}>
+              <Text style={styles.inputLabel}>Category</Text>
+              <View style={styles.pickerContainer}>
                 <Picker
-                    selectedValue={budgetCategoryInput}
-                    onValueChange={(itemValue) => setBudgetCategoryInput(itemValue)}
-                    style={styles.picker}
-                    prompt="Select Budget Category">
-                    {TRANSACTION_CATEGORIES.map((cat) => (
+                  selectedValue={budgetCategoryInput}
+                  onValueChange={(itemValue) =>
+                    setBudgetCategoryInput(itemValue)
+                  }
+                  style={styles.picker}
+                  prompt="Select Budget Category"
+                >
+                  {TRANSACTION_CATEGORIES.map((cat) => (
                     <Picker.Item key={cat} label={cat} value={cat} />
-                    ))}
+                  ))}
                 </Picker>
-                </View>
+              </View>
             </View>
             <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Budget Amount ($)</Text>
-                <TextInput
+              <Text style={styles.inputLabel}>Budget Amount ($)</Text>
+              <TextInput
                 style={styles.input}
                 placeholder="e.g., 500"
                 keyboardType="numeric"
                 value={budgetAmountInput}
                 onChangeText={setBudgetAmountInput}
-                />
+              />
             </View>
             <View style={styles.modalButtonContainer}>
-                <TouchableOpacity
+              <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
-                onPress={closeBudgetModal}>
+                onPress={closeBudgetModal}
+              >
                 <Text style={[styles.modalButtonText, { color: colors.text }]}>
-                    Cancel
+                  Cancel
                 </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[styles.modalButton, styles.saveButton]}
-                onPress={handleAddOrUpdateBudget}>
+                onPress={handleAddOrUpdateBudget}
+              >
                 <Text style={[styles.modalButtonText, { color: colors.white }]}>
-                    {editingBudget ? 'Update Budget' : 'Set Budget'}
+                  {editingBudget ? 'Update Budget' : 'Set Budget'}
                 </Text>
-                </TouchableOpacity>
+              </TouchableOpacity>
             </View>
-            </View>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>

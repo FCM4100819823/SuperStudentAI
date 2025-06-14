@@ -12,7 +12,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
-import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  collection,
+  addDoc,
+  doc,
+  updateDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { firestoreDb } from '../config/firebase';
 import DateTimePicker from '@react-native-community/datetimepicker'; // For date picking
 
@@ -53,8 +59,14 @@ const AddTaskScreen = ({ navigation, route }) => {
   const { task: existingTask } = route.params || {}; // Task to edit, if any
 
   const [title, setTitle] = useState(existingTask?.title || '');
-  const [description, setDescription] = useState(existingTask?.description || '');
-  const [dueDate, setDueDate] = useState(existingTask?.dueDate ? new Date(existingTask.dueDate.seconds * 1000) : new Date());
+  const [description, setDescription] = useState(
+    existingTask?.description || '',
+  );
+  const [dueDate, setDueDate] = useState(
+    existingTask?.dueDate
+      ? new Date(existingTask.dueDate.seconds * 1000)
+      : new Date(),
+  );
   const [priority, setPriority] = useState(existingTask?.priority || 'medium'); // Default to medium
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -64,11 +76,11 @@ const AddTaskScreen = ({ navigation, route }) => {
 
   const handleSaveTask = async () => {
     if (!user) {
-      Alert.alert("Error", "You must be logged in to save tasks.");
+      Alert.alert('Error', 'You must be logged in to save tasks.');
       return;
     }
     if (!title.trim()) {
-      Alert.alert("Validation Error", "Task title cannot be empty.");
+      Alert.alert('Validation Error', 'Task title cannot be empty.');
       return;
     }
 
@@ -88,19 +100,19 @@ const AddTaskScreen = ({ navigation, route }) => {
         // Update existing task
         const taskRef = doc(firestoreDb, 'tasks', existingTask.id);
         await updateDoc(taskRef, taskData);
-        Alert.alert("Success", "Task updated successfully!");
+        Alert.alert('Success', 'Task updated successfully!');
       } else {
         // Add new task
         await addDoc(collection(firestoreDb, 'tasks'), {
           ...taskData,
           createdAt: serverTimestamp(), // Add createdAt for new tasks
         });
-        Alert.alert("Success", "Task added successfully!");
+        Alert.alert('Success', 'Task added successfully!');
       }
       navigation.goBack();
     } catch (e) {
-      console.error("Error saving task: ", e);
-      Alert.alert("Error", "Could not save task: " + e.message);
+      console.error('Error saving task: ', e);
+      Alert.alert('Error', 'Could not save task: ' + e.message);
     } finally {
       setLoading(false);
     }
@@ -115,13 +127,26 @@ const AddTaskScreen = ({ navigation, route }) => {
   const priorityOptions = ['low', 'medium', 'high'];
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContainer}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.scrollContainer}
+    >
       <View style={styles.header}>
-         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back-outline" size={28} color={STATIC_COLORS.primary} />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Ionicons
+            name="arrow-back-outline"
+            size={28}
+            color={STATIC_COLORS.primary}
+          />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{existingTask ? 'Edit Task' : 'Add New Task'}</Text>
-        <View style={{width: SPACING.lg}} />{/* Placeholder for balance */}
+        <Text style={styles.headerTitle}>
+          {existingTask ? 'Edit Task' : 'Add New Task'}
+        </Text>
+        <View style={{ width: SPACING.lg }} />
+        {/* Placeholder for balance */}
       </View>
 
       <View style={styles.formContainer}>
@@ -146,9 +171,19 @@ const AddTaskScreen = ({ navigation, route }) => {
         />
 
         <Text style={styles.label}>Due Date</Text>
-        <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePickerButton}>
-            <Ionicons name="calendar-outline" size={20} color={STATIC_COLORS.primary} style={{marginRight: SPACING.sm}} />
-            <Text style={styles.datePickerText}>{dueDate.toLocaleDateString()}</Text>
+        <TouchableOpacity
+          onPress={() => setShowDatePicker(true)}
+          style={styles.datePickerButton}
+        >
+          <Ionicons
+            name="calendar-outline"
+            size={20}
+            color={STATIC_COLORS.primary}
+            style={{ marginRight: SPACING.sm }}
+          />
+          <Text style={styles.datePickerText}>
+            {dueDate.toLocaleDateString()}
+          </Text>
         </TouchableOpacity>
         {showDatePicker && (
           <DateTimePicker
@@ -173,34 +208,48 @@ const AddTaskScreen = ({ navigation, route }) => {
                 option === 'low' && styles.priorityLow,
                 option === 'medium' && styles.priorityMedium,
                 option === 'high' && styles.priorityHigh,
-                priority === option && option === 'low' && styles.priorityLowSelected,
-                priority === option && option === 'medium' && styles.priorityMediumSelected,
-                priority === option && option === 'high' && styles.priorityHighSelected,
+                priority === option &&
+                  option === 'low' &&
+                  styles.priorityLowSelected,
+                priority === option &&
+                  option === 'medium' &&
+                  styles.priorityMediumSelected,
+                priority === option &&
+                  option === 'high' &&
+                  styles.priorityHighSelected,
               ]}
               onPress={() => setPriority(option)}
             >
-              <Text 
+              <Text
                 style={[
-                    styles.priorityButtonText,
-                    priority === option && styles.priorityButtonTextSelected
-                ]}>
+                  styles.priorityButtonText,
+                  priority === option && styles.priorityButtonTextSelected,
+                ]}
+              >
                 {option.charAt(0).toUpperCase() + option.slice(1)}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <TouchableOpacity 
-            style={[styles.saveButton, loading && styles.disabledButton]}
-            onPress={handleSaveTask} 
-            disabled={loading}
+        <TouchableOpacity
+          style={[styles.saveButton, loading && styles.disabledButton]}
+          onPress={handleSaveTask}
+          disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color={STATIC_COLORS.textOnPrimary} />
           ) : (
             <>
-                <Ionicons name={existingTask ? "save-outline" : "add-circle-outline"} size={22} color={STATIC_COLORS.textOnPrimary} style={{marginRight: SPACING.sm}}/>
-                <Text style={styles.saveButtonText}>{existingTask ? 'Save Changes' : 'Add Task'}</Text>
+              <Ionicons
+                name={existingTask ? 'save-outline' : 'add-circle-outline'}
+                size={22}
+                color={STATIC_COLORS.textOnPrimary}
+                style={{ marginRight: SPACING.sm }}
+              />
+              <Text style={styles.saveButtonText}>
+                {existingTask ? 'Save Changes' : 'Add Task'}
+              </Text>
             </>
           )}
         </TouchableOpacity>

@@ -14,11 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { doc, getDoc, deleteDoc } from 'firebase/firestore';
-import {
-  ref,
-  getDownloadURL,
-  deleteObject,
-} from 'firebase/storage';
+import { ref, getDownloadURL, deleteObject } from 'firebase/storage';
 import { auth, db, storage } from '../config/firebase'; // Ensure this path is correct
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -57,7 +53,10 @@ const ProfileScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [userStats, setUserStats] = useState({ tasksCompleted: 0, studyHours: 0 });
+  const [userStats, setUserStats] = useState({
+    tasksCompleted: 0,
+    studyHours: 0,
+  });
 
   // Capture currentUser at the beginning of the render
   const currentUser = auth.currentUser;
@@ -221,7 +220,7 @@ const ProfileScreen = ({ navigation }) => {
           {userData?.email || 'No email provided'}
         </Text>
         {userData?.bio && <Text style={styles.userBio}>{userData.bio}</Text>}
-        
+
         {/* User Stats Section */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
@@ -404,7 +403,7 @@ const getStyles = (colors, fonts) =>
       height: 130, // Larger pic
       borderRadius: 65, // Keep it circular
       borderWidth: 4, // Thicker border
-      borderColor: colors.surface, 
+      borderColor: colors.surface,
       marginBottom: 18, // Increased spacing
     },
     userName: {
@@ -464,7 +463,7 @@ const getStyles = (colors, fonts) =>
     },
     menuContainer: {
       paddingHorizontal: 20,
-      marginTop: 15, 
+      marginTop: 15,
     },
     actionsContainer: {
       marginTop: 35, // Increased spacing

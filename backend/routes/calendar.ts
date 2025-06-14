@@ -29,11 +29,9 @@ router.post(
       const actualUserId = req.user?.uid; // Use uid from Firebase DecodedIdToken
 
       if (!actualUserId || !title || !startDate || !eventType) {
-        return res
-          .status(400)
-          .json({
-            message: 'UserId, title, startDate, and eventType are required.',
-          });
+        return res.status(400).json({
+          message: 'UserId, title, startDate, and eventType are required.',
+        });
       }
 
       const newEventData: Partial<ICalendarEvent> = {
@@ -57,12 +55,10 @@ router.post(
       await newEvent.save();
       res.status(201).json(newEvent);
     } catch (error: any) {
-      res
-        .status(500)
-        .json({
-          message: 'Error creating calendar event',
-          error: error.message,
-        });
+      res.status(500).json({
+        message: 'Error creating calendar event',
+        error: error.message,
+      });
     }
   },
 );
@@ -85,12 +81,10 @@ router.get(
       });
       res.status(200).json(events);
     } catch (error: any) {
-      res
-        .status(500)
-        .json({
-          message: 'Error fetching calendar events',
-          error: error.message,
-        });
+      res.status(500).json({
+        message: 'Error fetching calendar events',
+        error: error.message,
+      });
     }
   },
 );
@@ -113,12 +107,10 @@ router.get(
       }
       res.status(200).json(event);
     } catch (error: any) {
-      res
-        .status(500)
-        .json({
-          message: 'Error fetching calendar event',
-          error: error.message,
-        });
+      res.status(500).json({
+        message: 'Error fetching calendar event',
+        error: error.message,
+      });
     }
   },
 );
@@ -175,12 +167,10 @@ router.put(
       const updatedEvent = await eventToUpdate.save();
       res.status(200).json(updatedEvent);
     } catch (error: any) {
-      res
-        .status(500)
-        .json({
-          message: 'Error updating calendar event',
-          error: error.message,
-        });
+      res.status(500).json({
+        message: 'Error updating calendar event',
+        error: error.message,
+      });
     }
   },
 );
@@ -207,12 +197,10 @@ router.delete(
       await CalendarEvent.findByIdAndDelete(eventId);
       res.status(200).json({ message: 'Event deleted successfully' });
     } catch (error: any) {
-      res
-        .status(500)
-        .json({
-          message: 'Error deleting calendar event',
-          error: error.message,
-        });
+      res.status(500).json({
+        message: 'Error deleting calendar event',
+        error: error.message,
+      });
     }
   },
 );

@@ -105,17 +105,18 @@ const AddStudyTaskScreen = () => {
         status: 'pending', // Default status
       };
 
-      await axios.post(
-        `${API_URL}/study-plans/${planId}/tasks`,
-        taskData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.post(`${API_URL}/study-plans/${planId}/tasks`, taskData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       Alert.alert('Success', 'Task added successfully!');
       navigation.goBack(); // Go back to the detail screen, which should refresh
     } catch (err) {
       console.error('Error adding task:', err.response?.data || err.message);
-      Alert.alert('Error', 'Failed to add task. ' + (err.response?.data?.message || err.message));
+      Alert.alert(
+        'Error',
+        'Failed to add task. ' + (err.response?.data?.message || err.message),
+      );
     } finally {
       setLoading(false);
     }
@@ -128,17 +129,30 @@ const AddStudyTaskScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color={DESIGN_TOKENS.colors.primary} />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Ionicons
+            name="arrow-back"
+            size={28}
+            color={DESIGN_TOKENS.colors.primary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add New Task</Text>
       </View>
 
       <View style={styles.formContainer}>
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Task Title <Text style={styles.requiredIndicator}>*</Text></Text>
+          <Text style={styles.label}>
+            Task Title <Text style={styles.requiredIndicator}>*</Text>
+          </Text>
           <TextInput
             style={styles.input}
             placeholder="Enter task title (e.g., Chapter 1 Review)"
@@ -163,9 +177,19 @@ const AddStudyTaskScreen = () => {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Due Date (Optional)</Text>
-          <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePickerButton}>
-            <Ionicons name="calendar-outline" size={20} color={DESIGN_TOKENS.colors.primary} style={styles.dateIcon} />
-            <Text style={styles.datePickerText}>{dueDate.toLocaleDateString()}</Text>
+          <TouchableOpacity
+            onPress={() => setShowDatePicker(true)}
+            style={styles.datePickerButton}
+          >
+            <Ionicons
+              name="calendar-outline"
+              size={20}
+              color={DESIGN_TOKENS.colors.primary}
+              style={styles.dateIcon}
+            />
+            <Text style={styles.datePickerText}>
+              {dueDate.toLocaleDateString()}
+            </Text>
           </TouchableOpacity>
           {showDatePicker && (
             <DateTimePicker
@@ -180,9 +204,9 @@ const AddStudyTaskScreen = () => {
           )}
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-          onPress={handleAddTask} 
+          onPress={handleAddTask}
           disabled={loading}
         >
           {loading ? (
@@ -207,12 +231,18 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Platform.OS === 'android' ? DESIGN_TOKENS.spacing.md : DESIGN_TOKENS.spacing.sm,
+    paddingVertical:
+      Platform.OS === 'android'
+        ? DESIGN_TOKENS.spacing.md
+        : DESIGN_TOKENS.spacing.sm,
     paddingHorizontal: DESIGN_TOKENS.spacing.md,
     backgroundColor: DESIGN_TOKENS.colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: DESIGN_TOKENS.colors.border,
-    paddingTop: Platform.OS === 'android' ? DESIGN_TOKENS.spacing.lg : DESIGN_TOKENS.spacing.xl, 
+    paddingTop:
+      Platform.OS === 'android'
+        ? DESIGN_TOKENS.spacing.lg
+        : DESIGN_TOKENS.spacing.xl,
   },
   backButton: {
     padding: DESIGN_TOKENS.spacing.sm,

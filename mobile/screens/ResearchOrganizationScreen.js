@@ -14,7 +14,16 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { firestore, auth } from '../config/firebase'; // Import Firebase configuration
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import {
+  collection,
+  addDoc,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+} from 'firebase/firestore';
 
 // Consistent styling (can be imported from a shared styles file later)
 const STATIC_COLORS = {
@@ -36,11 +45,25 @@ const STATIC_COLORS = {
 
 const TYPOGRAPHY = {
   h1: { fontSize: 28, fontWeight: 'bold', color: STATIC_COLORS.primaryDark },
-  h2: { fontSize: 24, fontWeight: 'bold', color: STATIC_COLORS.text, marginBottom: 16 },
-  h3: { fontSize: 20, fontWeight: '600', color: STATIC_COLORS.primary, marginBottom: 8 },
+  h2: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: STATIC_COLORS.text,
+    marginBottom: 16,
+  },
+  h3: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: STATIC_COLORS.primary,
+    marginBottom: 8,
+  },
   body: { fontSize: 16, color: STATIC_COLORS.textSecondary, lineHeight: 24 },
   caption: { fontSize: 14, color: STATIC_COLORS.textMuted },
-  button: { fontSize: 16, fontWeight: 'bold', color: STATIC_COLORS.textOnPrimary },
+  button: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: STATIC_COLORS.textOnPrimary,
+  },
 };
 
 const SPACING = {
@@ -63,13 +86,19 @@ const ResearchOrganizationScreen = ({ navigation }) => {
   const fetchProjects = async () => {
     if (!userId) return;
     try {
-      const q = query(collection(firestore, 'researchProjects'), where('userId', '==', userId));
+      const q = query(
+        collection(firestore, 'researchProjects'),
+        where('userId', '==', userId),
+      );
       const querySnapshot = await getDocs(q);
-      const userProjects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const userProjects = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       setProjects(userProjects);
     } catch (error) {
-      console.error("Error fetching projects: ", error);
-      Alert.alert("Error", "Could not fetch research projects.");
+      console.error('Error fetching projects: ', error);
+      Alert.alert('Error', 'Could not fetch research projects.');
     }
   };
 
@@ -79,27 +108,39 @@ const ResearchOrganizationScreen = ({ navigation }) => {
 
   const handleAddProject = async () => {
     if (!projectName.trim()) {
-      Alert.alert("Validation Error", "Project name cannot be empty.");
+      Alert.alert('Validation Error', 'Project name cannot be empty.');
       return;
     }
     if (!userId) {
-        Alert.alert("Authentication Error", "You must be logged in to add projects.");
-        return;
+      Alert.alert(
+        'Authentication Error',
+        'You must be logged in to add projects.',
+      );
+      return;
     }
 
     try {
-      if (currentProject) { // Editing existing project
-        const projectRef = doc(firestore, 'researchProjects', currentProject.id);
-        await updateDoc(projectRef, { name: projectName, description: projectDescription });
-        Alert.alert("Success", "Project updated successfully!");
-      } else { // Adding new project
+      if (currentProject) {
+        // Editing existing project
+        const projectRef = doc(
+          firestore,
+          'researchProjects',
+          currentProject.id,
+        );
+        await updateDoc(projectRef, {
+          name: projectName,
+          description: projectDescription,
+        });
+        Alert.alert('Success', 'Project updated successfully!');
+      } else {
+        // Adding new project
         await addDoc(collection(firestore, 'researchProjects'), {
           userId,
           name: projectName,
           description: projectDescription,
           createdAt: new Date(),
         });
-        Alert.alert("Success", "Project added successfully!");
+        Alert.alert('Success', 'Project added successfully!');
       }
       setProjectName('');
       setProjectDescription('');
@@ -107,8 +148,8 @@ const ResearchOrganizationScreen = ({ navigation }) => {
       setModalVisible(false);
       fetchProjects(); // Refresh list
     } catch (error) {
-      console.error("Error adding/updating project: ", error);
-      Alert.alert("Error", "Could not save project. " + error.message);
+      console.error('Error adding/updating project: ', error);
+      Alert.alert('Error', 'Could not save project. ' + error.message);
     }
   };
 
@@ -128,46 +169,62 @@ const ResearchOrganizationScreen = ({ navigation }) => {
 
   const handleDeleteProject = async (projectId) => {
     Alert.alert(
-      "Confirm Delete",
-      "Are you sure you want to delete this project and all its associated notes and sources?",
+      'Confirm Delete',
+      'Are you sure you want to delete this project and all its associated notes and sources?',
       [
-        { text: "Cancel", style: "cancel" },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Delete",
-          style: "destructive",
+          text: 'Delete',
+          style: 'destructive',
           onPress: async () => {
             try {
               await deleteDoc(doc(firestore, 'researchProjects', projectId));
               // TODO: Optionally, delete associated notes and sources here
-              Alert.alert("Success", "Project deleted successfully!");
+              Alert.alert('Success', 'Project deleted successfully!');
               fetchProjects(); // Refresh list
             } catch (error) {
-              console.error("Error deleting project: ", error);
-              Alert.alert("Error", "Could not delete project.");
+              console.error('Error deleting project: ', error);
+              Alert.alert('Error', 'Could not delete project.');
             }
           },
         },
-      ]
+      ],
     );
   };
 
   const renderProjectItem = ({ item }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.projectItem}
-      onPress={() => navigation.navigate('ProjectDetails', { projectId: item.id, projectTitle: item.name })}
+      onPress={() =>
+        navigation.navigate('ProjectDetails', {
+          projectId: item.id,
+          projectTitle: item.name,
+        })
+      }
     >
       <View style={styles.projectItemContent}>
         <Text style={styles.projectItemTitle}>{item.name}</Text>
-        <Text style={styles.projectItemDescription} numberOfLines={2}>{item.description || 'No description'}</Text>
+        <Text style={styles.projectItemDescription} numberOfLines={2}>
+          {item.description || 'No description'}
+        </Text>
         <Text style={styles.projectItemDate}>
-          Created: {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString() : 'N/A'}
+          Created:{' '}
+          {item.createdAt?.toDate
+            ? item.createdAt.toDate().toLocaleDateString()
+            : 'N/A'}
         </Text>
       </View>
       <View style={styles.projectItemActions}>
-        <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
+        <TouchableOpacity
+          onPress={() => openEditModal(item)}
+          style={styles.actionButton}
+        >
           <Icon name="pencil-outline" size={22} color={STATIC_COLORS.primary} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDeleteProject(item.id)} style={styles.actionButton}>
+        <TouchableOpacity
+          onPress={() => handleDeleteProject(item.id)}
+          style={styles.actionButton}
+        >
           <Icon name="trash-outline" size={22} color={STATIC_COLORS.danger} />
         </TouchableOpacity>
       </View>
@@ -176,28 +233,47 @@ const ResearchOrganizationScreen = ({ navigation }) => {
 
   return (
     <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContentContainer}>
         <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Icon name="arrow-back-outline" size={28} color={STATIC_COLORS.primary} />
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Icon
+              name="arrow-back-outline"
+              size={28}
+              color={STATIC_COLORS.primary}
+            />
           </TouchableOpacity>
           <Text style={TYPOGRAPHY.h1}>Research Organization</Text>
         </View>
-        <Text style={styles.subHeader}>Manage your research projects, notes, and sources.</Text>
+        <Text style={styles.subHeader}>
+          Manage your research projects, notes, and sources.
+        </Text>
 
         <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
-          <Icon name="add-circle-outline" size={24} color={STATIC_COLORS.textOnPrimary} />
+          <Icon
+            name="add-circle-outline"
+            size={24}
+            color={STATIC_COLORS.textOnPrimary}
+          />
           <Text style={styles.addButtonText}>Add New Project</Text>
         </TouchableOpacity>
 
         {projects.length === 0 ? (
           <View style={styles.emptyStateContainer}>
-            <Icon name="folder-open-outline" size={60} color={STATIC_COLORS.textMuted} />
+            <Icon
+              name="folder-open-outline"
+              size={60}
+              color={STATIC_COLORS.textMuted}
+            />
             <Text style={styles.emptyStateText}>No research projects yet.</Text>
-            <Text style={styles.emptyStateSubText}>Tap "Add New Project" to get started.</Text>
+            <Text style={styles.emptyStateSubText}>
+              Tap "Add New Project" to get started.
+            </Text>
           </View>
         ) : (
           <FlatList
@@ -219,7 +295,9 @@ const ResearchOrganizationScreen = ({ navigation }) => {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalView}>
-              <Text style={styles.modalTitle}>{currentProject ? 'Edit Project' : 'Add New Project'}</Text>
+              <Text style={styles.modalTitle}>
+                {currentProject ? 'Edit Project' : 'Add New Project'}
+              </Text>
               <TextInput
                 style={styles.input}
                 placeholder="Project Name (e.g., Thesis Chapter 1)"
@@ -250,7 +328,9 @@ const ResearchOrganizationScreen = ({ navigation }) => {
                   style={[styles.button, styles.buttonSave]}
                   onPress={handleAddProject}
                 >
-                  <Text style={styles.textStyle}>{currentProject ? 'Save Changes' : 'Add Project'}</Text>
+                  <Text style={styles.textStyle}>
+                    {currentProject ? 'Save Changes' : 'Add Project'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -339,9 +419,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   projectItemDate: {
-      fontSize: 12,
-      color: STATIC_COLORS.textMuted,
-      fontStyle: 'italic',
+    fontSize: 12,
+    color: STATIC_COLORS.textMuted,
+    fontStyle: 'italic',
   },
   projectItemActions: {
     flexDirection: 'row',

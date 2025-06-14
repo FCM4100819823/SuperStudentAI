@@ -41,7 +41,6 @@ interface NlpRequest {
 // const EXTERNAL_AI_SERVICE_URL = process.env.EXTERNAL_AI_NLP_URL || \'https://api.example.com/nlp\';
 // const EXTERNAL_AI_API_KEY = process.env.EXTERNAL_AI_API_KEY || \'your-api-key\';
 
-
 // Configure multer for file uploads (memory storage)
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -194,7 +193,7 @@ function parseAIOptimizationResponse(aiResponse: any): {
       console.error('Failed to parse AI optimization response:', e);
     }
     // If parsing fails or structure is not as expected, return generatedText as suggestion
-    return { tasks: [], suggestions: generatedText }; 
+    return { tasks: [], suggestions: generatedText };
   }
   console.warn('Could not parse optimization from AI response.');
   return {
@@ -215,7 +214,10 @@ router.post('/nlp', limiter, async (req: Request, res: Response) => {
   }
 
   const cacheKey = `nlp-${text}`;
-  if (aiCache[cacheKey] && Date.now() - aiCache[cacheKey].timestamp < CACHE_TTL) {
+  if (
+    aiCache[cacheKey] &&
+    Date.now() - aiCache[cacheKey].timestamp < CACHE_TTL
+  ) {
     console.log('Returning cached NLP result for:', text);
     return res.json(aiCache[cacheKey].result);
   }
@@ -239,7 +241,9 @@ router.post('/nlp', limiter, async (req: Request, res: Response) => {
 
   for (const model of modelsToTry) {
     try {
-      console.log(`Attempting AI NLP request with model: ${model} for text: "${text}"`);
+      console.log(
+        `Attempting AI NLP request with model: ${model} for text: "${text}"`,
+      );
       const response = await axios.post(
         'https://openrouter.ai/api/v1/chat/completions',
         {
@@ -256,13 +260,27 @@ router.post('/nlp', limiter, async (req: Request, res: Response) => {
         },
       );
 
-      if (response.data && response.data.choices && response.data.choices.length > 0 && response.data.choices[0].message && response.data.choices[0].message.content) {
-        const result = { generated_text: response.data.choices[0].message.content };
+      if (
+        response.data &&
+        response.data.choices &&
+        response.data.choices.length > 0 &&
+        response.data.choices[0].message &&
+        response.data.choices[0].message.content
+      ) {
+        const result = {
+          generated_text: response.data.choices[0].message.content,
+        };
         aiCache[cacheKey] = { result, timestamp: Date.now() };
-        console.log(`AI NLP request successful with model: ${model}. Response:`, result);
+        console.log(
+          `AI NLP request successful with model: ${model}. Response:`,
+          result,
+        );
         return res.json(result);
       } else {
-        console.warn(`Received unexpected response structure from OpenRouter with model ${model}:\n`, response.data);
+        console.warn(
+          `Received unexpected response structure from OpenRouter with model ${model}:\n`,
+          response.data,
+        );
         lastError = {
           status: 500,
           message: 'AI service returned an unexpected response structure.',
@@ -273,7 +291,9 @@ router.post('/nlp', limiter, async (req: Request, res: Response) => {
       lastError = error;
       console.error(
         `Error calling OpenRouter API with model ${model}:`,
-        error.response ? JSON.stringify(error.response.data, null, 2) : error.message,
+        error.response
+          ? JSON.stringify(error.response.data, null, 2)
+          : error.message,
       );
     }
   }
@@ -281,17 +301,21 @@ router.post('/nlp', limiter, async (req: Request, res: Response) => {
   // If all models failed
   console.error(
     'All AI models failed. Last error:',
-    lastError.response ? JSON.stringify(lastError.response.data, null, 2) : lastError.message,
+    lastError.response
+      ? JSON.stringify(lastError.response.data, null, 2)
+      : lastError.message,
   );
-  
+
   const status = lastError.response?.status || 500;
-  const message = lastError.response?.data?.error?.message || 'AI service request failed after multiple attempts.';
+  const message =
+    lastError.response?.data?.error?.message ||
+    'AI service request failed after multiple attempts.';
   const details = lastError.response?.data || lastError.message;
 
   return res.status(status).json({
     error: message,
     details: details,
-    message: `AI request failed for text: "${text}" after trying models: ${modelsToTry.join(', ')}. Last model tried: ${modelsToTry[modelsToTry.length -1]}.`,
+    message: `AI request failed for text: "${text}" after trying models: ${modelsToTry.join(', ')}. Last model tried: ${modelsToTry[modelsToTry.length - 1]}.`,
   });
 });
 
@@ -300,12 +324,10 @@ router.post('/study-plan/generate', async (req: Request, res: Response) => {
   // @ts-ignore
   const userId = req.user?.uid || 'anonymous';
   if (!syllabusText && !userGoals) {
-    return res
-      .status(400)
-      .json({
-        message:
-          'Either syllabus text or user goals are required to generate a study plan.',
-      });
+    return res.status(400).json({
+      message:
+        'Either syllabus text or user goals are required to generate a study plan.',
+    });
   }
   console.log(
     `[AI Study Plan Generate] User: ${userId}, Time: ${new Date().toISOString()}`,
@@ -313,19 +335,27 @@ router.post('/study-plan/generate', async (req: Request, res: Response) => {
 
   const openRouterApiKey = process.env.OPENROUTER_API_KEY;
   if (!openRouterApiKey) {
-    console.error('[AI Study Plan Generate] OpenRouter API key not configured.');
-    return res.status(500).json({ error: 'AI service not configured (key missing).' });
+    console.error(
+      '[AI Study Plan Generate] OpenRouter API key not configured.',
+    );
+    return res
+      .status(500)
+      .json({ error: 'AI service not configured (key missing).' });
   }
 
   // Define models to try with OpenRouter for study plan generation
-  const preferredModel = process.env.STUDY_PLAN_MODEL || 'mistralai/mistral-7b-instruct';
+  const preferredModel =
+    process.env.STUDY_PLAN_MODEL || 'mistralai/mistral-7b-instruct';
   const fallbackModels = [
     'openai/gpt-3.5-turbo',
     'google/gemini-flash-1.5',
     'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', // Free model
     // 'huggingfaceh4/zephyr-7b-beta', // Removed as per user preference
   ];
-  const modelsToTry = [preferredModel, ...fallbackModels.filter(m => m !== preferredModel)];
+  const modelsToTry = [
+    preferredModel,
+    ...fallbackModels.filter((m) => m !== preferredModel),
+  ];
 
   let prompt = `You are an AI assistant helping a student create a study plan. Based on the following information, generate a list of actionable tasks. Each task should include a title, a brief description, and an estimated number of hours to complete. Try to order the tasks logically. Return the tasks as a JSON array of objects, where each object has "title", "description", and "estimatedHours" keys. Example: [{"title": "Read Chapter 1", "description": "Focus on key concepts.", "estimatedHours": 2}] Syllabus Information: ${syllabusText || 'Not provided.'} User Goals: ${userGoals || 'Not provided.'} Existing Tasks (if any, to avoid duplication or to build upon): ${existingTasks.length > 0 ? JSON.stringify(existingTasks) : 'None.'} Generated JSON Task Array:`;
 
@@ -355,13 +385,23 @@ router.post('/study-plan/generate', async (req: Request, res: Response) => {
         },
       );
 
-      if (response.data && response.data.choices && response.data.choices.length > 0 && response.data.choices[0].message && response.data.choices[0].message.content) {
+      if (
+        response.data &&
+        response.data.choices &&
+        response.data.choices.length > 0 &&
+        response.data.choices[0].message &&
+        response.data.choices[0].message.content
+      ) {
         const generatedText = response.data.choices[0].message.content;
         // Adapt the response to what parseAIResponseToTasks expects
-        const generatedTasks = parseAIResponseToTasks([{ generated_text: generatedText }]);
-        
+        const generatedTasks = parseAIResponseToTasks([
+          { generated_text: generatedText },
+        ]);
+
         if (generatedTasks.length === 0 && generatedText) {
-          console.warn(`[AI Study Plan Generate] Model ${model} generated text, but it couldn't be parsed into tasks. Raw output: ${generatedText.substring(0, 200)}...`);
+          console.warn(
+            `[AI Study Plan Generate] Model ${model} generated text, but it couldn't be parsed into tasks. Raw output: ${generatedText.substring(0, 200)}...`,
+          );
           // Fallback or specific handling if parsing fails but text is present
         }
 
@@ -379,7 +419,7 @@ router.post('/study-plan/generate', async (req: Request, res: Response) => {
       } else {
         console.warn(
           `[AI Study Plan Generate] Received unexpected response structure from OpenRouter with model ${model}:\n`,
-          JSON.stringify(response.data, null, 2)
+          JSON.stringify(response.data, null, 2),
         );
         lastError = {
           message: 'AI service returned an unexpected response structure.',
@@ -391,10 +431,14 @@ router.post('/study-plan/generate', async (req: Request, res: Response) => {
       lastError = error;
       console.error(
         `[AI Study Plan Generate] Error with OpenRouter model ${model}:`,
-        error.response ? JSON.stringify(error.response.data, null, 2) : error.message,
+        error.response
+          ? JSON.stringify(error.response.data, null, 2)
+          : error.message,
       );
       if (error.code === 'ECONNABORTED') {
-        console.warn(`[AI Study Plan Generate] Request to OpenRouter model ${model} timed out.`);
+        console.warn(
+          `[AI Study Plan Generate] Request to OpenRouter model ${model} timed out.`,
+        );
       }
       // Continue to the next model
     }
@@ -403,17 +447,19 @@ router.post('/study-plan/generate', async (req: Request, res: Response) => {
   // If all models failed
   console.error('[AI Study Plan Generate] All OpenRouter models failed.');
   const statusCode = lastError?.response?.status || 500;
-  let errorMessage = 'Failed to generate study plan tasks with AI after multiple attempts.';
+  let errorMessage =
+    'Failed to generate study plan tasks with AI after multiple attempts.';
   if (lastError?.response?.data?.error?.message) {
     errorMessage = lastError.response.data.error.message;
   } else if (lastError?.message) {
     errorMessage = lastError.message;
   }
 
-  return res.status(statusCode).json({ 
-    message: errorMessage, 
-    error: lastError?.response?.data || lastError?.message, 
-    modelAttempted: lastError?.modelAttempted || modelsToTry[modelsToTry.length -1]
+  return res.status(statusCode).json({
+    message: errorMessage,
+    error: lastError?.response?.data || lastError?.message,
+    modelAttempted:
+      lastError?.modelAttempted || modelsToTry[modelsToTry.length - 1],
   });
 });
 
@@ -422,24 +468,26 @@ router.post('/study-plan/optimize', async (req: Request, res: Response) => {
   // @ts-ignore
   const userId = req.user?.uid || 'anonymous';
   if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
-    return res
-      .status(400)
-      .json({
-        message: 'A list of tasks is required to optimize a study plan.',
-      });
+    return res.status(400).json({
+      message: 'A list of tasks is required to optimize a study plan.',
+    });
   }
   console.log(
-    `[AI Study Plan Optimize] User: ${userId}, Goal: ${optimizationGoal}, Time: ${new Date().toISOString()}`
+    `[AI Study Plan Optimize] User: ${userId}, Goal: ${optimizationGoal}, Time: ${new Date().toISOString()}`,
   );
 
-  const preferredModel = process.env.STUDY_PLAN_OPTIMIZE_MODEL || 'mistralai/mistral-7b-instruct';
+  const preferredModel =
+    process.env.STUDY_PLAN_OPTIMIZE_MODEL || 'mistralai/mistral-7b-instruct';
   const fallbackModels = [
     'openai/gpt-3.5-turbo',
     'google/gemini-flash-1.5',
     'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', // Free model
     // 'huggingfaceh4/zephyr-7b-beta', // Removed as per user preference
   ];
-  const allModels = [preferredModel, ...fallbackModels.filter(m => m !== preferredModel)]; // Ensures preferred is first and no duplicates
+  const allModels = [
+    preferredModel,
+    ...fallbackModels.filter((m) => m !== preferredModel),
+  ]; // Ensures preferred is first and no duplicates
 
   let prompt = `You are an AI assistant helping a student optimize their study plan.
 The student has the following list of tasks:
@@ -469,7 +517,7 @@ Optimized JSON Output:`;
   for (const model of allModels) {
     try {
       console.log(
-        `[AI Study Plan Optimize] Sending request to OpenRouter model: ${model}`
+        `[AI Study Plan Optimize] Sending request to OpenRouter model: ${model}`,
       );
       const openRouterResponse = await axios.post(
         'https://openrouter.ai/api/v1/chat/completions',
@@ -478,7 +526,7 @@ Optimized JSON Output:`;
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.3, // Lower temperature for more deterministic JSON output
           max_tokens: 1024, // Increased max_tokens for potentially larger study plans
-          response_format: { type: "json_object" } // Request JSON output
+          response_format: { type: 'json_object' }, // Request JSON output
         },
         {
           headers: {
@@ -488,10 +536,11 @@ Optimized JSON Output:`;
             'X-Title': process.env.APP_NAME, // Replace with your actual app name
           },
           timeout: 60000, // Increased timeout to 60 seconds
-        }
+        },
       );
 
-      let aiResponseContent = openRouterResponse.data.choices[0]?.message?.content;
+      let aiResponseContent =
+        openRouterResponse.data.choices[0]?.message?.content;
       if (!aiResponseContent) {
         throw new Error('No content in AI response');
       }
@@ -503,33 +552,68 @@ Optimized JSON Output:`;
         parsedResponse = JSON.parse(aiResponseContent);
       } catch (parseError: any) {
         // If direct parsing fails, try to extract JSON from a code block if present
-        const jsonMatch = aiResponseContent.match(/```json\\n([\\s\\S]*?)\\n```/);
+        const jsonMatch = aiResponseContent.match(
+          /```json\\n([\\s\\S]*?)\\n```/,
+        );
         if (jsonMatch && jsonMatch[1]) {
           try {
             parsedResponse = JSON.parse(jsonMatch[1]);
           } catch (e) {
-            console.error('[AI Study Plan Optimize] Failed to parse extracted JSON from model:', model, e);
-            throw new Error(`Failed to parse JSON from AI response (model: ${model}). Raw content: ${aiResponseContent}`);
+            console.error(
+              '[AI Study Plan Optimize] Failed to parse extracted JSON from model:',
+              model,
+              e,
+            );
+            throw new Error(
+              `Failed to parse JSON from AI response (model: ${model}). Raw content: ${aiResponseContent}`,
+            );
           }
         } else {
-          console.error('[AI Study Plan Optimize] Failed to parse JSON from model:', model, parseError);
-          throw new Error(`Failed to parse JSON from AI response (model: ${model}). Raw content: ${aiResponseContent}`);
+          console.error(
+            '[AI Study Plan Optimize] Failed to parse JSON from model:',
+            model,
+            parseError,
+          );
+          throw new Error(
+            `Failed to parse JSON from AI response (model: ${model}). Raw content: ${aiResponseContent}`,
+          );
         }
       }
-      
+
       const { optimizedTasks, suggestions } = parsedResponse;
 
       if (!optimizedTasks || !suggestions) {
-         console.warn('[AI Study Plan Optimize] Parsed response missing optimizedTasks or suggestions from model:', model, 'Parsed:', parsedResponse);
-         throw new Error('AI response was parsed but did not contain the expected "optimizedTasks" or "suggestions" fields.');
-      }
-      
-      // Basic validation of optimizedTasks structure
-      if (!Array.isArray(optimizedTasks) || !optimizedTasks.every(task => typeof task.title === 'string' && typeof task.description === 'string' && typeof task.estimatedHours === 'number')) {
-        console.warn('[AI Study Plan Optimize] optimizedTasks has incorrect structure from model:', model, 'Tasks:', optimizedTasks);
-        throw new Error('AI response field "optimizedTasks" has an invalid structure.');
+        console.warn(
+          '[AI Study Plan Optimize] Parsed response missing optimizedTasks or suggestions from model:',
+          model,
+          'Parsed:',
+          parsedResponse,
+        );
+        throw new Error(
+          'AI response was parsed but did not contain the expected "optimizedTasks" or "suggestions" fields.',
+        );
       }
 
+      // Basic validation of optimizedTasks structure
+      if (
+        !Array.isArray(optimizedTasks) ||
+        !optimizedTasks.every(
+          (task) =>
+            typeof task.title === 'string' &&
+            typeof task.description === 'string' &&
+            typeof task.estimatedHours === 'number',
+        )
+      ) {
+        console.warn(
+          '[AI Study Plan Optimize] optimizedTasks has incorrect structure from model:',
+          model,
+          'Tasks:',
+          optimizedTasks,
+        );
+        throw new Error(
+          'AI response field "optimizedTasks" has an invalid structure.',
+        );
+      }
 
       return res.json({
         tasks: optimizedTasks,
@@ -541,152 +625,205 @@ Optimized JSON Output:`;
       lastError = error;
       console.error(
         `[AI Study Plan Optimize] Error with model ${model}:`,
-        error.response ? error.response.data : error.message
+        error.response ? error.response.data : error.message,
       );
       if (error.code === 'ECONNABORTED') {
         console.warn(`[AI Study Plan Optimize] Request to ${model} timed out.`);
       }
       // If it's the last model in the list and it failed, then return the error
       if (allModels.indexOf(model) === allModels.length - 1) {
-        let errorMessage = 'Failed to optimize study plan tasks with AI after trying all available models.';
-        if (lastError.response && lastError.response.data && lastError.response.data.error) {
+        let errorMessage =
+          'Failed to optimize study plan tasks with AI after trying all available models.';
+        if (
+          lastError.response &&
+          lastError.response.data &&
+          lastError.response.data.error
+        ) {
           errorMessage += ` Last Model Error (${model}): ${JSON.stringify(lastError.response.data.error)}`;
         } else if (lastError.message) {
           errorMessage += ` Last Error (${model}): ${lastError.message}`;
         }
-        return res.status(500).json({ message: errorMessage, error: lastError.message, modelUsed: model });
+        return res
+          .status(500)
+          .json({
+            message: errorMessage,
+            error: lastError.message,
+            modelUsed: model,
+          });
       }
       // Otherwise, try the next model
     }
   }
   // Should not be reached if at least one model is tried, but as a fallback:
   if (lastError) {
-     return res.status(500).json({ message: 'Failed to optimize study plan tasks with AI.', error: lastError.message });
+    return res
+      .status(500)
+      .json({
+        message: 'Failed to optimize study plan tasks with AI.',
+        error: lastError.message,
+      });
   }
 });
 
 // New route for /api/ai/nlp
-router.post('/nlp', limiter, async (req: Request, res: Response, next: NextFunction) => {
-  const { text, user = 'anonymous' } = req.body as NlpRequest; // Removed requestedModel
+router.post(
+  '/nlp',
+  limiter,
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { text, user = 'anonymous' } = req.body as NlpRequest; // Removed requestedModel
 
-  if (!text) {
-    return res.status(400).json({ message: 'Text is required for NLP processing.' });
-  }
+    if (!text) {
+      return res
+        .status(400)
+        .json({ message: 'Text is required for NLP processing.' });
+    }
 
-  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
-  if (!openRouterApiKey) {
-    console.error('[AI NLP] OpenRouter API key not configured.');
-    return res.status(500).json({ error: 'AI service not configured (key missing).' });
-  }
+    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+    if (!openRouterApiKey) {
+      console.error('[AI NLP] OpenRouter API key not configured.');
+      return res
+        .status(500)
+        .json({ error: 'AI service not configured (key missing).' });
+    }
 
-  // Define models to try with OpenRouter
-  const modelsToTry = [
-    'mistralai/mistral-7b-instruct', // Preferred
-    'openai/gpt-3.5-turbo',
-    'google/gemini-flash-1.5',
-    'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', // Free model
-    // 'huggingfaceh4/zephyr-7b-beta', // Removed as per user preference
-  ];
+    // Define models to try with OpenRouter
+    const modelsToTry = [
+      'mistralai/mistral-7b-instruct', // Preferred
+      'openai/gpt-3.5-turbo',
+      'google/gemini-flash-1.5',
+      'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', // Free model
+      // 'huggingfaceh4/zephyr-7b-beta', // Removed as per user preference
+    ];
 
-  let lastError: any = null;
-  const cacheKey = `nlp-openrouter-${text.substring(0,100).replace(/\s+/g, '_')}`;
+    let lastError: any = null;
+    const cacheKey = `nlp-openrouter-${text.substring(0, 100).replace(/\s+/g, '_')}`;
 
-  if (aiCache[cacheKey] && (Date.now() - aiCache[cacheKey].timestamp < CACHE_TTL)) {
-    console.log(`[AI NLP] Returning cached OpenRouter result for text snippet: "${text.substring(0,30)}..."`);
-    return res.json({ generated_text: aiCache[cacheKey].result.generated_text, cached: true, modelUsed: aiCache[cacheKey].result.modelUsed });
-  }
+    if (
+      aiCache[cacheKey] &&
+      Date.now() - aiCache[cacheKey].timestamp < CACHE_TTL
+    ) {
+      console.log(
+        `[AI NLP] Returning cached OpenRouter result for text snippet: "${text.substring(0, 30)}..."`,
+      );
+      return res.json({
+        generated_text: aiCache[cacheKey].result.generated_text,
+        cached: true,
+        modelUsed: aiCache[cacheKey].result.modelUsed,
+      });
+    }
 
-  for (const model of modelsToTry) {
-    console.log(
-      `[AI NLP] Attempting with OpenRouter model: ${model}. User: ${user}, Text length: ${text.length}, Time: ${new Date().toISOString()}`
-    );
-    try {
-      const response = await axios.post(
-        'https://openrouter.ai/api/v1/chat/completions',
-        {
-          model: model,
-          messages: [{ role: 'user', content: text }],
-          // You can add other parameters like max_tokens, temperature here if needed
-          // stream: false, // Explicitly set stream to false if not streaming
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${openRouterApiKey}`,
-            'Content-Type': 'application/json',
-            // Recommended headers by OpenRouter, though not strictly necessary for all requests
-            // 'HTTP-Referer': 'YOUR_SITE_URL', // Replace with your actual site URL or a generic one
-            // 'X-Title': 'YOUR_SITE_NAME', // Replace with your actual site name or a generic one
+    for (const model of modelsToTry) {
+      console.log(
+        `[AI NLP] Attempting with OpenRouter model: ${model}. User: ${user}, Text length: ${text.length}, Time: ${new Date().toISOString()}`,
+      );
+      try {
+        const response = await axios.post(
+          'https://openrouter.ai/api/v1/chat/completions',
+          {
+            model: model,
+            messages: [{ role: 'user', content: text }],
+            // You can add other parameters like max_tokens, temperature here if needed
+            // stream: false, // Explicitly set stream to false if not streaming
           },
-          timeout: 25000, // Timeout for the API call
-        }
-      );
-
-      if (response.data && response.data.choices && response.data.choices.length > 0 && response.data.choices[0].message && response.data.choices[0].message.content) {
-        const result = { 
-          generated_text: response.data.choices[0].message.content,
-          modelUsed: model 
-        };
-        aiCache[cacheKey] = { result, timestamp: Date.now() };
-        console.log(`[AI NLP] OpenRouter request successful with model: ${model}.`);
-        return res.json({ generated_text: result.generated_text, cached: false, modelUsed: result.modelUsed });
-      } else {
-        console.warn(
-          `[AI NLP] Received unexpected response structure from OpenRouter with model ${model}:\n`,
-          JSON.stringify(response.data, null, 2)
+          {
+            headers: {
+              Authorization: `Bearer ${openRouterApiKey}`,
+              'Content-Type': 'application/json',
+              // Recommended headers by OpenRouter, though not strictly necessary for all requests
+              // 'HTTP-Referer': 'YOUR_SITE_URL', // Replace with your actual site URL or a generic one
+              // 'X-Title': 'YOUR_SITE_NAME', // Replace with your actual site name or a generic one
+            },
+            timeout: 25000, // Timeout for the API call
+          },
         );
-        lastError = {
-          status: 500,
-          message: 'AI service returned an unexpected response structure.',
-          details: response.data,
-          modelAttempted: model,
-        };
-        // Continue to next model if structure is not as expected
-      }
-    } catch (error: any) {
-      lastError = error; // Store the error and try the next model
-      console.error(
-        `[AI NLP] Error calling OpenRouter API with model ${model}:`,
-        error.response ? JSON.stringify(error.response.data, null, 2) : error.message,
-      );
-      // If a model specifically is not found (e.g. 404 from OpenRouter for a model name)
-      // or if there's a specific error related to the model, we should definitely continue.
-      // for other errors (like auth, rate limits), retrying with a different model might not help,
-      // but the loop structure handles this by trying all specified models.
-      if (error.response && error.response.status === 429) {
-        // Specific handling for rate limits - maybe break and return this error immediately
-        console.warn(`[AI NLP] Rate limited by OpenRouter with model ${model}.`);
-        // For now, we'll let it try other models, though if one is rate-limited, others might be too.
-      }
-    }
-  }
 
-  // If all models failed
-  console.error(`[AI NLP] All OpenRouter models failed for text: "${text.substring(0,30)}..."`);
-  if (lastError) {
-    const statusCode = lastError.response?.status || 500;
-    let message = 'AI service request failed after multiple attempts.';
-    if (lastError.response?.data?.error?.message) {
-      message = lastError.response.data.error.message;
-    } else if (lastError.message) {
-      message = lastError.message;
+        if (
+          response.data &&
+          response.data.choices &&
+          response.data.choices.length > 0 &&
+          response.data.choices[0].message &&
+          response.data.choices[0].message.content
+        ) {
+          const result = {
+            generated_text: response.data.choices[0].message.content,
+            modelUsed: model,
+          };
+          aiCache[cacheKey] = { result, timestamp: Date.now() };
+          console.log(
+            `[AI NLP] OpenRouter request successful with model: ${model}.`,
+          );
+          return res.json({
+            generated_text: result.generated_text,
+            cached: false,
+            modelUsed: result.modelUsed,
+          });
+        } else {
+          console.warn(
+            `[AI NLP] Received unexpected response structure from OpenRouter with model ${model}:\n`,
+            JSON.stringify(response.data, null, 2),
+          );
+          lastError = {
+            status: 500,
+            message: 'AI service returned an unexpected response structure.',
+            details: response.data,
+            modelAttempted: model,
+          };
+          // Continue to next model if structure is not as expected
+        }
+      } catch (error: any) {
+        lastError = error; // Store the error and try the next model
+        console.error(
+          `[AI NLP] Error calling OpenRouter API with model ${model}:`,
+          error.response
+            ? JSON.stringify(error.response.data, null, 2)
+            : error.message,
+        );
+        // If a model specifically is not found (e.g. 404 from OpenRouter for a model name)
+        // or if there's a specific error related to the model, we should definitely continue.
+        // for other errors (like auth, rate limits), retrying with a different model might not help,
+        // but the loop structure handles this by trying all specified models.
+        if (error.response && error.response.status === 429) {
+          // Specific handling for rate limits - maybe break and return this error immediately
+          console.warn(
+            `[AI NLP] Rate limited by OpenRouter with model ${model}.`,
+          );
+          // For now, we'll let it try other models, though if one is rate-limited, others might be too.
+        }
+      }
     }
-    
-    return res.status(statusCode).json({
-      error: 'AI Service Error',
-      message: message,
-      details: lastError.response?.data || lastError.message,
-      modelAttempted: lastError.modelAttempted || modelsToTry[modelsToTry.length -1],
-      messageFromCopilot: `AI request failed for text: "${text.substring(0,30)}..." after trying models: ${modelsToTry.join(', ')}.`
-    });
-  } else {
-    // This case should ideally not be reached if lastError is always set in catch blocks
-    return res.status(500).json({ 
-      error: 'AI Service Error',
-      message: 'AI request failed after trying all fallbacks and no specific error was caught.',
-      messageFromCopilot: `AI request failed for text: "${text.substring(0,30)}..." after trying models: ${modelsToTry.join(', ')}.`
-    });
-  }
-});
+
+    // If all models failed
+    console.error(
+      `[AI NLP] All OpenRouter models failed for text: "${text.substring(0, 30)}..."`,
+    );
+    if (lastError) {
+      const statusCode = lastError.response?.status || 500;
+      let message = 'AI service request failed after multiple attempts.';
+      if (lastError.response?.data?.error?.message) {
+        message = lastError.response.data.error.message;
+      } else if (lastError.message) {
+        message = lastError.message;
+      }
+
+      return res.status(statusCode).json({
+        error: 'AI Service Error',
+        message: message,
+        details: lastError.response?.data || lastError.message,
+        modelAttempted:
+          lastError.modelAttempted || modelsToTry[modelsToTry.length - 1],
+        messageFromCopilot: `AI request failed for text: "${text.substring(0, 30)}..." after trying models: ${modelsToTry.join(', ')}.`,
+      });
+    } else {
+      // This case should ideally not be reached if lastError is always set in catch blocks
+      return res.status(500).json({
+        error: 'AI Service Error',
+        message:
+          'AI request failed after trying all fallbacks and no specific error was caught.',
+        messageFromCopilot: `AI request failed for text: "${text.substring(0, 30)}..." after trying models: ${modelsToTry.join(', ')}.`,
+      });
+    }
+  },
+);
 
 // Extracted NER calling function - now using OpenRouter
 async function callOpenRouterNER(
@@ -697,9 +834,13 @@ async function callOpenRouterNER(
     'google/gemini-flash-1.5',
     'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', // Free model
     // 'huggingfaceh4/zephyr-7b-beta', // Removed as per user preference
-  ]
-): Promise<any[]> { // Define a more specific return type based on expected NER output
-  const allModels = [preferredModel, ...fallbackModels.filter(m => m !== preferredModel)];
+  ],
+): Promise<any[]> {
+  // Define a more specific return type based on expected NER output
+  const allModels = [
+    preferredModel,
+    ...fallbackModels.filter((m) => m !== preferredModel),
+  ];
   let lastError: any = null;
 
   // Updated prompt for NER to be more specific for syllabus content
@@ -741,24 +882,24 @@ JSON Output:`;
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.2, // Lower temperature for more factual extraction
           max_tokens: 512, // Adjust as needed
-          response_format: { type: "json_object" } // Request JSON output, if model supports it
+          response_format: { type: 'json_object' }, // Request JSON output, if model supports it
         },
         {
           headers: {
             Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
             'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.APP_URL, 
-            'X-Title': process.env.APP_NAME, 
+            'HTTP-Referer': process.env.APP_URL,
+            'X-Title': process.env.APP_NAME,
           },
           timeout: 30000, // 30 seconds timeout
-        }
+        },
       );
 
       let aiResponseContent = response.data.choices[0]?.message?.content;
       if (!aiResponseContent) {
         throw new Error('No content in AI response for NER');
       }
-      
+
       let parsedResponse;
       try {
         // Assuming the model returns a JSON string that needs to be parsed.
@@ -766,70 +907,109 @@ JSON Output:`;
         // Or it might be the array directly.
         const rawJson = JSON.parse(aiResponseContent);
         if (Array.isArray(rawJson)) {
-            parsedResponse = rawJson;
+          parsedResponse = rawJson;
         } else if (rawJson.entities && Array.isArray(rawJson.entities)) {
-            parsedResponse = rawJson.entities;
+          parsedResponse = rawJson.entities;
         } else {
-            // Try to find an array in the response object if the structure is unknown
-            const arrayKey = Object.keys(rawJson).find(key => Array.isArray(rawJson[key]));
-            if (arrayKey) {
-                parsedResponse = rawJson[arrayKey];
-            } else {
-                 throw new Error('NER response is not a JSON array and does not contain an \'entities\' array key.');
-            }
+          // Try to find an array in the response object if the structure is unknown
+          const arrayKey = Object.keys(rawJson).find((key) =>
+            Array.isArray(rawJson[key]),
+          );
+          if (arrayKey) {
+            parsedResponse = rawJson[arrayKey];
+          } else {
+            throw new Error(
+              "NER response is not a JSON array and does not contain an 'entities' array key.",
+            );
+          }
         }
-
       } catch (parseError: any) {
-        const jsonMatch = aiResponseContent.match(/```json\\n([\\s\\S]*?)\\n```/);
+        const jsonMatch = aiResponseContent.match(
+          /```json\\n([\\s\\S]*?)\\n```/,
+        );
         if (jsonMatch && jsonMatch[1]) {
           try {
             const extractedJson = JSON.parse(jsonMatch[1]);
             if (Array.isArray(extractedJson)) {
-                parsedResponse = extractedJson;
-            } else if (extractedJson.entities && Array.isArray(extractedJson.entities)) {
-                parsedResponse = extractedJson.entities;
+              parsedResponse = extractedJson;
+            } else if (
+              extractedJson.entities &&
+              Array.isArray(extractedJson.entities)
+            ) {
+              parsedResponse = extractedJson.entities;
             } else {
-                const arrayKey = Object.keys(extractedJson).find(key => Array.isArray(extractedJson[key]));
-                if (arrayKey) {
-                    parsedResponse = extractedJson[arrayKey];
-                } else {
-                    throw new Error('Extracted NER response is not a JSON array and does not contain an \'entities\' array key.');
-                }
+              const arrayKey = Object.keys(extractedJson).find((key) =>
+                Array.isArray(extractedJson[key]),
+              );
+              if (arrayKey) {
+                parsedResponse = extractedJson[arrayKey];
+              } else {
+                throw new Error(
+                  "Extracted NER response is not a JSON array and does not contain an 'entities' array key.",
+                );
+              }
             }
           } catch (e) {
-            console.error('[OpenRouter NER] Failed to parse extracted JSON from model:', model, e);
-            throw new Error(`Failed to parse extracted JSON for NER from AI response (model: ${model}). Raw content: ${aiResponseContent}`);
+            console.error(
+              '[OpenRouter NER] Failed to parse extracted JSON from model:',
+              model,
+              e,
+            );
+            throw new Error(
+              `Failed to parse extracted JSON for NER from AI response (model: ${model}). Raw content: ${aiResponseContent}`,
+            );
           }
         } else {
-          console.error('[OpenRouter NER] Failed to parse JSON from model:', model, parseError);
-          throw new Error(`Failed to parse JSON for NER from AI response (model: ${model}). Raw content: ${aiResponseContent}`);
+          console.error(
+            '[OpenRouter NER] Failed to parse JSON from model:',
+            model,
+            parseError,
+          );
+          throw new Error(
+            `Failed to parse JSON for NER from AI response (model: ${model}). Raw content: ${aiResponseContent}`,
+          );
         }
       }
 
       // Validate structure of parsedResponse (array of objects with expected keys)
-      if (!Array.isArray(parsedResponse) || !parsedResponse.every(item => 
-          typeof item === 'object' &&
-          item !== null &&
-          'text' in item &&
-          'entity_group' in item &&
-          'start' in item &&
-          'end' in item )) {
-            console.warn('[OpenRouter NER] NER response has incorrect structure from model:', model, 'Response:', parsedResponse);
-            throw new Error('AI NER response has an invalid structure.');
+      if (
+        !Array.isArray(parsedResponse) ||
+        !parsedResponse.every(
+          (item) =>
+            typeof item === 'object' &&
+            item !== null &&
+            'text' in item &&
+            'entity_group' in item &&
+            'start' in item &&
+            'end' in item,
+        )
+      ) {
+        console.warn(
+          '[OpenRouter NER] NER response has incorrect structure from model:',
+          model,
+          'Response:',
+          parsedResponse,
+        );
+        throw new Error('AI NER response has an invalid structure.');
       }
 
-      console.log(`[OpenRouter NER] Successfully received and parsed NER data from model: ${model}`);
+      console.log(
+        `[OpenRouter NER] Successfully received and parsed NER data from model: ${model}`,
+      );
       return parsedResponse; // Return the array of entities
-
     } catch (error: any) {
       lastError = error;
       console.error(
         `[OpenRouter NER] Error with model ${model}:`,
-        error.response ? error.response.data : error.message
+        error.response ? error.response.data : error.message,
       );
       if (allModels.indexOf(model) === allModels.length - 1) {
         let errorMessage = `Failed to perform NER with OpenRouter after trying all models.`;
-        if (lastError.response && lastError.response.data && lastError.response.data.error) {
+        if (
+          lastError.response &&
+          lastError.response.data &&
+          lastError.response.data.error
+        ) {
           errorMessage += ` Last Model Error (${model}): ${JSON.stringify(lastError.response.data.error)}`;
         } else if (lastError.message) {
           errorMessage += ` Last Error (${model}): ${lastError.message}`;
@@ -839,7 +1019,10 @@ JSON Output:`;
     }
   }
   // Fallback if all models fail, though the loop should throw before this.
-  throw new Error('Failed to get NER data from OpenRouter. Last error: ' + (lastError?.message || 'Unknown error'));
+  throw new Error(
+    'Failed to get NER data from OpenRouter. Last error: ' +
+      (lastError?.message || 'Unknown error'),
+  );
 }
 
 // Update the call site for NER in /api/ai/syllabus/process route
@@ -860,9 +1043,8 @@ router.post('/syllabus/process', async (req: Request, res: Response) => {
   try {
     // Call OpenRouter NER instead of Hugging Face
     const nerResults = await callOpenRouterNER(syllabusText);
-    
-    // ... existing processing logic for nerResults ...
 
+    // ... existing processing logic for nerResults ...
   } catch (error: any) {
     console.error(
       '[API AI Syllabus Process] Error processing syllabus with AI:',
@@ -916,56 +1098,84 @@ async function callHuggingFaceNER(
 }
 */
 
-router.post('/generate-outline', limiter, async (req: Request, res: Response, next: NextFunction) => {
-  const { topic, model } = req.body;
+router.post(
+  '/generate-outline',
+  limiter,
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { topic, model } = req.body;
 
-  if (!topic) {
-    return res.status(400).json({ error: 'Topic is required' });
-  }
-
-  const selectedModel = model || 'mistralai/mistral-7b-instruct'; // Default model, user can send a preferred one
-
-  try {
-    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
-    if (!openRouterApiKey) {
-      console.error('OPENROUTER_API_KEY not found in .env');
-      return res.status(500).json({ error: 'AI service configuration error.' });
+    if (!topic) {
+      return res.status(400).json({ error: 'Topic is required' });
     }
 
-    const response = await axios.post(
-      'https://openrouter.ai/api/v1/chat/completions',
-      {
-        model: selectedModel,
-        messages: [
-          { role: 'system', content: 'You are an expert academic assistant. Generate a comprehensive and well-structured outline for the given topic. The outline should be suitable for an essay or research paper. Provide main sections (e.g., Introduction, Main Point 1, Conclusion) and subsections (A, B, C...).' },
-          { role: 'user', content: `Generate an outline for the topic: "${topic}"` },
-        ],
-        // You can add other parameters like max_tokens, temperature, etc.
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${openRouterApiKey}`,
-          'Content-Type': 'application/json',
-          // OpenRouter might recommend these headers:
-          // 'HTTP-Referer': 'YOUR_SITE_URL', // Replace with your app's URL or name
-          // 'X-Title': 'SuperStudentAI', // Replace with your app's name
-        },
+    const selectedModel = model || 'mistralai/mistral-7b-instruct'; // Default model, user can send a preferred one
+
+    try {
+      const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+      if (!openRouterApiKey) {
+        console.error('OPENROUTER_API_KEY not found in .env');
+        return res
+          .status(500)
+          .json({ error: 'AI service configuration error.' });
       }
-    );
 
-    if (response.data && response.data.choices && response.data.choices[0] && response.data.choices[0].message && response.data.choices[0].message.content) {
-      const outline = response.data.choices[0].message.content;
-      res.json({ outline });
-    } else {
-      console.error('Unexpected response structure from OpenRouter:', response.data);
-      res.status(500).json({ error: 'Failed to generate outline due to unexpected AI response.' });
+      const response = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        {
+          model: selectedModel,
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are an expert academic assistant. Generate a comprehensive and well-structured outline for the given topic. The outline should be suitable for an essay or research paper. Provide main sections (e.g., Introduction, Main Point 1, Conclusion) and subsections (A, B, C...).',
+            },
+            {
+              role: 'user',
+              content: `Generate an outline for the topic: "${topic}"`,
+            },
+          ],
+          // You can add other parameters like max_tokens, temperature, etc.
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${openRouterApiKey}`,
+            'Content-Type': 'application/json',
+            // OpenRouter might recommend these headers:
+            // 'HTTP-Referer': 'YOUR_SITE_URL', // Replace with your app's URL or name
+            // 'X-Title': 'SuperStudentAI', // Replace with your app's name
+          },
+        },
+      );
+
+      if (
+        response.data &&
+        response.data.choices &&
+        response.data.choices[0] &&
+        response.data.choices[0].message &&
+        response.data.choices[0].message.content
+      ) {
+        const outline = response.data.choices[0].message.content;
+        res.json({ outline });
+      } else {
+        console.error(
+          'Unexpected response structure from OpenRouter:',
+          response.data,
+        );
+        res
+          .status(500)
+          .json({
+            error: 'Failed to generate outline due to unexpected AI response.',
+          });
+      }
+    } catch (error: any) {
+      console.error(
+        'Error calling OpenRouter API:',
+        error.response ? error.response.data : error.message,
+      );
+      // Pass the error to the global error handler
+      next(error);
     }
-  } catch (error: any) {
-    console.error('Error calling OpenRouter API:', error.response ? error.response.data : error.message);
-    // Pass the error to the global error handler
-    next(error);
-  }
-});
-
+  },
+);
 
 export default router;

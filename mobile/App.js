@@ -11,7 +11,9 @@ const DEFAULT_BACKGROUND_COLOR = '#FFFFFF'; // Example color
 
 function AppContent({ user }) {
   return (
-    <SafeAreaProvider> {/* Wrap NavigationContainer with SafeAreaProvider */}
+    <SafeAreaProvider>
+      {' '}
+      {/* Wrap NavigationContainer with SafeAreaProvider */}
       <NavigationContainer>
         {/* Use a default status bar style or make it configurable elsewhere */}
         <StatusBar

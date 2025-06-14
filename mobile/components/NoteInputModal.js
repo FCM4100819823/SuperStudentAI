@@ -1,9 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { STATIC_COLORS } from '../config/appConfig'; // Adjust path as necessary
 
-const NoteInputModal = ({ isVisible, onClose, onSave, projectTitle, initialNote }) => {
+const NoteInputModal = ({
+  isVisible,
+  onClose,
+  onSave,
+  projectTitle,
+  initialNote,
+}) => {
   const [noteText, setNoteText] = useState('');
   const colors = STATIC_COLORS;
 
@@ -92,17 +107,26 @@ const NoteInputModal = ({ isVisible, onClose, onSave, projectTitle, initialNote 
       animationType="slide"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.modalOverlay}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle} numberOfLines={1} ellipsizeMode="tail">
-              {initialNote ? 'Edit Note' : 'Add Note'} to {projectTitle || 'Project'}
+            <Text
+              style={styles.modalTitle}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {initialNote ? 'Edit Note' : 'Add Note'} to{' '}
+              {projectTitle || 'Project'}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close-circle-outline" size={28} color={colors.textLight} />
+              <Ionicons
+                name="close-circle-outline"
+                size={28}
+                color={colors.textLight}
+              />
             </TouchableOpacity>
           </View>
           <TextInput
@@ -116,7 +140,9 @@ const NoteInputModal = ({ isVisible, onClose, onSave, projectTitle, initialNote 
           />
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Ionicons name="save-outline" size={22} color={colors.white} />
-            <Text style={styles.saveButtonText}>{initialNote ? 'Update Note' : 'Save Note'}</Text>
+            <Text style={styles.saveButtonText}>
+              {initialNote ? 'Update Note' : 'Save Note'}
+            </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

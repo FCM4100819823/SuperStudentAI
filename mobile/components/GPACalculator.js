@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from 'react-native';
 import { Picker } from '@react-native-picker/picker'; // Import Picker from the new package
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -29,8 +39,17 @@ const TYPOGRAPHY = {
   h3: { fontSize: 18, fontWeight: '600', color: STATIC_COLORS.text },
   body: { fontSize: 16, color: STATIC_COLORS.textSecondary },
   caption: { fontSize: 12, color: STATIC_COLORS.textMuted },
-  button: { fontSize: 16, fontWeight: 'bold', color: STATIC_COLORS.textOnPrimary },
-  label: { fontSize: 14, fontWeight: '500', color: STATIC_COLORS.text, marginBottom: 8 },
+  button: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: STATIC_COLORS.textOnPrimary,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: STATIC_COLORS.text,
+    marginBottom: 8,
+  },
 };
 
 const SPACING = {
@@ -86,7 +105,9 @@ const GRADING_SCALES = {
 };
 
 const GPACalculator = () => {
-  const [courses, setCourses] = useState([{ id: Date.now().toString(), name: '', credits: '', marks: '' }]);
+  const [courses, setCourses] = useState([
+    { id: Date.now().toString(), name: '', credits: '', marks: '' },
+  ]);
   const [gpa, setGpa] = useState(null);
   const [cwa, setCwa] = useState(null);
   const [selectedScaleKey, setSelectedScaleKey] = useState('ghanaTertiary'); // Set Ghana Tertiary as default
@@ -95,30 +116,39 @@ const GPACalculator = () => {
 
   const currentGradePoints = GRADING_SCALES[selectedScaleKey].grades;
 
-  const getGpaForRawScore = (score) => { // Renamed for clarity, can be used for marks or CWA
+  const getGpaForRawScore = (score) => {
+    // Renamed for clarity, can be used for marks or CWA
     const numericScore = parseFloat(score);
-    if (isNaN(numericScore) || numericScore < 0 || numericScore > 100) return null;
+    if (isNaN(numericScore) || numericScore < 0 || numericScore > 100)
+      return null;
     for (const scale of currentGradePoints) {
       if (numericScore >= scale.min && numericScore <= scale.max) {
         return scale.gpa;
       }
     }
-    return null; 
+    return null;
   };
 
   const handleCourseChange = (id, field, value) => {
-    setCourses(courses.map(course => course.id === id ? { ...course, [field]: value } : course));
+    setCourses(
+      courses.map((course) =>
+        course.id === id ? { ...course, [field]: value } : course,
+      ),
+    );
     setGpa(null);
     setCwa(null);
   };
 
   const addCourse = () => {
-    setCourses([...courses, { id: Date.now().toString(), name: '', credits: '', marks: '' }]);
+    setCourses([
+      ...courses,
+      { id: Date.now().toString(), name: '', credits: '', marks: '' },
+    ]);
   };
 
   const removeCourse = (id) => {
-    setCourses(courses.filter(course => course.id !== id));
-    setGpa(null); 
+    setCourses(courses.filter((course) => course.id !== id));
+    setGpa(null);
     setCwa(null);
   };
 
@@ -134,17 +164,23 @@ const GPACalculator = () => {
       return;
     }
 
-    courses.forEach(course => {
+    courses.forEach((course) => {
       const credits = parseFloat(course.credits);
       const marks = parseFloat(course.marks);
-      
+
       if (isNaN(credits) || credits <= 0) {
-        Alert.alert('Invalid Input', `Please enter valid positive credits for ${course.name || 'a course'}.`);
+        Alert.alert(
+          'Invalid Input',
+          `Please enter valid positive credits for ${course.name || 'a course'}.`,
+        );
         validInput = false;
         return;
       }
       if (isNaN(marks) || marks < 0 || marks > 100) {
-        Alert.alert('Invalid Input', `Please enter valid marks (0-100) for ${course.name || 'a course'}.`);
+        Alert.alert(
+          'Invalid Input',
+          `Please enter valid marks (0-100) for ${course.name || 'a course'}.`,
+        );
         validInput = false;
         return;
       }
@@ -152,7 +188,10 @@ const GPACalculator = () => {
       // GPA Calculation
       const gpaValue = getGpaForRawScore(marks);
       if (gpaValue === null) {
-        Alert.alert('Grade Not Found', `Could not determine GPA for marks ${marks} in ${course.name || 'a course'} using the selected scale.`);
+        Alert.alert(
+          'Grade Not Found',
+          `Could not determine GPA for marks ${marks} in ${course.name || 'a course'} using the selected scale.`,
+        );
         validInput = false;
         return;
       }
@@ -185,12 +224,12 @@ const GPACalculator = () => {
 
   useEffect(() => {
     // Recalculate if scale changes and courses exist
-    if (courses.some(c => c.credits && c.marks)) {
-        calculateGpaAndCwa();
+    if (courses.some((c) => c.credits && c.marks)) {
+      calculateGpaAndCwa();
     }
     // Also, if knownCWA has a value, try to reconvert it if the scale changes
     if (knownCWA) {
-        convertCwaToGpa();
+      convertCwaToGpa();
     }
   }, [selectedScaleKey]); // Recalculate when scale changes
 
@@ -215,14 +254,17 @@ const GPACalculator = () => {
     if (gpaValue !== null) {
       setConvertedGpaFromCwa(gpaValue.toFixed(2));
     } else {
-      Alert.alert('Conversion Error', `Could not convert CWA ${numericCWA} to GPA using the selected scale. Check if the CWA is within the defined ranges.`);
+      Alert.alert(
+        'Conversion Error',
+        `Could not convert CWA ${numericCWA} to GPA using the selected scale. Check if the CWA is within the defined ranges.`,
+      );
       setConvertedGpaFromCwa(null);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContentContainer}>
@@ -237,37 +279,56 @@ const GPACalculator = () => {
               onValueChange={(itemValue) => setSelectedScaleKey(itemValue)}
               itemStyle={styles.pickerItem} // For iOS picker item styling
             >
-              {Object.keys(GRADING_SCALES).map(key => (
-                <Picker.Item key={key} label={GRADING_SCALES[key].name} value={key} />
+              {Object.keys(GRADING_SCALES).map((key) => (
+                <Picker.Item
+                  key={key}
+                  label={GRADING_SCALES[key].name}
+                  value={key}
+                />
               ))}
             </Picker>
           </View>
         </View>
-        
+
         {courses.map((course, index) => (
           <View key={course.id} style={styles.courseCard}>
             <View style={styles.courseHeader}>
-                <Text style={styles.courseTitle}>{`Course ${index + 1}`}</Text>
-                {courses.length > 1 && (
-                    <TouchableOpacity onPress={() => removeCourse(course.id)} style={styles.removeButton}>
-                        <Icon name="trash-outline" size={22} color={STATIC_COLORS.error} />
-                    </TouchableOpacity>
-                )}
+              <Text style={styles.courseTitle}>{`Course ${index + 1}`}</Text>
+              {courses.length > 1 && (
+                <TouchableOpacity
+                  onPress={() => removeCourse(course.id)}
+                  style={styles.removeButton}
+                >
+                  <Icon
+                    name="trash-outline"
+                    size={22}
+                    color={STATIC_COLORS.error}
+                  />
+                </TouchableOpacity>
+              )}
             </View>
             <TextInput
               style={styles.input}
               placeholder={`Course Name (e.g., Calculus I)`}
               placeholderTextColor={STATIC_COLORS.placeholder}
               value={course.name}
-              onChangeText={(text) => handleCourseChange(course.id, 'name', text)}
+              onChangeText={(text) =>
+                handleCourseChange(course.id, 'name', text)
+              }
             />
             <View style={styles.rowInputContainer}>
               <TextInput
-                style={[styles.input, styles.flexInput, { marginRight: SPACING.sm }]}
+                style={[
+                  styles.input,
+                  styles.flexInput,
+                  { marginRight: SPACING.sm },
+                ]}
                 placeholder="Credits"
                 placeholderTextColor={STATIC_COLORS.placeholder}
                 value={String(course.credits)}
-                onChangeText={(text) => handleCourseChange(course.id, 'credits', text)}
+                onChangeText={(text) =>
+                  handleCourseChange(course.id, 'credits', text)
+                }
                 keyboardType="numeric"
               />
               <TextInput
@@ -275,7 +336,9 @@ const GPACalculator = () => {
                 placeholder="Marks (0-100)"
                 placeholderTextColor={STATIC_COLORS.placeholder}
                 value={String(course.marks)}
-                onChangeText={(text) => handleCourseChange(course.id, 'marks', text)}
+                onChangeText={(text) =>
+                  handleCourseChange(course.id, 'marks', text)
+                }
                 keyboardType="numeric"
               />
             </View>
@@ -283,22 +346,38 @@ const GPACalculator = () => {
         ))}
 
         <TouchableOpacity style={styles.addButton} onPress={addCourse}>
-          <Icon name="add-circle-outline" size={24} color={STATIC_COLORS.textOnPrimary} />
+          <Icon
+            name="add-circle-outline"
+            size={24}
+            color={STATIC_COLORS.textOnPrimary}
+          />
           <Text style={styles.addButtonText}>Add Course</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.calculateButton} onPress={calculateGpaAndCwa}>
+        <TouchableOpacity
+          style={styles.calculateButton}
+          onPress={calculateGpaAndCwa}
+        >
           <Text style={styles.calculateButtonText}>Calculate GPA & CWA</Text>
         </TouchableOpacity>
 
         {(gpa !== null || cwa !== null) && (
           <View style={styles.resultsContainer}>
             <Text style={styles.resultsTitle}>Results:</Text>
-            {gpa !== null && <Text style={styles.resultText}>{`GPA: ${gpa}`}</Text>}
-            {cwa !== null && <Text style={styles.resultText}>{`CWA: ${cwa}%`}</Text>}
-            {(gpa === null && cwa === null && courses.length > 0 && courses.some(c => c.credits && c.marks)) &&
-                <Text style={styles.resultText}>Please ensure all fields are correctly filled.</Text>
-            }
+            {gpa !== null && (
+              <Text style={styles.resultText}>{`GPA: ${gpa}`}</Text>
+            )}
+            {cwa !== null && (
+              <Text style={styles.resultText}>{`CWA: ${cwa}%`}</Text>
+            )}
+            {gpa === null &&
+              cwa === null &&
+              courses.length > 0 &&
+              courses.some((c) => c.credits && c.marks) && (
+                <Text style={styles.resultText}>
+                  Please ensure all fields are correctly filled.
+                </Text>
+              )}
           </View>
         )}
 
@@ -314,12 +393,17 @@ const GPACalculator = () => {
             onChangeText={handleKnownCwaChange}
             keyboardType="numeric"
           />
-          <TouchableOpacity style={styles.convertButton} onPress={convertCwaToGpa}>
+          <TouchableOpacity
+            style={styles.convertButton}
+            onPress={convertCwaToGpa}
+          >
             <Text style={styles.convertButtonText}>Convert to GPA</Text>
           </TouchableOpacity>
           {convertedGpaFromCwa !== null && (
             <View style={styles.conversionResultContainer}>
-              <Text style={styles.resultText}>{`Equivalent GPA: ${convertedGpaFromCwa}`}</Text>
+              <Text
+                style={styles.resultText}
+              >{`Equivalent GPA: ${convertedGpaFromCwa}`}</Text>
             </View>
           )}
         </View>
@@ -513,7 +597,7 @@ const styles = StyleSheet.create({
     backgroundColor: STATIC_COLORS.background, // Light background for the result
     borderRadius: 4,
     alignItems: 'center',
-  }
+  },
 });
 
 export default GPACalculator;

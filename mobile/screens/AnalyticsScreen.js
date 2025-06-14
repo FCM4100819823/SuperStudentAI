@@ -6,7 +6,9 @@ const AnalyticsScreen = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Text style={styles.title}>Analytics Screen</Text>
-        <Text style={styles.subtitle}>Insights and data visualizations will be displayed here.</Text>
+        <Text style={styles.subtitle}>
+          Insights and data visualizations will be displayed here.
+        </Text>
         {/* TODO: Implement charts and data display */}
       </View>
     </SafeAreaView>

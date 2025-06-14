@@ -99,7 +99,7 @@ const SpacedRepetitionScreen = ({ navigation }) => {
       fetchDueItems();
       // Optional: return a cleanup function if needed
       // return () => { /* cleanup logic */ };
-    }, [fetchDueItems]) // fetchDueItems is already memoized with useCallback
+    }, [fetchDueItems]), // fetchDueItems is already memoized with useCallback
   );
 
   const handleReviewAction = async (itemId, quality) => {

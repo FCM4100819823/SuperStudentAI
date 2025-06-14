@@ -49,18 +49,32 @@ const JournalEntryModal = ({ visible, onClose, prompt }) => {
       return;
     }
     if (!auth.currentUser) {
-      Alert.alert('Authentication Error', 'You must be logged in to save an entry.');
+      Alert.alert(
+        'Authentication Error',
+        'You must be logged in to save an entry.',
+      );
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await addDoc(collection(firestoreDb, 'users', auth.currentUser.uid, 'journalEntries'), {
-        prompt: prompt,
-        text: entryText.trim(),
-        timestamp: serverTimestamp(),
-      });
-      Alert.alert('Entry Saved', 'Your journal entry has been saved successfully.');
+      await addDoc(
+        collection(
+          firestoreDb,
+          'users',
+          auth.currentUser.uid,
+          'journalEntries',
+        ),
+        {
+          prompt: prompt,
+          text: entryText.trim(),
+          timestamp: serverTimestamp(),
+        },
+      );
+      Alert.alert(
+        'Entry Saved',
+        'Your journal entry has been saved successfully.',
+      );
       setEntryText('');
       onClose();
     } catch (error) {
@@ -84,11 +98,18 @@ const JournalEntryModal = ({ visible, onClose, prompt }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <ScrollView contentContainerStyle={{flexGrow: 1}} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              contentContainerStyle={{ flexGrow: 1 }}
+              keyboardShouldPersistTaps="handled"
+            >
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Journal Entry</Text>
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                  <Ionicons name="close-circle-outline" size={30} color={STATIC_COLORS.textMuted} />
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={30}
+                    color={STATIC_COLORS.textMuted}
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -110,7 +131,10 @@ const JournalEntryModal = ({ visible, onClose, prompt }) => {
               />
 
               <TouchableOpacity
-                style={[styles.saveButton, isSubmitting && styles.disabledButton]}
+                style={[
+                  styles.saveButton,
+                  isSubmitting && styles.disabledButton,
+                ]}
                 onPress={handleSaveEntry}
                 disabled={isSubmitting}
               >
@@ -185,7 +209,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   textInput: {
-    flexGrow:1, // Make text input take available space
+    flexGrow: 1, // Make text input take available space
     minHeight: 150, // Ensure a decent minimum height
     maxHeight: 300, // Prevent it from becoming too large
     backgroundColor: STATIC_COLORS.background,

@@ -43,15 +43,18 @@ const FileUploadScreen = ({ navigation, route }) => {
         const selectedAsset = res.assets[0];
         // console.log("Selected asset:", selectedAsset); // For debugging
         if (selectedAsset.uri && selectedAsset.name) {
-            setFile({
-                uri: selectedAsset.uri,
-                name: selectedAsset.name,
-                mimeType: selectedAsset.mimeType,
-                size: selectedAsset.size,
-            });
+          setFile({
+            uri: selectedAsset.uri,
+            name: selectedAsset.name,
+            mimeType: selectedAsset.mimeType,
+            size: selectedAsset.size,
+          });
         } else {
-            setError('Failed to get file details from selection.');
-            Alert.alert('Error', 'Could not retrieve file details. Please try again.');
+          setError('Failed to get file details from selection.');
+          Alert.alert(
+            'Error',
+            'Could not retrieve file details. Please try again.',
+          );
         }
       } else if (res.canceled) {
         // console.log('File picking was cancelled by the user.');
@@ -60,16 +63,22 @@ const FileUploadScreen = ({ navigation, route }) => {
         setError('No file was selected or an unknown error occurred.');
       }
     } catch (e) {
-      console.error("Error picking file:", e);
+      console.error('Error picking file:', e);
       setError('Failed to pick file. An unexpected error occurred.');
-      Alert.alert('Error', 'An unexpected error occurred while trying to select the file.');
+      Alert.alert(
+        'Error',
+        'An unexpected error occurred while trying to select the file.',
+      );
     }
   };
 
   const handleUpload = async () => {
     if (!file) return;
     if (!user) {
-      Alert.alert("Authentication Error", "You must be logged in to upload files.");
+      Alert.alert(
+        'Authentication Error',
+        'You must be logged in to upload files.',
+      );
       setUploading(false);
       return;
     }
@@ -94,14 +103,16 @@ const FileUploadScreen = ({ navigation, route }) => {
         name: file.name, // Ensure file.name is used
         type: file.mimeType || 'application/octet-stream',
       });
-      if (user && user.uid) { // Check if user and user.uid exist
+      if (user && user.uid) {
+        // Check if user and user.uid exist
         formData.append('userId', user.uid);
       } else {
         setError('User not authenticated.');
         setUploading(false);
         return;
       }
-      if (studyPlanId) { // If studyPlanId is available, append it
+      if (studyPlanId) {
+        // If studyPlanId is available, append it
         formData.append('studyPlanId', studyPlanId);
       }
       const response = await fetch(`${backendUrl}/file/upload`, {
@@ -134,7 +145,8 @@ const FileUploadScreen = ({ navigation, route }) => {
         name: file.name, // Ensure file.name is used
         type: file.mimeType || 'application/pdf', // Default to PDF for syllabus, or use detected type
       });
-      if (user && user.uid) { // Check if user and user.uid exist
+      if (user && user.uid) {
+        // Check if user and user.uid exist
         formData.append('userId', user.uid);
       } else {
         setError('User not authenticated.');
@@ -153,13 +165,15 @@ const FileUploadScreen = ({ navigation, route }) => {
         throw new Error(data.message || 'Syllabus upload failed');
       setResult(data);
       // Navigate to the specified nextPage (SyllabusAnalysisResult) on successful syllabus OCR
-      if (nextPage && data.analysisId) { // Use a generic analysisId from backend
+      if (nextPage && data.analysisId) {
+        // Use a generic analysisId from backend
         navigation.navigate(nextPage, {
           analysisId: data.analysisId,
           fileName: file.name, // Pass file name for display
         });
-      } else if (data.message) { // Handle cases where analysisId might not be present but a message is
-        Alert.alert("Syllabus Processing", data.message);
+      } else if (data.message) {
+        // Handle cases where analysisId might not be present but a message is
+        Alert.alert('Syllabus Processing', data.message);
       }
     } catch (e) {
       setError(e.message || 'Syllabus upload failed');
@@ -169,7 +183,10 @@ const FileUploadScreen = ({ navigation, route }) => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainerScroll}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainerScroll}
+    >
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -184,17 +201,25 @@ const FileUploadScreen = ({ navigation, route }) => {
 
       <View style={styles.contentContainer}>
         <Image
-          source={uploadType === 'syllabus' ? require('../assets/adaptive-icon.png') : require('../assets/superstudentlogo.png')} // Different icon for syllabus
+          source={
+            uploadType === 'syllabus'
+              ? require('../assets/adaptive-icon.png')
+              : require('../assets/superstudentlogo.png')
+          } // Different icon for syllabus
           style={styles.logo}
         />
         <Text style={styles.title}>
-          {uploadType === 'syllabus' ? 'Syllabus Analyzer' : 'Share Your Study Materials'}
+          {uploadType === 'syllabus'
+            ? 'Syllabus Analyzer'
+            : 'Share Your Study Materials'}
         </Text>
         <Text style={styles.subtitle}>
-          {uploadType === 'syllabus' 
-            ? 'Upload your course syllabus (PDF, DOCX, JPG, PNG). We\'ll extract key dates and topics.'
+          {uploadType === 'syllabus'
+            ? "Upload your course syllabus (PDF, DOCX, JPG, PNG). We'll extract key dates and topics."
             : 'Upload documents, notes, or presentations.'}
-          {studyPlanId && uploadType !== 'syllabus' ? ' They will be linked to your study plan.' : ''}
+          {studyPlanId && uploadType !== 'syllabus'
+            ? ' They will be linked to your study plan.'
+            : ''}
         </Text>
 
         <TouchableOpacity
@@ -209,7 +234,11 @@ const FileUploadScreen = ({ navigation, route }) => {
             style={styles.uploadIcon}
           />
           <Text style={styles.uploadButtonText}>
-            {uploading ? 'Uploading...' : (uploadType === 'syllabus' ? 'Analyze Syllabus' : 'Upload File')}
+            {uploading
+              ? 'Uploading...'
+              : uploadType === 'syllabus'
+                ? 'Analyze Syllabus'
+                : 'Upload File'}
           </Text>
         </TouchableOpacity>
 
@@ -228,13 +257,21 @@ const FileUploadScreen = ({ navigation, route }) => {
             {file ? `Selected: ${file.name}` : 'Select a File'}
           </Text>
         </TouchableOpacity>
-        
-        {file && !uploading && ( // Show clear file button if a file is selected and not uploading
-          <TouchableOpacity onPress={() => setFile(null)} style={styles.clearFileButton}>
-            <Ionicons name="close-circle-outline" size={20} color={STATIC_COLORS.error} />
-            <Text style={styles.clearFileButtonText}>Clear Selection</Text>
-          </TouchableOpacity>
-        )}
+
+        {file &&
+          !uploading && ( // Show clear file button if a file is selected and not uploading
+            <TouchableOpacity
+              onPress={() => setFile(null)}
+              style={styles.clearFileButton}
+            >
+              <Ionicons
+                name="close-circle-outline"
+                size={20}
+                color={STATIC_COLORS.error}
+              />
+              <Text style={styles.clearFileButtonText}>Clear Selection</Text>
+            </TouchableOpacity>
+          )}
 
         {uploading && (
           <View style={styles.progressContainer}>
@@ -251,12 +288,18 @@ const FileUploadScreen = ({ navigation, route }) => {
 
         {result && !uploading && (
           <View style={styles.successContainer}>
-            <Ionicons name="checkmark-circle-outline" size={60} color={STATIC_COLORS.green} />
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={60}
+              color={STATIC_COLORS.green}
+            />
             <Text style={styles.successText}>
-              {uploadType === 'syllabus' && result.message ? result.message : 'File uploaded successfully!'}
+              {uploadType === 'syllabus' && result.message
+                ? result.message
+                : 'File uploaded successfully!'}
             </Text>
             {uploadType !== 'syllabus' && result.url && (
-                <TouchableOpacity
+              <TouchableOpacity
                 onPress={() => Alert.alert('File URL', result.url)}
               >
                 <Text style={styles.linkText}>View Uploaded File (URL)</Text>
@@ -272,7 +315,9 @@ const FileUploadScreen = ({ navigation, route }) => {
               }}
             >
               <Text style={styles.uploadAnotherButtonText}>
-                {uploadType === 'syllabus' ? 'Upload Another Syllabus' : 'Upload Another File'}
+                {uploadType === 'syllabus'
+                  ? 'Upload Another Syllabus'
+                  : 'Upload Another File'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -280,16 +325,23 @@ const FileUploadScreen = ({ navigation, route }) => {
 
         {error && !uploading && (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={60} color={STATIC_COLORS.error} />
+            <Ionicons
+              name="alert-circle-outline"
+              size={60}
+              color={STATIC_COLORS.error}
+            />
             <Text style={styles.errorText}>Upload Failed: {error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={pickFile}> 
+            <TouchableOpacity style={styles.retryButton} onPress={pickFile}>
               <Text style={styles.retryButtonText}>Select Different File</Text>
             </TouchableOpacity>
-            {file && // Offer to retry upload of the same file if one was selected
-                <TouchableOpacity style={[styles.retryButton, {marginTop: SPACING.sm}]} onPress={handleUpload}>
-                    <Text style={styles.retryButtonText}>Retry Upload</Text>
-                </TouchableOpacity>
-            }
+            {file && ( // Offer to retry upload of the same file if one was selected
+              <TouchableOpacity
+                style={[styles.retryButton, { marginTop: SPACING.sm }]}
+                onPress={handleUpload}
+              >
+                <Text style={styles.retryButtonText}>Retry Upload</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -320,13 +372,13 @@ const SPACING = {
   xl: 32,
 };
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: STATIC_COLORS.background, // Updated background
   },
-  contentContainerScroll: { // Added for ScrollView content
+  contentContainerScroll: {
+    // Added for ScrollView content
     flexGrow: 1,
     justifyContent: 'center',
   },
@@ -383,7 +435,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl, // More space before buttons
     paddingHorizontal: SPACING.sm,
   },
-  selectFileButton: { // Styles for the new select file button
+  selectFileButton: {
+    // Styles for the new select file button
     backgroundColor: STATIC_COLORS.surface,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.lg,
@@ -526,7 +579,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: SPACING.lg,
   },
-  retryButton: { // Style for retry/try again button
+  retryButton: {
+    // Style for retry/try again button
     backgroundColor: STATIC_COLORS.primary,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.lg,

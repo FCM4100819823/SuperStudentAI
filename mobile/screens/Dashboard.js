@@ -17,7 +17,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'; // Added import from react-native-safe-area-context
 import { signOut } from 'firebase/auth';
 import { auth, db as firestoreDb } from '../config/firebase'; // Corrected import path and alias db as firestoreDb
-import { doc, onSnapshot, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore'; // Added collection, query, where, orderBy, limit, getDocs
+import {
+  doc,
+  onSnapshot,
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
+} from 'firebase/firestore'; // Added collection, query, where, orderBy, limit, getDocs
 import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -28,16 +37,16 @@ const { width, height } = Dimensions.get('window');
 
 // Define studyTips outside the component to ensure it's stable
 const studyTips = [
-  "Break down large tasks into smaller, manageable ones.",
-  "Schedule regular study breaks to stay focused and avoid burnout.",
-  "Test yourself regularly on material to reinforce learning.",
+  'Break down large tasks into smaller, manageable ones.',
+  'Schedule regular study breaks to stay focused and avoid burnout.',
+  'Test yourself regularly on material to reinforce learning.',
   "Teach what you've learned to someone else to solidify your understanding.",
-  "Stay hydrated and get enough sleep; they are crucial for cognitive function.",
-  "Find a quiet study space free from distractions to maximize concentration.",
-  "Use active recall and spaced repetition techniques for better memory retention.",
-  "Set specific, measurable, achievable, relevant, and time-bound (SMART) goals.",
+  'Stay hydrated and get enough sleep; they are crucial for cognitive function.',
+  'Find a quiet study space free from distractions to maximize concentration.',
+  'Use active recall and spaced repetition techniques for better memory retention.',
+  'Set specific, measurable, achievable, relevant, and time-bound (SMART) goals.',
   "Don't be afraid to ask for help from teachers, tutors, or classmates.",
-  "Reward yourself for achieving study milestones to stay motivated."
+  'Reward yourself for achieving study milestones to stay motivated.',
 ];
 
 // Consistent color palette (primary: Deep Purple, secondary: Green)
@@ -70,9 +79,8 @@ const STATIC_COLORS = {
   // Updated Colors for "Your Day At a Glance" cards
   overviewTaskCard: ['#6D55F7', '#5438DC'], // Vibrant Blue/Purple
   overviewCalendarCard: ['#10B981', '#059669'], // Emerald Green
-  overviewTipCard: ['#F59E0B', '#D97706'],    // Amber/Orange
+  overviewTipCard: ['#F59E0B', '#D97706'], // Amber/Orange
 };
-
 
 const FONTS = {
   regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
@@ -81,8 +89,19 @@ const FONTS = {
   bold: Platform.OS === 'ios' ? 'System-Bold' : 'sans-serif-bold',
 };
 
-const QuickActionCard = ({ icon, title, subtitle, onPress, gradient, iconColor }) => (
-  <TouchableOpacity style={styles.quickActionCard} onPress={onPress} activeOpacity={0.9}>
+const QuickActionCard = ({
+  icon,
+  title,
+  subtitle,
+  onPress,
+  gradient,
+  iconColor,
+}) => (
+  <TouchableOpacity
+    style={styles.quickActionCard}
+    onPress={onPress}
+    activeOpacity={0.9}
+  >
     <LinearGradient colors={gradient} style={styles.quickActionGradient}>
       <View style={styles.quickActionContent}>
         <View style={[styles.quickActionIcon, { backgroundColor: iconColor }]}>
@@ -109,14 +128,14 @@ const ProgressCard = ({ title, value, total, percentage, color, icon }) => (
     </View>
     <View style={styles.progressBarContainer}>
       <View style={[styles.progressBar, { backgroundColor: `${color}20` }]}>
-        <View 
+        <View
           style={[
-            styles.progressBarFill, 
-            { 
+            styles.progressBarFill,
+            {
               width: `${Math.min(percentage, 100)}%`,
-              backgroundColor: color 
-            }
-          ]} 
+              backgroundColor: color,
+            },
+          ]}
         />
       </View>
       <Text style={styles.progressPercentage}>{percentage.toFixed(0)}%</Text>
@@ -124,7 +143,8 @@ const ProgressCard = ({ title, value, total, percentage, color, icon }) => (
   </View>
 );
 
-const Dashboard = ({ route }) => { // Removed navigation from props, will use useNavigation hook
+const Dashboard = ({ route }) => {
+  // Removed navigation from props, will use useNavigation hook
   const navigation = useNavigation(); // Added for FAB navigation
   const currentUser = auth.currentUser;
   const [profileData, setProfileData] = useState(null);
@@ -143,7 +163,6 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
   const [tipCardAnim] = useState(new Animated.ValueXY({ x: 0, y: 50 }));
   const [animationsDone, setAnimationsDone] = useState(false);
 
-
   const getRandomTip = useCallback(() => {
     const randomIndex = Math.floor(Math.random() * studyTips.length);
     setCurrentStudyTip(studyTips[randomIndex]);
@@ -151,7 +170,9 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
 
   const getApiUrl = useCallback(async () => {
     try {
-      return await AsyncStorage.getItem('apiUrl') || 'http://192.168.1.100:3000';
+      return (
+        (await AsyncStorage.getItem('apiUrl')) || 'http://192.168.1.100:3000'
+      );
     } catch (error) {
       console.error('Error getting API URL:', error);
       return 'http://192.168.1.100:3000';
@@ -174,7 +195,7 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
     try {
       const apiUrl = await getApiUrl();
       const token = await getAuthToken();
-      
+
       if (!token) {
         setError('Authentication required');
         return;
@@ -186,11 +207,14 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
       //     'Authorization': `Bearer ${token}`,
       //     'Content-Type': 'application/json',
       //   },
-      //   timeout: 30000, 
+      //   timeout: 30000,
       // });
       // setStudyStats(statsResponse.data);
-      setStudyStats({ completedTasks: 0, upcomingSessions: 0, overallProgress: 0 }); // Placeholder
-
+      setStudyStats({
+        completedTasks: 0,
+        upcomingSessions: 0,
+        overallProgress: 0,
+      }); // Placeholder
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       setError('Failed to load dashboard data. Please check your connection.');
@@ -199,7 +223,8 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
 
   const fetchUserProfile = useCallback(async () => {
     try {
-      if (!currentUser?.uid) { // Check uid directly
+      if (!currentUser?.uid) {
+        // Check uid directly
         setError('User not available. Cannot fetch profile.');
         setProfileData(null);
         setLoading(false);
@@ -251,17 +276,17 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
         collection(firestoreDb, 'moodEntries'),
         where('userId', '==', currentUser.uid), // Use currentUser.uid
         orderBy('timestamp', 'desc'),
-        limit(1)
+        limit(1),
       );
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
         const moodDoc = querySnapshot.docs[0].data();
         setCurrentMood({
           ...moodDoc,
-          timestamp: moodDoc.timestamp?.toDate(), 
+          timestamp: moodDoc.timestamp?.toDate(),
         });
       } else {
-        setCurrentMood(null); 
+        setCurrentMood(null);
       }
     } catch (err) {
       console.error('Error fetching current mood:', err);
@@ -278,12 +303,15 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
         collection(firestoreDb, 'tasks'),
         where('userId', '==', currentUser.uid), // Use currentUser.uid
         where('status', '!=', 'completed'),
-        orderBy('status'), 
+        orderBy('status'),
         orderBy('dueDate', 'asc'),
-        limit(3)
+        limit(3),
       );
       const querySnapshot = await getDocs(tasksQuery);
-      const tasks = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const tasks = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       setUpcomingTasks(tasks);
     } catch (err) {
       console.error('Error fetching upcoming tasks:', err);
@@ -306,11 +334,11 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
       getRandomTip();
 
       // fetchUserProfile will handle the case where currentUser or currentUser.uid is null/undefined
-      unsubscribeProfile = await fetchUserProfile(); 
-      
+      unsubscribeProfile = await fetchUserProfile();
+
       // Only fetch other data if currentUser is valid.
       // fetchUserProfile handles setting profileData and its own loading/refreshing states.
-      if (currentUser?.uid) { 
+      if (currentUser?.uid) {
         await Promise.all([
           fetchDashboardData(),
           fetchCurrentMood(),
@@ -318,9 +346,9 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
         ]);
       }
       // setLoading(false) is primarily handled by fetchUserProfile\\\'s onSnapshot callback.
-      // If the Promise.all above takes significant time, the UI might show "loaded" 
+      // If the Promise.all above takes significant time, the UI might show "loaded"
       // (from profile fetch) while these are still pending. This is a common pattern.
-      
+
       // Start animations after initial data load attempt (loading might still be true due to onSnapshot)
       // We will trigger animations more reliably when `loading` becomes false.
     };
@@ -334,7 +362,14 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
     };
     // REMOVED profileData from the dependency array to prevent the infinite loop.
     // The onSnapshot within fetchUserProfile handles reactivity for profileData changes.
-  }, [currentUser?.uid, fetchUserProfile, fetchDashboardData, fetchCurrentMood, fetchUpcomingTasks, getRandomTip]);
+  }, [
+    currentUser?.uid,
+    fetchUserProfile,
+    fetchDashboardData,
+    fetchCurrentMood,
+    fetchUpcomingTasks,
+    getRandomTip,
+  ]);
 
   // Effect to run animations when loading is complete
   useEffect(() => {
@@ -346,7 +381,8 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
             duration: 500,
             useNativeDriver: true,
           }),
-          Animated.timing(taskCardAnim.x, { // Using x for opacity
+          Animated.timing(taskCardAnim.x, {
+            // Using x for opacity
             toValue: 1,
             duration: 400,
             useNativeDriver: true,
@@ -382,30 +418,37 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
     }
   }, [loading, animationsDone, taskCardAnim, calendarCardAnim, tipCardAnim]);
 
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setError(''); 
-    getRandomTip(); 
+    setError('');
+    getRandomTip();
 
     // Re-fetch profile first
     const unsubscribe = await fetchUserProfile(); // fetchUserProfile will setRefreshing(false)
-    
-    if (currentUser?.uid) { 
+
+    if (currentUser?.uid) {
       await Promise.all([
         fetchDashboardData(),
         fetchCurrentMood(),
-        fetchUpcomingTasks()
+        fetchUpcomingTasks(),
       ]);
     }
     // Ensure unsubscribe is called if component unmounts during refresh, though less critical here.
     // setRefreshing(false) is handled by fetchUserProfile's onSnapshot
-    return () => { // Allow cleanup if onRefresh itself is part of a hook that cleans up
-        if (typeof unsubscribe === 'function') {
-            unsubscribe();
-        }
-    }
-  }, [currentUser?.uid, fetchUserProfile, fetchDashboardData, fetchCurrentMood, fetchUpcomingTasks, getRandomTip]);
+    return () => {
+      // Allow cleanup if onRefresh itself is part of a hook that cleans up
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, [
+    currentUser?.uid,
+    fetchUserProfile,
+    fetchDashboardData,
+    fetchCurrentMood,
+    fetchUpcomingTasks,
+    getRandomTip,
+  ]);
 
   const handleCreateStudyPlan = () => {
     navigation.navigate('CreateStudyPlan'); // Navigate to CreateStudyPlanScreen
@@ -424,25 +467,21 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
   };
 
   const handleSignOut = async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut(auth);
-              navigation.replace('Login');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
-            }
-          },
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await signOut(auth);
+            navigation.replace('Login');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to sign out. Please try again.');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const quickActions = [
@@ -478,7 +517,7 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
       gradient: [STATIC_COLORS.textSecondary, STATIC_COLORS.textMuted], // Neutral gradient
       iconColor: STATIC_COLORS.textSecondary,
     },
-     {
+    {
       icon: 'happy-outline',
       title: 'Wellbeing',
       subtitle: 'Mood & Focus',
@@ -496,7 +535,8 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
     },
   ];
 
-  if (loading && !refreshing) { // Show full screen loader only on initial load
+  if (loading && !refreshing) {
+    // Show full screen loader only on initial load
     return (
       <View style={styles.centeredLoader}>
         <ActivityIndicator size="large" color={STATIC_COLORS.primary} />
@@ -505,7 +545,8 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
     );
   }
 
-  if (error && !profileData) { // Show error if profile data failed to load and there's an error message
+  if (error && !profileData) {
+    // Show error if profile data failed to load and there's an error message
     return (
       <SafeAreaView style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
@@ -515,19 +556,23 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
       </SafeAreaView>
     );
   }
-  
+
   // Fallback if profileData is null but no specific error message (e.g. user not found but not an API error)
   if (!profileData) {
     return (
       <SafeAreaView style={styles.centeredLoader}>
-        <Text style={styles.errorText}>Could not load profile. Please try logging out and back in.</Text>
-        <TouchableOpacity onPress={handleSignOut} style={[styles.retryButton, {marginTop: 20}]}>
-            <Text style={styles.retryButtonText}>Sign Out</Text>
+        <Text style={styles.errorText}>
+          Could not load profile. Please try logging out and back in.
+        </Text>
+        <TouchableOpacity
+          onPress={handleSignOut}
+          style={[styles.retryButton, { marginTop: 20 }]}
+        >
+          <Text style={styles.retryButtonText}>Sign Out</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
-
 
   return (
     // <LinearGradient
@@ -535,12 +580,21 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
     //   style={styles.container}
     // >
     <View style={styles.container}>
-      <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'light-content'} backgroundColor={STATIC_COLORS.primaryDark} />
+      <StatusBar
+        barStyle={Platform.OS === 'ios' ? 'light-content' : 'light-content'}
+        backgroundColor={STATIC_COLORS.primaryDark}
+      />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
           style={styles.screen}
           contentContainerStyle={styles.scrollContentContainer}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[STATIC_COLORS.primary]} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[STATIC_COLORS.primary]}
+            />
+          }
         >
           <LinearGradient
             colors={STATIC_COLORS.gradientPrimary}
@@ -551,51 +605,94 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
             <View style={styles.headerTopRow}>
               <View>
                 <Text style={styles.greetingText}>{greeting},</Text>
-                <Text style={styles.userNameText}>{profileData?.name || 'User'}</Text>
+                <Text style={styles.userNameText}>
+                  {profileData?.name || 'User'}
+                </Text>
               </View>
-              <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.avatarContainer}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Profile')}
+                style={styles.avatarContainer}
+              >
                 {profileData?.profilePictureUrl ? (
-                  <Image source={{ uri: profileData.profilePictureUrl }} style={styles.avatar} />
+                  <Image
+                    source={{ uri: profileData.profilePictureUrl }}
+                    style={styles.avatar}
+                  />
                 ) : (
-                  <Ionicons name="person-circle-outline" size={40} color={STATIC_COLORS.textOnPrimary} />
+                  <Ionicons
+                    name="person-circle-outline"
+                    size={40}
+                    color={STATIC_COLORS.textOnPrimary}
+                  />
                 )}
               </TouchableOpacity>
             </View>
-            
+
             {/* Mood Overview Section */}
             <View style={styles.moodOverviewContainer}>
               {currentMood ? (
                 <View style={styles.moodContent}>
-                  <Ionicons 
-                    name={currentMood.icon || 'happy-outline'} 
-                    size={28} 
-                    color={currentMood.color || STATIC_COLORS.textOnPrimary} 
+                  <Ionicons
+                    name={currentMood.icon || 'happy-outline'}
+                    size={28}
+                    color={currentMood.color || STATIC_COLORS.textOnPrimary}
                     style={styles.moodIcon}
                   />
                   <View style={styles.moodTextContainer}>
-                    <Text style={styles.moodText}>Current Mood: <Text style={{fontWeight: 'bold', color: currentMood.color || STATIC_COLORS.textOnPrimary }}>{currentMood.mood}</Text></Text>
+                    <Text style={styles.moodText}>
+                      Current Mood:{' '}
+                      <Text
+                        style={{
+                          fontWeight: 'bold',
+                          color:
+                            currentMood.color || STATIC_COLORS.textOnPrimary,
+                        }}
+                      >
+                        {currentMood.mood}
+                      </Text>
+                    </Text>
                     <Text style={styles.moodTimestampText}>
-                      Logged: {currentMood.timestamp?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {currentMood.timestamp?.toLocaleDateString()}
+                      Logged:{' '}
+                      {currentMood.timestamp?.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}{' '}
+                      - {currentMood.timestamp?.toLocaleDateString()}
                     </Text>
                   </View>
                 </View>
               ) : (
                 <View style={styles.moodContent}>
-                  <Ionicons name="sparkles-outline" size={28} color={STATIC_COLORS.textOnPrimary} style={styles.moodIcon}/>
+                  <Ionicons
+                    name="sparkles-outline"
+                    size={28}
+                    color={STATIC_COLORS.textOnPrimary}
+                    style={styles.moodIcon}
+                  />
                   <View style={styles.moodTextContainer}>
-                    <Text style={styles.moodText}>No mood logged recently.</Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('Wellbeing')}>
-                        <Text style={styles.logMoodPromptText}>Log your mood now?</Text>
+                    <Text style={styles.moodText}>
+                      No mood logged recently.
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate('Wellbeing')}
+                    >
+                      <Text style={styles.logMoodPromptText}>
+                        Log your mood now?
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               )}
             </View>
           </LinearGradient>
-          
+
           {error && (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle-outline" size={24} color={STATIC_COLORS.danger} />
+              <Ionicons
+                name="alert-circle-outline"
+                size={24}
+                color={STATIC_COLORS.danger}
+              />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
@@ -603,7 +700,11 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
           {/* Quick Actions Section */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActionsScroll}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.quickActionsScroll}
+            >
               {quickActions.map((action, index) => (
                 <QuickActionCard
                   key={index}
@@ -617,68 +718,125 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
               ))}
             </ScrollView>
           </View>
-          
+
           {/* Study Stats Section - Placeholder for now */}
           {studyStats && (
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>Study Progress</Text>
               <View style={styles.statsGrid}>
-                <ProgressCard 
-                  title="Completed Tasks" 
-                  value={studyStats.completedTasks || 0} 
-                  total={studyStats.totalTasks || 0} 
-                  percentage={studyStats.totalTasks ? (studyStats.completedTasks / studyStats.totalTasks) * 100 : 0}
+                <ProgressCard
+                  title="Completed Tasks"
+                  value={studyStats.completedTasks || 0}
+                  total={studyStats.totalTasks || 0}
+                  percentage={
+                    studyStats.totalTasks
+                      ? (studyStats.completedTasks / studyStats.totalTasks) *
+                        100
+                      : 0
+                  }
                   color={STATIC_COLORS.secondary}
                   icon="checkmark-done-circle-outline"
                 />
-                <ProgressCard 
-                  title="Upcoming Sessions" 
-                  value={studyStats.upcomingSessions || 0} 
+                <ProgressCard
+                  title="Upcoming Sessions"
+                  value={studyStats.upcomingSessions || 0}
                   total={studyStats.totalSessions || 0} // Assuming you might have total sessions
-                  percentage={studyStats.totalSessions ? (studyStats.upcomingSessions / studyStats.totalSessions) * 100 : 0}
+                  percentage={
+                    studyStats.totalSessions
+                      ? (studyStats.upcomingSessions /
+                          studyStats.totalSessions) *
+                        100
+                      : 0
+                  }
                   color={STATIC_COLORS.accent}
                   icon="calendar-outline"
                 />
               </View>
-               <View style={styles.overallProgressContainer}>
-                 <Text style={styles.overallProgressLabel}>Overall Plan Progress</Text>
+              <View style={styles.overallProgressContainer}>
+                <Text style={styles.overallProgressLabel}>
+                  Overall Plan Progress
+                </Text>
                 <View style={styles.overallProgressBar}>
-                    <LinearGradient
-                        colors={STATIC_COLORS.gradientPrimary}
-                        style={[styles.overallProgressBarFill, { width: `${Math.min(studyStats.overallProgress || 0, 100)}%` }]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                    />
+                  <LinearGradient
+                    colors={STATIC_COLORS.gradientPrimary}
+                    style={[
+                      styles.overallProgressBarFill,
+                      {
+                        width: `${Math.min(studyStats.overallProgress || 0, 100)}%`,
+                      },
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  />
                 </View>
-                <Text style={styles.overallProgressPercentage}>{(studyStats.overallProgress || 0).toFixed(0)}%</Text>
-               </View>
+                <Text style={styles.overallProgressPercentage}>
+                  {(studyStats.overallProgress || 0).toFixed(0)}%
+                </Text>
+              </View>
             </View>
           )}
-          
+
           {/* Placeholder for "Overview of Everything" */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Your Day At a Glance</Text>
-            
+
             {/* Upcoming Tasks Card */}
-            <Animated.View style={{ opacity: taskCardAnim.x, transform: [{ translateY: taskCardAnim.y }] }}>
-              <LinearGradient colors={STATIC_COLORS.overviewTaskCard} style={[styles.overviewCard, styles.overviewCardShadow]}>
+            <Animated.View
+              style={{
+                opacity: taskCardAnim.x,
+                transform: [{ translateY: taskCardAnim.y }],
+              }}
+            >
+              <LinearGradient
+                colors={STATIC_COLORS.overviewTaskCard}
+                style={[styles.overviewCard, styles.overviewCardShadow]}
+              >
                 <View style={styles.overviewCardHeader}>
-                  <Ionicons name="list-circle-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
+                  <Ionicons
+                    name="list-circle-outline"
+                    size={28}
+                    color={STATIC_COLORS.textOnPrimary}
+                  />
                   <Text style={styles.overviewCardTitle}>Upcoming Tasks</Text>
                 </View>
                 {upcomingTasks.length > 0 ? (
-                  upcomingTasks.map(task => (
-                    <TouchableOpacity 
-                      key={task.id} 
+                  upcomingTasks.map((task) => (
+                    <TouchableOpacity
+                      key={task.id}
                       style={styles.overviewItem}
-                      onPress={() => navigation.navigate('TaskManager', { screen: 'AddTask', params: { task: task }})} // Navigate to task details or edit
+                      onPress={() =>
+                        navigation.navigate('TaskManager', {
+                          screen: 'AddTask',
+                          params: { task: task },
+                        })
+                      } // Navigate to task details or edit
                     >
-                      <Ionicons name="chevron-forward-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
+                      <Ionicons
+                        name="chevron-forward-circle-outline"
+                        size={20}
+                        color={STATIC_COLORS.textOnPrimary}
+                        style={styles.overviewItemIcon}
+                      />
                       <View style={styles.overviewItemTextContainer}>
-                        <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>{task.title}</Text>
+                        <Text
+                          style={[
+                            styles.overviewItemTextPrimary,
+                            styles.textOnOverviewCard,
+                          ]}
+                        >
+                          {task.title}
+                        </Text>
                         {task.dueDate && (
-                          <Text style={[styles.overviewItemTextSecondary, styles.textOnOverviewCardMuted]}>
-                            Due: {new Date(task.dueDate.seconds * 1000).toLocaleDateString()}
+                          <Text
+                            style={[
+                              styles.overviewItemTextSecondary,
+                              styles.textOnOverviewCardMuted,
+                            ]}
+                          >
+                            Due:{' '}
+                            {new Date(
+                              task.dueDate.seconds * 1000,
+                            ).toLocaleDateString()}
                           </Text>
                         )}
                       </View>
@@ -686,28 +844,69 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
                   ))
                 ) : (
                   <View style={styles.overviewItem}>
-                    <Ionicons name="checkmark-done-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
-                    <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>No pressing tasks. Well done!</Text>
+                    <Ionicons
+                      name="checkmark-done-circle-outline"
+                      size={20}
+                      color={STATIC_COLORS.textOnPrimary}
+                      style={styles.overviewItemIcon}
+                    />
+                    <Text
+                      style={[
+                        styles.overviewItemTextPrimary,
+                        styles.textOnOverviewCard,
+                      ]}
+                    >
+                      No pressing tasks. Well done!
+                    </Text>
                   </View>
                 )}
-                <TouchableOpacity onPress={() => navigation.navigate('Study', { screen: 'TaskManager' })} style={[styles.viewAllButton, styles.viewAllButtonTasks]}>
-                 <Text style={styles.viewAllButtonText}>View All Tasks</Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('Study', { screen: 'TaskManager' })
+                  }
+                  style={[styles.viewAllButton, styles.viewAllButtonTasks]}
+                >
+                  <Text style={styles.viewAllButtonText}>View All Tasks</Text>
                 </TouchableOpacity>
               </LinearGradient>
             </Animated.View>
 
             {/* Calendar Events Placeholder Card */}
-            <Animated.View style={{ opacity: calendarCardAnim.x, transform: [{ translateY: calendarCardAnim.y }] }}>
-              <LinearGradient colors={STATIC_COLORS.overviewCalendarCard} style={[styles.overviewCard, styles.overviewCardShadow]}>
+            <Animated.View
+              style={{
+                opacity: calendarCardAnim.x,
+                transform: [{ translateY: calendarCardAnim.y }],
+              }}
+            >
+              <LinearGradient
+                colors={STATIC_COLORS.overviewCalendarCard}
+                style={[styles.overviewCard, styles.overviewCardShadow]}
+              >
                 <View style={styles.overviewCardHeader}>
-                  <Ionicons name="calendar-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
+                  <Ionicons
+                    name="calendar-outline"
+                    size={28}
+                    color={STATIC_COLORS.textOnPrimary}
+                  />
                   <Text style={styles.overviewCardTitle}>Calendar Events</Text>
                 </View>
                 <View style={styles.overviewItem}>
-                  <Ionicons name="information-circle-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
-                  <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>Device calendar integration coming soon!</Text>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={20}
+                    color={STATIC_COLORS.textOnPrimary}
+                    style={styles.overviewItemIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.overviewItemTextPrimary,
+                      styles.textOnOverviewCard,
+                    ]}
+                  >
+                    Device calendar integration coming soon!
+                  </Text>
                 </View>
-                 {/* <TouchableOpacity onPress={() => {}} style={[styles.viewAllButton, styles.viewAllButtonCalendar]}>
+                {/* <TouchableOpacity onPress={() => {}} style={[styles.viewAllButton, styles.viewAllButtonCalendar]}>
                    <Text style={styles.viewAllButtonText}>Open Calendar</Text>
                  </TouchableOpacity> */}
               </LinearGradient>
@@ -715,27 +914,55 @@ const Dashboard = ({ route }) => { // Removed navigation from props, will use us
 
             {/* Study Tip Card */}
             {currentStudyTip && (
-              <Animated.View style={{ opacity: tipCardAnim.x, transform: [{ translateY: tipCardAnim.y }] }}>
-                <LinearGradient colors={STATIC_COLORS.overviewTipCard} style={[styles.overviewCard, styles.overviewCardShadow]}>
+              <Animated.View
+                style={{
+                  opacity: tipCardAnim.x,
+                  transform: [{ translateY: tipCardAnim.y }],
+                }}
+              >
+                <LinearGradient
+                  colors={STATIC_COLORS.overviewTipCard}
+                  style={[styles.overviewCard, styles.overviewCardShadow]}
+                >
                   <View style={styles.overviewCardHeader}>
-                    <Ionicons name="bulb-outline" size={28} color={STATIC_COLORS.textOnPrimary} />
+                    <Ionicons
+                      name="bulb-outline"
+                      size={28}
+                      color={STATIC_COLORS.textOnPrimary}
+                    />
                     <Text style={styles.overviewCardTitle}>Study Tip</Text>
                   </View>
                   <View style={styles.overviewItem}>
-                      <Ionicons name="star-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={styles.overviewItemIcon} />
-                      <Text style={[styles.overviewItemTextPrimary, styles.textOnOverviewCard]}>{currentStudyTip}</Text>
+                    <Ionicons
+                      name="star-outline"
+                      size={20}
+                      color={STATIC_COLORS.textOnPrimary}
+                      style={styles.overviewItemIcon}
+                    />
+                    <Text
+                      style={[
+                        styles.overviewItemTextPrimary,
+                        styles.textOnOverviewCard,
+                      ]}
+                    >
+                      {currentStudyTip}
+                    </Text>
                   </View>
-                  <TouchableOpacity onPress={getRandomTip} style={[styles.viewAllButton, styles.viewAllButtonTip]}>
-                      <Text style={styles.viewAllButtonText}>Get Another Tip</Text>
+                  <TouchableOpacity
+                    onPress={getRandomTip}
+                    style={[styles.viewAllButton, styles.viewAllButtonTip]}
+                  >
+                    <Text style={styles.viewAllButtonText}>
+                      Get Another Tip
+                    </Text>
                   </TouchableOpacity>
                 </LinearGradient>
               </Animated.View>
             )}
           </View>
-
         </ScrollView>
       </SafeAreaView>
-    {/* </LinearGradient> */}
+      {/* </LinearGradient> */}
     </View>
   );
 };
@@ -748,7 +975,8 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  screenContainer: { // New style to wrap ScrollView and FAB
+  screenContainer: {
+    // New style to wrap ScrollView and FAB
     flex: 1,
     backgroundColor: STATIC_COLORS.background,
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0, // Add padding for Android status bar when using SafeAreaView like this
@@ -1020,7 +1248,8 @@ const styles = StyleSheet.create({
     // shadowOpacity: 0.3,
     // shadowRadius: 4,
   },
-  overviewCardShadow: { // New style for consistent shadow
+  overviewCardShadow: {
+    // New style for consistent shadow
     shadowColor: STATIC_COLORS.shadow,
     shadowOffset: { width: 0, height: 4 }, // Slightly increased offset for depth
     shadowOpacity: 0.2, // Adjusted opacity
@@ -1073,10 +1302,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.regular,
     color: 'rgba(255, 255, 255, 0.7)', // Lighter secondary text for dark cards
   },
-  textOnOverviewCard: { // Specific style for primary text on these cards
+  textOnOverviewCard: {
+    // Specific style for primary text on these cards
     color: STATIC_COLORS.textOnPrimary,
   },
-  textOnOverviewCardMuted: { // Specific style for muted text on these cards
+  textOnOverviewCardMuted: {
+    // Specific style for muted text on these cards
     color: 'rgba(255, 255, 255, 0.7)',
   },
   viewAllButton: {
@@ -1091,13 +1322,16 @@ const styles = StyleSheet.create({
     borderWidth: 1, // Added border for definition
     borderColor: 'rgba(255, 255, 255, 0.5)', // Light border
   },
-  viewAllButtonTasks: { // Specific style for tasks button
+  viewAllButtonTasks: {
+    // Specific style for tasks button
     backgroundColor: 'rgba(255, 255, 255, 0.1)', // Slightly transparent white
   },
-  viewAllButtonCalendar: { // Specific style for calendar button
+  viewAllButtonCalendar: {
+    // Specific style for calendar button
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  viewAllButtonTip: { // Specific style for tip button
+  viewAllButtonTip: {
+    // Specific style for tip button
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   viewAllButtonText: {

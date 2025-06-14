@@ -33,12 +33,12 @@ const DESIGN_TOKENS = {
     secondary: '#10B981',
     secondaryDark: '#059669',
     accent: '#F59E0B',
-    
+
     // Neutral palette
     background: '#FAFBFC',
     surface: '#FFFFFF',
     surfaceElevated: '#F8FAFC',
-    
+
     // Text colors
     text: {
       primary: '#0F172A',
@@ -46,13 +46,13 @@ const DESIGN_TOKENS = {
       tertiary: '#94A3B8',
       inverse: '#FFFFFF',
     },
-    
+
     // Status colors
     success: '#10B981',
     warning: '#F59E0B',
     error: '#EF4444',
     info: '#3B82F6',
-    
+
     // Study-specific colors
     study: {
       active: '#10B981',
@@ -60,7 +60,7 @@ const DESIGN_TOKENS = {
       completed: '#6366F1',
       overdue: '#EF4444',
     },
-    
+
     // Gradients
     gradients: {
       primary: ['#667EEA', '#764BA2'],
@@ -69,11 +69,11 @@ const DESIGN_TOKENS = {
       warm: ['#F093FB', '#F5576C'],
       cool: ['#4FACFE', '#00F2FE'],
     },
-    
+
     // Borders and dividers
     border: '#E2E8F0',
     divider: '#F1F5F9',
-    
+
     // Shadows
     shadow: {
       light: 'rgba(15, 23, 42, 0.04)',
@@ -81,7 +81,7 @@ const DESIGN_TOKENS = {
       strong: 'rgba(15, 23, 42, 0.16)',
     },
   },
-  
+
   typography: {
     sizes: {
       xs: 12,
@@ -100,7 +100,7 @@ const DESIGN_TOKENS = {
       bold: Platform.OS === 'ios' ? 'System-Bold' : 'Roboto-Bold',
     },
   },
-  
+
   spacing: {
     xs: 4,
     sm: 8,
@@ -110,7 +110,7 @@ const DESIGN_TOKENS = {
     '2xl': 48,
     '3xl': 64,
   },
-  
+
   borderRadius: {
     sm: 8,
     md: 12,
@@ -118,7 +118,7 @@ const DESIGN_TOKENS = {
     xl: 24,
     full: 999,
   },
-  
+
   shadows: {
     sm: {
       shadowColor: '#000',
@@ -152,7 +152,7 @@ const StudyPlanListScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
-  
+
   // Animation values
   const fadeAnim = new Animated.Value(0);
   const slideAnim = new Animated.Value(50);
@@ -185,18 +185,30 @@ const StudyPlanListScreen = () => {
       const response = await axios.get(`${API_URL}/study-plans`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       // Use progress from backend
-      const plansWithStatus = response.data.map(plan => ({
+      const plansWithStatus = response.data.map((plan) => ({
         ...plan,
-        status: new Date(plan.endDate) < new Date() && plan.progress === 100 ? 'completed' : (new Date(plan.endDate) < new Date() ? 'overdue' : 'active'),
+        status:
+          new Date(plan.endDate) < new Date() && plan.progress === 100
+            ? 'completed'
+            : new Date(plan.endDate) < new Date()
+              ? 'overdue'
+              : 'active',
         // progress is already calculated by backend
         daysRemaining: differenceInDays(new Date(plan.endDate), new Date()),
       }));
       setStudyPlans(plansWithStatus);
     } catch (error) {
-      console.error('Error fetching study plans:', error.response?.data || error.message);
-      Alert.alert('Error', 'Failed to fetch study plans. ' + (error.response?.data?.message || error.message));
+      console.error(
+        'Error fetching study plans:',
+        error.response?.data || error.message,
+      );
+      Alert.alert(
+        'Error',
+        'Failed to fetch study plans. ' +
+          (error.response?.data?.message || error.message),
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -218,7 +230,10 @@ const StudyPlanListScreen = () => {
     try {
       const user = auth.currentUser;
       if (!user) {
-        Alert.alert('Authentication Error', 'No user logged in. Please log in again.');
+        Alert.alert(
+          'Authentication Error',
+          'No user logged in. Please log in again.',
+        );
         return;
       }
       const token = await user.getIdToken();
@@ -230,12 +245,19 @@ const StudyPlanListScreen = () => {
         Alert.alert('Success', 'Study plan deleted successfully.');
         fetchStudyPlans();
       } else {
-        const errorMessage = response.data?.message || 'Failed to delete study plan. Please try again.';
+        const errorMessage =
+          response.data?.message ||
+          'Failed to delete study plan. Please try again.';
         Alert.alert('Deletion Failed', errorMessage);
       }
     } catch (error) {
-      console.error('Error deleting study plan:', error.response?.data || error.message);
-      const errorMessage = error.response?.data?.message || 'An unexpected error occurred. Please try again.';
+      console.error(
+        'Error deleting study plan:',
+        error.response?.data || error.message,
+      );
+      const errorMessage =
+        error.response?.data?.message ||
+        'An unexpected error occurred. Please try again.';
       Alert.alert('Error', errorMessage);
     }
   };
@@ -246,13 +268,17 @@ const StudyPlanListScreen = () => {
       'Are you sure you want to delete this study plan? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', onPress: () => handleDeletePlan(planId), style: 'destructive' },
+        {
+          text: 'Delete',
+          onPress: () => handleDeletePlan(planId),
+          style: 'destructive',
+        },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   };
 
-  const filteredPlans = studyPlans.filter(plan => {
+  const filteredPlans = studyPlans.filter((plan) => {
     if (activeFilter === 'all') return true;
     if (activeFilter === 'active') return plan.status === 'active';
     if (activeFilter === 'completed') return plan.status === 'completed';
@@ -296,7 +322,9 @@ const StudyPlanListScreen = () => {
       ]}
     >
       <TouchableOpacity
-        onPress={() => navigation.navigate('StudyPlanDetail', { planId: item._id })} // Pass planId as _id
+        onPress={() =>
+          navigation.navigate('StudyPlanDetail', { planId: item._id })
+        } // Pass planId as _id
         activeOpacity={0.8}
         style={styles.cardTouchable}
       >
@@ -309,12 +337,21 @@ const StudyPlanListScreen = () => {
               <Text style={styles.planTitle} numberOfLines={2}>
                 {item.title}
               </Text>
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-                <Ionicons name={getStatusIcon(item.status)} size={12} color="#FFFFFF" />
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: getStatusColor(item.status) },
+                ]}
+              >
+                <Ionicons
+                  name={getStatusIcon(item.status)}
+                  size={12}
+                  color="#FFFFFF"
+                />
                 <Text style={styles.statusText}>{item.status}</Text>
               </View>
             </View>
-            
+
             {item.description && (
               <Text style={styles.planDescription} numberOfLines={2}>
                 {item.description}
@@ -326,32 +363,41 @@ const StudyPlanListScreen = () => {
             <View style={styles.progressSection}>
               <View style={styles.progressRow}>
                 <Text style={styles.progressLabel}>Progress</Text>
-                <Text style={styles.progressText}>{Math.round(item.progress)}%</Text>
+                <Text style={styles.progressText}>
+                  {Math.round(item.progress)}%
+                </Text>
               </View>
               <View style={styles.progressBar}>
-                <View 
+                <View
                   style={[
-                    styles.progressFill, 
-                    { 
+                    styles.progressFill,
+                    {
                       width: `${item.progress}%`,
-                      backgroundColor: getStatusColor(item.status)
-                    }
-                  ]} 
+                      backgroundColor: getStatusColor(item.status),
+                    },
+                  ]}
                 />
               </View>
             </View>
 
             <View style={styles.cardFooter}>
               <View style={styles.dateInfo}>
-                <Ionicons name="calendar-outline" size={14} color={DESIGN_TOKENS.colors.text.tertiary} />
+                <Ionicons
+                  name="calendar-outline"
+                  size={14}
+                  color={DESIGN_TOKENS.colors.text.tertiary}
+                />
                 <Text style={styles.dateText}>
-                  {format(parseISO(item.startDate), 'MMM dd')} - {format(parseISO(item.endDate), 'MMM dd')}
+                  {format(parseISO(item.startDate), 'MMM dd')} -{' '}
+                  {format(parseISO(item.endDate), 'MMM dd')}
                 </Text>
               </View>
-              
+
               {item.daysRemaining > 0 && (
                 <View style={styles.daysRemaining}>
-                  <Text style={styles.daysText}>{item.daysRemaining} days left</Text>
+                  <Text style={styles.daysText}>
+                    {item.daysRemaining} days left
+                  </Text>
                 </View>
               )}
             </View>
@@ -362,7 +408,11 @@ const StudyPlanListScreen = () => {
             onPress={() => confirmDelete(item.id)}
             activeOpacity={0.7}
           >
-            <Ionicons name="trash-outline" size={20} color={DESIGN_TOKENS.colors.error} />
+            <Ionicons
+              name="trash-outline"
+              size={20}
+              color={DESIGN_TOKENS.colors.error}
+            />
           </TouchableOpacity>
         </LinearGradient>
       </TouchableOpacity>
@@ -375,7 +425,10 @@ const StudyPlanListScreen = () => {
       colors={DESIGN_TOKENS.colors.gradients.study}
       style={styles.header}
     >
-      <StatusBar barStyle="light-content" backgroundColor={DESIGN_TOKENS.colors.primary} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={DESIGN_TOKENS.colors.primary}
+      />
       <View style={styles.headerContent}>
         <View style={styles.headerTop}>
           <TouchableOpacity
@@ -403,34 +456,43 @@ const StudyPlanListScreen = () => {
   const renderFilterTabs = () => (
     <View style={styles.filtersContainer}>
       {['all', 'active', 'completed'].map((filter) => {
-        const count = filter === 'all' ? studyPlans.length : 
-                     filter === 'active' ? studyPlans.filter(p => p.status === 'active').length :
-                     studyPlans.filter(p => p.status === 'completed').length;
-                     
+        const count =
+          filter === 'all'
+            ? studyPlans.length
+            : filter === 'active'
+              ? studyPlans.filter((p) => p.status === 'active').length
+              : studyPlans.filter((p) => p.status === 'completed').length;
+
         return (
           <TouchableOpacity
             key={filter}
             style={[
               styles.filterTab,
-              activeFilter === filter && styles.activeFilterTab
+              activeFilter === filter && styles.activeFilterTab,
             ]}
             onPress={() => setActiveFilter(filter)}
             activeOpacity={0.7}
           >
-            <Text style={[
-              styles.filterText,
-              activeFilter === filter && styles.activeFilterText
-            ]}>
+            <Text
+              style={[
+                styles.filterText,
+                activeFilter === filter && styles.activeFilterText,
+              ]}
+            >
               {filter.charAt(0).toUpperCase() + filter.slice(1)}
             </Text>
-            <View style={[
-              styles.filterBadge,
-              activeFilter === filter && styles.activeFilterBadge
-            ]}>
-              <Text style={[
-                styles.filterBadgeText,
-                activeFilter === filter && styles.activeFilterBadgeText
-              ]}>
+            <View
+              style={[
+                styles.filterBadge,
+                activeFilter === filter && styles.activeFilterBadge,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterBadgeText,
+                  activeFilter === filter && styles.activeFilterBadgeText,
+                ]}
+              >
                 {count}
               </Text>
             </View>
@@ -450,16 +512,18 @@ const StudyPlanListScreen = () => {
         <MaterialCommunityIcons name="book-outline" size={48} color="#FFFFFF" />
       </LinearGradient>
       <Text style={styles.emptyTitle}>
-        {activeFilter === 'all' ? 'No Study Plans Yet' :
-         activeFilter === 'active' ? 'No Active Plans' :
-         'No Completed Plans'}
+        {activeFilter === 'all'
+          ? 'No Study Plans Yet'
+          : activeFilter === 'active'
+            ? 'No Active Plans'
+            : 'No Completed Plans'}
       </Text>
       <Text style={styles.emptySubtitle}>
-        {activeFilter === 'all' ? 
-          'Create your first study plan to get started on your learning journey!' :
-          activeFilter === 'active' ? 
-          'Start a new study plan to begin your learning journey!' :
-          'Complete some study plans to see them here!'}
+        {activeFilter === 'all'
+          ? 'Create your first study plan to get started on your learning journey!'
+          : activeFilter === 'active'
+            ? 'Start a new study plan to begin your learning journey!'
+            : 'Complete some study plans to see them here!'}
       </Text>
       {activeFilter !== 'completed' && (
         <TouchableOpacity
@@ -471,7 +535,12 @@ const StudyPlanListScreen = () => {
             colors={DESIGN_TOKENS.colors.gradients.study}
             style={styles.emptyActionGradient}
           >
-            <Ionicons name="add" size={20} color="#FFFFFF" style={styles.emptyActionIcon} />
+            <Ionicons
+              name="add"
+              size={20}
+              color="#FFFFFF"
+              style={styles.emptyActionIcon}
+            />
             <Text style={styles.emptyActionText}>Create Study Plan</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -496,7 +565,7 @@ const StudyPlanListScreen = () => {
   return (
     <View style={styles.container}>
       {renderHeader()}
-      
+
       <View style={styles.content}>
         {renderFilterTabs()}
 
@@ -543,7 +612,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: DESIGN_TOKENS.colors.background,
   },
-  
+
   // Loading States
   loadingContainer: {
     flex: 1,

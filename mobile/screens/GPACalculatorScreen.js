@@ -1,5 +1,12 @@
 import React from 'react';
-import { View, StyleSheet, SafeAreaView, Text, Platform, StatusBar } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  SafeAreaView,
+  Text,
+  Platform,
+  StatusBar,
+} from 'react-native';
 import GPACalculator from '../components/GPACalculator'; // Assuming GPACalculator is in components
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -24,7 +31,10 @@ const SPACING = {
 const GPACalculatorScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={STATIC_COLORS.primaryDark} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={STATIC_COLORS.primaryDark}
+      />
       <LinearGradient
         colors={[STATIC_COLORS.primary, STATIC_COLORS.primaryDark]}
         style={styles.header}

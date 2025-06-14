@@ -1,6 +1,16 @@
 // filepath: c:\\Users\\USER\\Desktop\\SuperStudentAI\\mobile\\screens\\AIOutlineGeneratorScreen.js
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  SafeAreaView,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { firestore, auth } from '../config/firebase'; // Assuming you might want to save generated outlines or associate with user
 
@@ -24,11 +34,25 @@ const STATIC_COLORS = {
 
 const TYPOGRAPHY = {
   h1: { fontSize: 28, fontWeight: 'bold', color: STATIC_COLORS.primaryDark },
-  h2: { fontSize: 24, fontWeight: 'bold', color: STATIC_COLORS.text, marginBottom: 16 },
-  h3: { fontSize: 20, fontWeight: '600', color: STATIC_COLORS.primary, marginBottom: 8 },
+  h2: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: STATIC_COLORS.text,
+    marginBottom: 16,
+  },
+  h3: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: STATIC_COLORS.primary,
+    marginBottom: 8,
+  },
   body: { fontSize: 16, color: STATIC_COLORS.textSecondary, lineHeight: 24 },
   caption: { fontSize: 14, color: STATIC_COLORS.textMuted },
-  button: { fontSize: 16, fontWeight: 'bold', color: STATIC_COLORS.textOnPrimary },
+  button: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: STATIC_COLORS.textOnPrimary,
+  },
 };
 
 const SPACING = {
@@ -67,7 +91,9 @@ const AIOutlineGeneratorScreen = ({ navigation }) => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`,
+        );
       }
 
       const data = await response.json();
@@ -80,15 +106,21 @@ const AIOutlineGeneratorScreen = ({ navigation }) => {
       }
     } catch (err) {
       setIsLoading(false);
-      console.error("Error generating outline:", err);
-      setError(err.message || "An unexpected error occurred while generating the outline.");
+      console.error('Error generating outline:', err);
+      setError(
+        err.message ||
+          'An unexpected error occurred while generating the outline.',
+      );
       return `Failed to generate outline: ${err.message}`;
     }
   };
 
   const handleGenerateOutline = async () => {
     if (!topic.trim()) {
-      Alert.alert("Input Required", "Please enter a topic or a brief description for your outline.");
+      Alert.alert(
+        'Input Required',
+        'Please enter a topic or a brief description for your outline.',
+      );
       return;
     }
     const generatedOutline = await generateOutlineWithAI(topic);
@@ -99,8 +131,15 @@ const AIOutlineGeneratorScreen = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={28} color={STATIC_COLORS.primary} />
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={28}
+              color={STATIC_COLORS.primary}
+            />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>AI Outline Generator</Text>
         </View>
@@ -114,9 +153,16 @@ const AIOutlineGeneratorScreen = ({ navigation }) => {
             onChangeText={setTopic}
             multiline
           />
-          <TouchableOpacity style={styles.generateButton} onPress={handleGenerateOutline} disabled={isLoading}>
+          <TouchableOpacity
+            style={styles.generateButton}
+            onPress={handleGenerateOutline}
+            disabled={isLoading}
+          >
             {isLoading ? (
-              <ActivityIndicator size="small" color={STATIC_COLORS.textOnPrimary} />
+              <ActivityIndicator
+                size="small"
+                color={STATIC_COLORS.textOnPrimary}
+              />
             ) : (
               <Text style={styles.generateButtonText}>Generate Outline</Text>
             )}
@@ -132,13 +178,20 @@ const AIOutlineGeneratorScreen = ({ navigation }) => {
         {outline ? (
           <View style={styles.outlineContainer}>
             <Text style={styles.outlineHeader}>Generated Outline:</Text>
-            <ScrollView style={styles.outlineScrollView} nestedScrollEnabled={true}>
-                <Text style={styles.outlineText}>{outline}</Text>
+            <ScrollView
+              style={styles.outlineScrollView}
+              nestedScrollEnabled={true}
+            >
+              <Text style={styles.outlineText}>{outline}</Text>
             </ScrollView>
             {/* Add options to copy, save, or refine outline later */}
           </View>
         ) : (
-          !isLoading && <Text style={styles.placeholderText}>Your generated outline will appear here.</Text>
+          !isLoading && (
+            <Text style={styles.placeholderText}>
+              Your generated outline will appear here.
+            </Text>
+          )
         )}
       </ScrollView>
     </SafeAreaView>
@@ -208,7 +261,8 @@ const styles = StyleSheet.create({
   generateButtonText: {
     ...TYPOGRAPHY.button,
   },
-  errorContainer: { // Added error container style
+  errorContainer: {
+    // Added error container style
     backgroundColor: '#FFEBEE', // Light red
     borderRadius: 8,
     padding: SPACING.md,
@@ -216,7 +270,8 @@ const styles = StyleSheet.create({
     borderColor: STATIC_COLORS.danger,
     borderWidth: 1,
   },
-  errorText: { // Added error text style
+  errorText: {
+    // Added error text style
     color: STATIC_COLORS.danger,
     fontSize: 15,
     textAlign: 'center',

@@ -43,7 +43,8 @@ const BottomTabNavigator = () => {
           paddingBottom: Platform.OS === 'ios' ? 30 : 5, // Padding for notch/home indicator
           paddingTop: 5,
         },
-        tabBarLabel: ({ focused, color }) => { // Changed from tabBarLabelStyle to tabBarLabel function
+        tabBarLabel: ({ focused, color }) => {
+          // Changed from tabBarLabelStyle to tabBarLabel function
           let label;
           if (route.name === 'Dashboard') {
             label = 'Home';
@@ -53,12 +54,24 @@ const BottomTabNavigator = () => {
             label = 'Wellbeing';
           } else if (route.name === 'Finance') {
             label = 'Finances';
-          } else if (route.name === 'AI') { // Added AI label
+          } else if (route.name === 'AI') {
+            // Added AI label
             label = 'AI Chat';
           } else if (route.name === 'SettingsTab') {
             label = 'Settings';
           }
-          return <Text style={{ color, fontFamily: defaultFallbackFonts.medium, fontSize: 10, marginBottom: Platform.OS === 'ios' ? -5 : 0 }}>{label}</Text>;
+          return (
+            <Text
+              style={{
+                color,
+                fontFamily: defaultFallbackFonts.medium,
+                fontSize: 10,
+                marginBottom: Platform.OS === 'ios' ? -5 : 0,
+              }}
+            >
+              {label}
+            </Text>
+          );
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
@@ -67,16 +80,18 @@ const BottomTabNavigator = () => {
           if (route.name === 'Dashboard') {
             iconName = focused ? 'home-sharp' : 'home-outline';
           } else if (route.name === 'Study') {
-            iconName = focused ? 'library-sharp' : 'library-outline'; 
+            iconName = focused ? 'library-sharp' : 'library-outline';
           } else if (route.name === 'Focus') {
             iconName = focused ? 'hourglass-sharp' : 'hourglass-outline'; // Changed icon for Focus
           } else if (route.name === 'AI') {
-            iconName = focused ? 'sparkles-sharp' : 'sparkles-outline'; 
-          } else if (route.name === 'Wellbeing') { // Added Wellbeing Tab
+            iconName = focused ? 'sparkles-sharp' : 'sparkles-outline';
+          } else if (route.name === 'Wellbeing') {
+            // Added Wellbeing Tab
             iconName = focused ? 'heart-sharp' : 'heart-outline';
-          } else if (route.name === 'Finance') { // Added Finance Tab
+          } else if (route.name === 'Finance') {
+            // Added Finance Tab
             iconName = focused ? 'cash-sharp' : 'cash-outline';
-          } else if (route.name === 'SettingsTab') { 
+          } else if (route.name === 'SettingsTab') {
             iconName = focused ? 'settings-sharp' : 'settings-outline';
           }
           return <Ionicons name={iconName} size={iconSize} color={color} />;
@@ -90,7 +105,7 @@ const BottomTabNavigator = () => {
       />
       <Tab.Screen
         name="Study"
-        component={StudyScreen} 
+        component={StudyScreen}
         // options={{ title: 'Study Hub' }} // Title is now handled by tabBarLabel
       />
       <Tab.Screen // Added Wellbeing Tab
@@ -108,8 +123,8 @@ const BottomTabNavigator = () => {
         component={AIScreen}
       />
       <Tab.Screen
-        name="SettingsTab" 
-        component={AppSettingsScreen} 
+        name="SettingsTab"
+        component={AppSettingsScreen}
         // options={{ title: 'Settings' }} // Title is now handled by tabBarLabel
       />
     </Tab.Navigator>

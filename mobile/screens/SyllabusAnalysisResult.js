@@ -65,23 +65,33 @@ const SyllabusAnalysisResultScreen = ({ route, navigation }) => {
         setLoading(false);
         return;
       }
-      if (!user || !user.uid) { // Check for user and user.uid
+      if (!user || !user.uid) {
+        // Check for user and user.uid
         setError('User not authenticated. Please login again.');
         setLoading(false);
         // Optionally navigate to login screen
-        // navigation.navigate('Login'); 
+        // navigation.navigate('Login');
         return;
       }
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${backendUrl}/file/syllabus-analysis/${analysisId}?userId=${user.uid}`); // Use actual user.uid
-        
+        const response = await fetch(
+          `${backendUrl}/file/syllabus-analysis/${analysisId}?userId=${user.uid}`,
+        ); // Use actual user.uid
+
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Failed to fetch analysis results. Server returned an error.' }));
-          throw new Error(errorData.message || `Server error: ${response.status}`);
+          const errorData = await response
+            .json()
+            .catch(() => ({
+              message:
+                'Failed to fetch analysis results. Server returned an error.',
+            }));
+          throw new Error(
+            errorData.message || `Server error: ${response.status}`,
+          );
         }
-        
+
         const data = await response.json();
         setAnalysisData(data);
       } catch (e) {
@@ -101,30 +111,45 @@ const SyllabusAnalysisResultScreen = ({ route, navigation }) => {
     // or 'expo-calendar' and handle permissions.
     const eventDetails = `Event: ${event.topic}\nDate: ${new Date(event.date).toLocaleDateString()}\nDescription: ${event.description || 'N/A'}`;
     Share.share({
-        title: `Add to Calendar: ${event.topic}`,
-        message: eventDetails,
-    }).catch(shareError => console.log('Share error:', shareError));
+      title: `Add to Calendar: ${event.topic}`,
+      message: eventDetails,
+    }).catch((shareError) => console.log('Share error:', shareError));
 
     Alert.alert(
-      "Add to Calendar",
+      'Add to Calendar',
       `Would you like to add "${event.topic}" on ${new Date(event.date).toLocaleDateString()} to your calendar? (Feature coming soon)`,
-      [{ text: "OK" }]
+      [{ text: 'OK' }],
     );
   };
-  
+
   const renderEventCard = (event, index) => (
     <View key={index} style={styles.eventCard}>
       <View style={styles.eventDateBadge}>
-        <Text style={styles.eventDateBadgeDay}>{new Date(event.date).getDate()}</Text>
-        <Text style={styles.eventDateBadgeMonth}>{new Date(event.date).toLocaleString('default', { month: 'short' }).toUpperCase()}</Text>
+        <Text style={styles.eventDateBadgeDay}>
+          {new Date(event.date).getDate()}
+        </Text>
+        <Text style={styles.eventDateBadgeMonth}>
+          {new Date(event.date)
+            .toLocaleString('default', { month: 'short' })
+            .toUpperCase()}
+        </Text>
       </View>
       <View style={styles.eventDetails}>
         <Text style={styles.eventTitle}>{event.topic || 'Untitled Event'}</Text>
-        <Text style={styles.eventDescription}>{event.description || 'No description available.'}</Text>
+        <Text style={styles.eventDescription}>
+          {event.description || 'No description available.'}
+        </Text>
         {event.type && <Text style={styles.eventType}>Type: {event.type}</Text>}
       </View>
-      <TouchableOpacity onPress={() => handleAddToCalendar(event)} style={styles.addToCalendarButton}>
-        <Ionicons name="calendar-outline" size={24} color={STATIC_COLORS.primary} />
+      <TouchableOpacity
+        onPress={() => handleAddToCalendar(event)}
+        style={styles.addToCalendarButton}
+      >
+        <Ionicons
+          name="calendar-outline"
+          size={24}
+          color={STATIC_COLORS.primary}
+        />
       </TouchableOpacity>
     </View>
   );
@@ -133,7 +158,9 @@ const SyllabusAnalysisResultScreen = ({ route, navigation }) => {
     return (
       <View style={styles.centeredLoader}>
         <ActivityIndicator size="large" color={STATIC_COLORS.primary} />
-        <Text style={styles.loadingText}>Analyzing syllabus: {fileName || 'your file'}...</Text>
+        <Text style={styles.loadingText}>
+          Analyzing syllabus: {fileName || 'your file'}...
+        </Text>
       </View>
     );
   }
@@ -141,26 +168,45 @@ const SyllabusAnalysisResultScreen = ({ route, navigation }) => {
   if (error) {
     return (
       <View style={styles.centeredMessage}>
-        <Ionicons name="alert-circle-outline" size={60} color={STATIC_COLORS.error} />
+        <Ionicons
+          name="alert-circle-outline"
+          size={60}
+          color={STATIC_COLORS.error}
+        />
         <Text style={styles.errorTitle}>Analysis Failed</Text>
         <Text style={styles.errorMessage}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => navigation.goBack()}
+        >
           <Text style={styles.retryButtonText}>Go Back & Try Again</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  if (!analysisData || !analysisData.extractedEvents || analysisData.extractedEvents.length === 0) {
+  if (
+    !analysisData ||
+    !analysisData.extractedEvents ||
+    analysisData.extractedEvents.length === 0
+  ) {
     return (
       <View style={styles.centeredMessage}>
-        <Ionicons name="information-circle-outline" size={60} color={STATIC_COLORS.info} />
+        <Ionicons
+          name="information-circle-outline"
+          size={60}
+          color={STATIC_COLORS.info}
+        />
         <Text style={styles.errorTitle}>No Events Found</Text>
         <Text style={styles.errorMessage}>
-          We couldn't find any specific events or key dates in "{fileName}". 
-          The syllabus might be in a format we couldn't fully process, or it might not contain explicit dates.
+          We couldn't find any specific events or key dates in "{fileName}". The
+          syllabus might be in a format we couldn't fully process, or it might
+          not contain explicit dates.
         </Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => navigation.goBack()}
+        >
           <Text style={styles.retryButtonText}>Upload a Different File</Text>
         </TouchableOpacity>
       </View>
@@ -170,39 +216,81 @@ const SyllabusAnalysisResultScreen = ({ route, navigation }) => {
   return (
     <ScrollView style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back-outline" size={28} color={STATIC_COLORS.primary} />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Ionicons
+            name="arrow-back-outline"
+            size={28}
+            color={STATIC_COLORS.primary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
           Analysis: {fileName || 'Syllabus Results'}
         </Text>
         {/* Add a refresh button to allow refetching data */}
-        <TouchableOpacity onPress={fetchAnalysisData} style={styles.refreshButton}>
-            <Ionicons name="refresh-outline" size={24} color={STATIC_COLORS.primary} />
+        <TouchableOpacity
+          onPress={fetchAnalysisData}
+          style={styles.refreshButton}
+        >
+          <Ionicons
+            name="refresh-outline"
+            size={24}
+            color={STATIC_COLORS.primary}
+          />
         </TouchableOpacity>
       </View>
 
       <View style={styles.contentContainer}>
         <Text style={styles.sectionTitle}>Extracted Key Dates & Topics</Text>
         <Text style={styles.sectionSubtitle}>
-          Found {analysisData.extractedEvents.length} event(s) in your syllabus. Review and add them to your calendar.
+          Found {analysisData.extractedEvents.length} event(s) in your syllabus.
+          Review and add them to your calendar.
         </Text>
-        
+
         {analysisData.extractedEvents.map(renderEventCard)}
 
         {/* Placeholder for summary or further actions */}
         <View style={styles.summarySection}>
-            <Text style={styles.summaryTitle}>What's Next?</Text>
-            <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert("Coming Soon!", "This feature will be available shortly.")}>
-                <Ionicons name="add-circle-outline" size={22} color={STATIC_COLORS.textOnPrimary} style={{marginRight: SPACING.sm}} />
-                <Text style={styles.actionButtonText}>Create Study Plan from Events</Text>
-            </TouchableOpacity>
-             <TouchableOpacity 
-                style={[styles.actionButton, {backgroundColor: STATIC_COLORS.secondary, marginTop: SPACING.sm}]} 
-                onPress={() => navigation.navigate('Study')}>
-                <Ionicons name="arrow-back-circle-outline" size={22} color={STATIC_COLORS.textOnPrimary} style={{marginRight: SPACING.sm}} />
-                <Text style={styles.actionButtonText}>Back to Study Hub</Text>
-            </TouchableOpacity>
+          <Text style={styles.summaryTitle}>What's Next?</Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() =>
+              Alert.alert(
+                'Coming Soon!',
+                'This feature will be available shortly.',
+              )
+            }
+          >
+            <Ionicons
+              name="add-circle-outline"
+              size={22}
+              color={STATIC_COLORS.textOnPrimary}
+              style={{ marginRight: SPACING.sm }}
+            />
+            <Text style={styles.actionButtonText}>
+              Create Study Plan from Events
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: STATIC_COLORS.secondary,
+                marginTop: SPACING.sm,
+              },
+            ]}
+            onPress={() => navigation.navigate('Study')}
+          >
+            <Ionicons
+              name="arrow-back-circle-outline"
+              size={22}
+              color={STATIC_COLORS.textOnPrimary}
+              style={{ marginRight: SPACING.sm }}
+            />
+            <Text style={styles.actionButtonText}>Back to Study Hub</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
@@ -235,7 +323,8 @@ const styles = StyleSheet.create({
     textAlign: 'center', // Center the title
     marginHorizontal: SPACING.sm, // Add some margin if title is too close to buttons
   },
-  refreshButton: { // Style for the refresh button
+  refreshButton: {
+    // Style for the refresh button
     padding: SPACING.xs,
   },
   centeredLoader: {

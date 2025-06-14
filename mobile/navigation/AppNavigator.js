@@ -62,28 +62,78 @@ const AppNavigator = ({ user }) => {
       <RootStackNav.Screen name="Profile" component={ProfileScreen} />
       <RootStackNav.Screen name="ProfileEdit" component={ProfileEditScreen} />
       <RootStackNav.Screen name="FileUpload" component={FileUploadScreen} />
-      <RootStackNav.Screen name="SpacedRepetitionScreen" component={SpacedRepetitionScreen} />
-      <RootStackNav.Screen name="SyllabusAnalysisResult" component={SyllabusAnalysisResultScreen} options={{ headerShown: true, title: 'Syllabus Analysis' }} /> 
+      <RootStackNav.Screen
+        name="SpacedRepetitionScreen"
+        component={SpacedRepetitionScreen}
+      />
+      <RootStackNav.Screen
+        name="SyllabusAnalysisResult"
+        component={SyllabusAnalysisResultScreen}
+        options={{ headerShown: true, title: 'Syllabus Analysis' }}
+      />
       <RootStackNav.Screen name="TaskManager" component={TaskManagerScreen} />
       <RootStackNav.Screen name="AddTask" component={AddTaskScreen} />
       <RootStackNav.Screen name="FocusTimer" component={FocusTimerScreen} />
       <RootStackNav.Screen name="Analytics" component={AnalyticsScreen} />
-      <RootStackNav.Screen name="CreateStudyPlan" component={CreateStudyPlanScreen} /> 
-      <RootStackNav.Screen name="StudyPlanDetail" component={StudyPlanDetailScreen} />
+      <RootStackNav.Screen
+        name="CreateStudyPlan"
+        component={CreateStudyPlanScreen}
+      />
+      <RootStackNav.Screen
+        name="StudyPlanDetail"
+        component={StudyPlanDetailScreen}
+      />
       <RootStackNav.Screen name="AddStudyTask" component={AddStudyTaskScreen} />
-      <RootStackNav.Screen name="AddSpacedRepetitionItem" component={AddSpacedRepetitionItemScreen} />
-      <RootStackNav.Screen name="GPACalculatorScreen" component={GPACalculatorScreen} />
-      <RootStackNav.Screen name="WritingAssistant" component={WritingAssistantScreen} />
-      <RootStackNav.Screen name="GuidedBreathing" component={GuidedBreathingScreen} />
+      <RootStackNav.Screen
+        name="AddSpacedRepetitionItem"
+        component={AddSpacedRepetitionItemScreen}
+      />
+      <RootStackNav.Screen
+        name="GPACalculatorScreen"
+        component={GPACalculatorScreen}
+      />
+      <RootStackNav.Screen
+        name="WritingAssistant"
+        component={WritingAssistantScreen}
+      />
+      <RootStackNav.Screen
+        name="GuidedBreathing"
+        component={GuidedBreathingScreen}
+      />
       <RootStackNav.Screen name="Meditation" component={MeditationScreen} />
-      <RootStackNav.Screen name="ActivityTracking" component={ActivityTrackingScreen} />
-      <RootStackNav.Screen name="SleepTracking" component={SleepTrackingScreen} />
+      <RootStackNav.Screen
+        name="ActivityTracking"
+        component={ActivityTrackingScreen}
+      />
+      <RootStackNav.Screen
+        name="SleepTracking"
+        component={SleepTrackingScreen}
+      />
       <RootStackNav.Screen name="Study" component={StudyScreen} />
-      <RootStackNav.Screen name="ResearchOrganization" component={ResearchOrganizationScreen} options={{ headerShown: true, title: 'Research Organization' }} />
+      <RootStackNav.Screen
+        name="ResearchOrganization"
+        component={ResearchOrganizationScreen}
+        options={{ headerShown: true, title: 'Research Organization' }}
+      />
       <RootStackNav.Screen name="Wellbeing" component={WellbeingScreen} />
-      <RootStackNav.Screen name="ProjectDetails" component={ProjectDetailsScreen} options={({ route }) => ({ title: route.params.projectTitle || 'Project Details', headerShown: true })} />
-      <RootStackNav.Screen name="AIOutlineGenerator" component={AIOutlineGeneratorScreen} options={{ headerShown: true, title: 'AI Outline Generator' }} />
-      <RootStackNav.Screen name="PlagiarismChecker" component={PlagiarismCheckerScreen} options={{ headerShown: true, title: 'Plagiarism Checker' }} />
+      <RootStackNav.Screen
+        name="ProjectDetails"
+        component={ProjectDetailsScreen}
+        options={({ route }) => ({
+          title: route.params.projectTitle || 'Project Details',
+          headerShown: true,
+        })}
+      />
+      <RootStackNav.Screen
+        name="AIOutlineGenerator"
+        component={AIOutlineGeneratorScreen}
+        options={{ headerShown: true, title: 'AI Outline Generator' }}
+      />
+      <RootStackNav.Screen
+        name="PlagiarismChecker"
+        component={PlagiarismCheckerScreen}
+        options={{ headerShown: true, title: 'Plagiarism Checker' }}
+      />
     </RootStackNav.Navigator>
   );
 };

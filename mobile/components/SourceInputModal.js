@@ -1,11 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { STATIC_COLORS } from '../config/appConfig'; // Adjust path as necessary
 // If you have a Picker component, import it here. Otherwise, we'll use a simple TextInput for type for now.
 // import { Picker } from '@react-native-picker/picker';
 
-const SourceInputModal = ({ isVisible, onClose, onSave, projectTitle, initialSource }) => {
+const SourceInputModal = ({
+  isVisible,
+  onClose,
+  onSave,
+  projectTitle,
+  initialSource,
+}) => {
   const colors = STATIC_COLORS;
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
@@ -13,7 +29,7 @@ const SourceInputModal = ({ isVisible, onClose, onSave, projectTitle, initialSou
   const [sourceType, setSourceType] = useState(''); // e.g., Website, Book, Journal Article
   const [notes, setNotes] = useState('');
 
-  const sourceTypes = ["Website", "Book", "Journal Article", "Report", "Other"]; // Example types
+  const sourceTypes = ['Website', 'Book', 'Journal Article', 'Report', 'Other']; // Example types
 
   useEffect(() => {
     if (initialSource) {
@@ -129,10 +145,10 @@ const SourceInputModal = ({ isVisible, onClose, onSave, projectTitle, initialSou
       backgroundColor: colors.inputBackground || colors.lightGray,
     },
     picker: {
-      height: 50, 
+      height: 50,
       width: '100%',
       color: colors.text,
-    }
+    },
   });
 
   return (
@@ -142,21 +158,32 @@ const SourceInputModal = ({ isVisible, onClose, onSave, projectTitle, initialSou
       animationType="slide"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.modalOverlay}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle} numberOfLines={1} ellipsizeMode="tail">
+            <Text
+              style={styles.modalTitle}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {initialSource ? 'Edit Source' : 'Add New Source'}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close-circle-outline" size={28} color={colors.textLight} />
+              <Ionicons
+                name="close-circle-outline"
+                size={28}
+                color={colors.textLight}
+              />
             </TouchableOpacity>
           </View>
-          
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollViewContent}>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollViewContent}
+          >
             <Text style={styles.inputLabel}>Title*</Text>
             <TextInput
               style={styles.input}
@@ -185,7 +212,7 @@ const SourceInputModal = ({ isVisible, onClose, onSave, projectTitle, initialSou
               onChangeText={setUrl}
               keyboardType="url"
             />
-            
+
             <Text style={styles.inputLabel}>Type of Source</Text>
             {/* Basic TextInput for type. For a better UX, replace with a Picker */}
             <TextInput
@@ -223,8 +250,18 @@ const SourceInputModal = ({ isVisible, onClose, onSave, projectTitle, initialSou
           </ScrollView>
 
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Ionicons name={initialSource ? "checkmark-circle-outline" : "add-circle-outline"} size={22} color={colors.white} />
-            <Text style={styles.saveButtonText}>{initialSource ? 'Update Source' : 'Save Source'}</Text>
+            <Ionicons
+              name={
+                initialSource
+                  ? 'checkmark-circle-outline'
+                  : 'add-circle-outline'
+              }
+              size={22}
+              color={colors.white}
+            />
+            <Text style={styles.saveButtonText}>
+              {initialSource ? 'Update Source' : 'Save Source'}
+            </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

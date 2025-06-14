@@ -98,11 +98,11 @@ const FocusTimerScreen = ({ navigation }) => {
     const loadSound = async () => {
       try {
         const { sound } = await Audio.Sound.createAsync(
-           require('../assets/notification.mp3') // Ensure you have a notification sound file here
+          require('../assets/notification.mp3'), // Ensure you have a notification sound file here
         );
         setSound(sound);
       } catch (error) {
-        console.error("Failed to load sound", error);
+        console.error('Failed to load sound', error);
         // Optionally, inform the user that sound notifications won't work
         // Alert.alert("Sound Error", "Could not load notification sound.");
       }
@@ -122,7 +122,7 @@ const FocusTimerScreen = ({ navigation }) => {
       try {
         await sound.replayAsync(); // Replay the sound from the beginning
       } catch (error) {
-        console.error("Failed to play sound", error);
+        console.error('Failed to play sound', error);
       }
     }
   };
@@ -170,12 +170,14 @@ const FocusTimerScreen = ({ navigation }) => {
     // For example, if switching to Focus mode, set timer to WORK_DURATION
     // If switching to Break mode, set timer to SHORT_BREAK_DURATION
     // This is a basic toggle, you might want more sophisticated logic
-    if (!isFocusMode) { // If current mode is break, switch to focus
-        setSessionType('Work');
-        setTimeLeft(WORK_DURATION);
-    } else { // If current mode is focus, switch to short break
-        setSessionType('Short Break');
-        setTimeLeft(SHORT_BREAK_DURATION);
+    if (!isFocusMode) {
+      // If current mode is break, switch to focus
+      setSessionType('Work');
+      setTimeLeft(WORK_DURATION);
+    } else {
+      // If current mode is focus, switch to short break
+      setSessionType('Short Break');
+      setTimeLeft(SHORT_BREAK_DURATION);
     }
     setIsActive(false); // Pause timer on mode switch
   };
@@ -208,7 +210,7 @@ const FocusTimerScreen = ({ navigation }) => {
           {!isActive &&
             timeLeft > 0 && ( // Show next session type when paused or ready to start
               <Text style={styles.nextSessionText}>
-                Next: {getNextSessionType()} 
+                Next: {getNextSessionType()}
               </Text>
             )}
         </View>
@@ -258,7 +260,8 @@ const FocusTimerScreen = ({ navigation }) => {
       </View>
       <TouchableOpacity style={styles.modeButton} onPress={toggleModeManual}>
         <Text style={styles.modeButtonText}>
-          Switch to {isFocusMode ? 'Break' : 'Focus'} {/* Ensure isFocusMode and toggleModeManual are defined if this button is kept */}
+          Switch to {isFocusMode ? 'Break' : 'Focus'}{' '}
+          {/* Ensure isFocusMode and toggleModeManual are defined if this button is kept */}
         </Text>
       </TouchableOpacity>
     </View>

@@ -12,7 +12,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  doc,
+  updateDoc,
+  deleteDoc,
+} from 'firebase/firestore';
 import { db as firestoreDb } from '../config/firebase'; // Assuming firestoreDb is your initialized Firestore instance
 
 // Define STATIC_COLORS and SPACING for consistent styling (should be from a global theme ideally)
@@ -60,7 +69,7 @@ const TaskManagerScreen = ({ navigation }) => {
 
   const fetchTasks = useCallback(() => {
     if (!user) {
-      setError("User not authenticated. Please login.");
+      setError('User not authenticated. Please login.');
       setLoading(false);
       setRefreshing(false);
       return null;
@@ -73,7 +82,7 @@ const TaskManagerScreen = ({ navigation }) => {
     const q = query(
       tasksCollection,
       where('userId', '==', user.uid),
-      orderBy('dueDate', 'asc') // Sort by due date
+      orderBy('dueDate', 'asc'), // Sort by due date
     );
 
     const unsubscribe = onSnapshot(
@@ -88,11 +97,11 @@ const TaskManagerScreen = ({ navigation }) => {
         setRefreshing(false);
       },
       (err) => {
-        console.error("Error fetching tasks: ", err);
-        setError("Failed to fetch tasks. " + err.message);
+        console.error('Error fetching tasks: ', err);
+        setError('Failed to fetch tasks. ' + err.message);
         setLoading(false);
         setRefreshing(false);
-      }
+      },
     );
     return unsubscribe; // Return the unsubscribe function to be called on unmount
   }, [user]);
@@ -110,7 +119,7 @@ const TaskManagerScreen = ({ navigation }) => {
     setRefreshing(true);
     fetchTasks(); // This will reset loading and refreshing states internally
   };
-  
+
   const toggleTaskStatus = async (task) => {
     if (!user) return;
     const taskRef = doc(firestoreDb, 'tasks', task.id);
@@ -122,32 +131,28 @@ const TaskManagerScreen = ({ navigation }) => {
       });
       // Optimistic update or rely on onSnapshot
     } catch (e) {
-      Alert.alert("Error", "Could not update task status: " + e.message);
+      Alert.alert('Error', 'Could not update task status: ' + e.message);
     }
   };
 
   const handleDeleteTask = (taskId) => {
-    Alert.alert(
-      "Delete Task",
-      "Are you sure you want to delete this task?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            if (!user) return;
-            const taskRef = doc(firestoreDb, 'tasks', taskId);
-            try {
-              await deleteDoc(taskRef);
-              // Optimistic update or rely on onSnapshot
-            } catch (e) {
-              Alert.alert("Error", "Could not delete task: " + e.message);
-            }
-          },
+    Alert.alert('Delete Task', 'Are you sure you want to delete this task?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          if (!user) return;
+          const taskRef = doc(firestoreDb, 'tasks', taskId);
+          try {
+            await deleteDoc(taskRef);
+            // Optimistic update or rely on onSnapshot
+          } catch (e) {
+            Alert.alert('Error', 'Could not delete task: ' + e.message);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const getPriorityColor = (priority) => {
@@ -164,36 +169,82 @@ const TaskManagerScreen = ({ navigation }) => {
   };
 
   const renderTaskItem = ({ item }) => (
-    <View style={[styles.taskItem, item.status === 'completed' && styles.completedTaskItem]}>
-      <TouchableOpacity onPress={() => toggleTaskStatus(item)} style={styles.statusIndicator}>
-        <Ionicons 
-          name={item.status === 'completed' ? 'checkmark-circle' : 'ellipse-outline'} 
-          size={26} 
-          color={item.status === 'completed' ? STATIC_COLORS.secondary : STATIC_COLORS.primary} 
+    <View
+      style={[
+        styles.taskItem,
+        item.status === 'completed' && styles.completedTaskItem,
+      ]}
+    >
+      <TouchableOpacity
+        onPress={() => toggleTaskStatus(item)}
+        style={styles.statusIndicator}
+      >
+        <Ionicons
+          name={
+            item.status === 'completed' ? 'checkmark-circle' : 'ellipse-outline'
+          }
+          size={26}
+          color={
+            item.status === 'completed'
+              ? STATIC_COLORS.secondary
+              : STATIC_COLORS.primary
+          }
         />
       </TouchableOpacity>
       <View style={styles.taskDetails}>
-        <Text style={[styles.taskTitle, item.status === 'completed' && styles.completedTaskText]}>
+        <Text
+          style={[
+            styles.taskTitle,
+            item.status === 'completed' && styles.completedTaskText,
+          ]}
+        >
           {item.title}
         </Text>
         {item.description && (
-          <Text style={[styles.taskDescription, item.status === 'completed' && styles.completedTaskText]}>
+          <Text
+            style={[
+              styles.taskDescription,
+              item.status === 'completed' && styles.completedTaskText,
+            ]}
+          >
             {item.description}
           </Text>
         )}
         <Text style={styles.taskDueDate}>
-          Due: {item.dueDate ? new Date(item.dueDate.seconds * 1000).toLocaleDateString() : 'Not set'}
+          Due:{' '}
+          {item.dueDate
+            ? new Date(item.dueDate.seconds * 1000).toLocaleDateString()
+            : 'Not set'}
         </Text>
       </View>
       <View style={styles.taskActions}>
-        <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(item.priority) }]}>
+        <View
+          style={[
+            styles.priorityBadge,
+            { backgroundColor: getPriorityColor(item.priority) },
+          ]}
+        >
           <Text style={styles.priorityText}>{item.priority || 'N/A'}</Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate('AddTask', { task: item })} style={styles.actionButton}>
-          <Ionicons name="create-outline" size={24} color={STATIC_COLORS.info} />
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AddTask', { task: item })}
+          style={styles.actionButton}
+        >
+          <Ionicons
+            name="create-outline"
+            size={24}
+            color={STATIC_COLORS.info}
+          />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDeleteTask(item.id)} style={styles.actionButton}>
-          <Ionicons name="trash-outline" size={24} color={STATIC_COLORS.error} />
+        <TouchableOpacity
+          onPress={() => handleDeleteTask(item.id)}
+          style={styles.actionButton}
+        >
+          <Ionicons
+            name="trash-outline"
+            size={24}
+            color={STATIC_COLORS.error}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -211,36 +262,63 @@ const TaskManagerScreen = ({ navigation }) => {
   if (error) {
     return (
       <View style={styles.centeredMessage}>
-        <Ionicons name="alert-circle-outline" size={60} color={STATIC_COLORS.error} />
+        <Ionicons
+          name="alert-circle-outline"
+          size={60}
+          color={STATIC_COLORS.error}
+        />
         <Text style={styles.errorTitle}>Error</Text>
         <Text style={styles.errorMessage}>{error}</Text>
-         <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
-            <Ionicons name="refresh-outline" size={20} color={STATIC_COLORS.textOnPrimary} style={{marginRight: SPACING.sm}}/>
-            <Text style={styles.retryButtonText}>Retry</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
+          <Ionicons
+            name="refresh-outline"
+            size={20}
+            color={STATIC_COLORS.textOnPrimary}
+            style={{ marginRight: SPACING.sm }}
+          />
+          <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
   }
-  
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back-outline" size={28} color={STATIC_COLORS.primary} />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Ionicons
+            name="arrow-back-outline"
+            size={28}
+            color={STATIC_COLORS.primary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Task Manager</Text>
-        <TouchableOpacity 
-            onPress={() => navigation.navigate('AddTask', { task: null })} // Pass null for new task
-            style={styles.addButton}>
-          <Ionicons name="add-circle-outline" size={32} color={STATIC_COLORS.primary} />
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AddTask', { task: null })} // Pass null for new task
+          style={styles.addButton}
+        >
+          <Ionicons
+            name="add-circle-outline"
+            size={32}
+            color={STATIC_COLORS.primary}
+          />
         </TouchableOpacity>
       </View>
 
       {tasks.length === 0 && !loading ? (
         <View style={styles.centeredMessage}>
-          <Ionicons name="file-tray-stacked-outline" size={60} color={STATIC_COLORS.textSecondary} />
+          <Ionicons
+            name="file-tray-stacked-outline"
+            size={60}
+            color={STATIC_COLORS.textSecondary}
+          />
           <Text style={styles.emptyTasksTitle}>No Tasks Yet!</Text>
-          <Text style={styles.emptyTasksSubtitle}>Tap the '+' button to add your first task.</Text>
+          <Text style={styles.emptyTasksSubtitle}>
+            Tap the '+' button to add your first task.
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -249,7 +327,11 @@ const TaskManagerScreen = ({ navigation }) => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContentContainer}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[STATIC_COLORS.primary]} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[STATIC_COLORS.primary]}
+            />
           }
         />
       )}

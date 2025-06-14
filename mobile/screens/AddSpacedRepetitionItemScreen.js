@@ -17,7 +17,8 @@ import { API_BASE_URL } from '../config/appConfig.js'; // Added .js extension
 import firebase from 'firebase/app'; // Import Firebase app
 import 'firebase/auth'; // Import Firebase auth
 
-const AddSpacedRepetitionItemScreen = ({ navigation, route }) => { // Added route
+const AddSpacedRepetitionItemScreen = ({ navigation, route }) => {
+  // Added route
   const [originalContent, setOriginalContent] = useState(''); // Renamed from front
   const [answerContent, setAnswerContent] = useState(''); // Renamed from back
   // const [deck, setDeck] = useState(''); // Optional: for categorizing items - Removing for now, can be added later if needed
@@ -44,12 +45,15 @@ const AddSpacedRepetitionItemScreen = ({ navigation, route }) => { // Added rout
           setAuthToken(token);
         } else {
           // Handle case where user is not logged in, if necessary
-          console.log("No user logged in to fetch token.");
+          console.log('No user logged in to fetch token.');
           // You might want to navigate to a login screen or show an alert
         }
       } catch (error) {
-        console.error("Error fetching auth token:", error);
-        Alert.alert("Authentication Error", "Could not fetch authentication token. Please try logging in again.");
+        console.error('Error fetching auth token:', error);
+        Alert.alert(
+          'Authentication Error',
+          'Could not fetch authentication token. Please try logging in again.',
+        );
       }
     };
 
@@ -68,7 +72,8 @@ const AddSpacedRepetitionItemScreen = ({ navigation, route }) => { // Added rout
   }, []);
 
   const handleAddItem = async () => {
-    if (!originalContent.trim() || !answerContent.trim()) { // Changed from front and back
+    if (!originalContent.trim() || !answerContent.trim()) {
+      // Changed from front and back
       Alert.alert(
         'Missing Information',
         'Please provide at least the front (original content) and back (answer content) for the item.', // Updated message
@@ -76,7 +81,10 @@ const AddSpacedRepetitionItemScreen = ({ navigation, route }) => { // Added rout
       return;
     }
     if (!authToken) {
-      Alert.alert("Authentication Error", "You are not authenticated. Please log in.");
+      Alert.alert(
+        'Authentication Error',
+        'You are not authenticated. Please log in.',
+      );
       return;
     }
     setIsLoading(true);
@@ -99,7 +107,7 @@ const AddSpacedRepetitionItemScreen = ({ navigation, route }) => { // Added rout
         `${API_BASE_URL}/api/srs/items`, // Corrected endpoint
         newItem,
         {
-          headers: { Authorization: `Bearer ${authToken}` } // Include auth token
+          headers: { Authorization: `Bearer ${authToken}` }, // Include auth token
         },
       );
 

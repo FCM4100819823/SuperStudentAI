@@ -38,7 +38,7 @@ router.post(
         originalContent,
         answerContent,
         studyPlanId, // Keep as string or undefined
-        taskId,      // Keep as string or undefined
+        taskId, // Keep as string or undefined
         source,
         tags,
       } = req.body;
@@ -50,22 +50,25 @@ router.post(
       }
 
       // Validate ObjectId strings before conversion
-      const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id);
+      const isValidObjectId = (id: string) =>
+        mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id);
 
-      const validStudyPlanId = studyPlanId && isValidObjectId(studyPlanId) 
-        ? new mongoose.Types.ObjectId(studyPlanId) 
-        : undefined;
-      
-      const validTaskId = taskId && isValidObjectId(taskId)
-        ? new mongoose.Types.ObjectId(taskId)
-        : undefined;
+      const validStudyPlanId =
+        studyPlanId && isValidObjectId(studyPlanId)
+          ? new mongoose.Types.ObjectId(studyPlanId)
+          : undefined;
+
+      const validTaskId =
+        taskId && isValidObjectId(taskId)
+          ? new mongoose.Types.ObjectId(taskId)
+          : undefined;
 
       const newItem = await addSpacedRepetitionItem(
         userId, // Pass the string userId directly
         originalContent,
         answerContent,
         validStudyPlanId, // Pass validated ObjectId or undefined
-        validTaskId,      // Pass validated ObjectId or undefined
+        validTaskId, // Pass validated ObjectId or undefined
         source,
         tags,
       );
@@ -121,12 +124,9 @@ router.put(
       const { quality } = req.body; // User's performance rating (e.g., 0-5)
 
       if (quality === undefined || quality < 0 || quality > 5) {
-        return res
-          .status(400)
-          .json({
-            message:
-              'Invalid review quality. Must be a number between 0 and 5.',
-          });
+        return res.status(400).json({
+          message: 'Invalid review quality. Must be a number between 0 and 5.',
+        });
       }
 
       const updatedItem = await reviewSpacedRepetitionItem(itemId, userId, {
