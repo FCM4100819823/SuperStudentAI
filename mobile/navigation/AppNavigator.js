@@ -28,7 +28,6 @@ import SleepTrackingScreen from '../screens/SleepTrackingScreen'; // Import Slee
 import StudyScreen from '../screens/StudyScreen';
 import SyllabusAnalysisResultScreen from '../screens/SyllabusAnalysisResult';
 import AIOutlineGeneratorScreen from '../screens/AIOutlineGeneratorScreen';
-import PlagiarismCheckerScreen from '../screens/PlagiarismCheckerScreen'; // Import PlagiarismCheckerScreen
 import ResearchOrganizationScreen from '../screens/ResearchOrganizationScreen'; // + Import ResearchOrganizationScreen
 import WellbeingScreen from '../screens/WellbeingScreen';
 import ProjectDetailsScreen from '../screens/ProjectDetailsScreen';
